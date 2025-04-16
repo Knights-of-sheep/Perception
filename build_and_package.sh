@@ -1,5 +1,6 @@
 #!/bin/bash
-
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+cd "$SCRIPT_DIR"
 # 删除旧的 build 和 output 文件夹
 rm -rf build output
 
