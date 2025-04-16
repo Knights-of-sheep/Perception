@@ -1,6 +1,11 @@
 #!/bin/bash
+# 获取脚本的绝对路径
+SCRIPT_PATH=$(realpath "$0")
+# 获取脚本所在的目录
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
-cd "$SCRIPT_DIR"
+echo "Script path: $SCRIPT_PATH"
+echo "Script directory: $SCRIPT_DIR"
+cd  $SCRIPT_DIR
 pwd
 # 删除旧的 build 和 output 文件夹
 rm -rf build output
@@ -14,6 +19,7 @@ build_and_package() {
     BUILD_SUBDIR="build/$BUILD_TYPE"
     OUTPUT_DIR="output/$BUILD_TYPE"
 
+    mkdir build
     # 创建构建子目录
     mkdir -p "$BUILD_SUBDIR"
     cd "$BUILD_SUBDIR"
