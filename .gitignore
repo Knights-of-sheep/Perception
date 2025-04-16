@@ -1,0 +1,3 @@
+# 忽略 build 和 output 文件夹
+build/
+output/
