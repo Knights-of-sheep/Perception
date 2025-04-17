@@ -31,10 +31,10 @@ build_and_package() {
     cmake ../.. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     # 编译项目
-    cmake --build .
+    cmake --build . -j32
 
     # 查找生成的可执行文件（递归搜索）
-    EXECUTABLE=$(find . -type f -name "qttest*" | head -n 1)
+    EXECUTABLE=$(find . -type f -name "strategy*" | head -n 1)
 
     if [ -z "$EXECUTABLE" ]; then
         echo "Error: Executable file not found for $BUILD_TYPE build."
