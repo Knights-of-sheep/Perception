@@ -23,7 +23,7 @@ public:
     }
 };
 
-PYBIND11_MODULE(calculator, m) {
+PYBIND11_MODULE(calculatoraaaa, m) {
     py::class_<Calculator>(m, "Calculator")
         .def(py::init<>())
         .def("add", &Calculator::add)
