@@ -36,7 +36,6 @@ build_and_package() {
     # 返回上级目录
     cd - > /dev/null
 }
-
 # 构建和打包 Release 版本
 build_and_package "Debug"
 # 构建和打包 Release 版本
