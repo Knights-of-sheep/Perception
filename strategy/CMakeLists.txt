@@ -14,4 +14,4 @@ message(STATUS "Compiling Source files: ${SRC_FILES}")
 message(STATUS "Current Compiling directory: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 # 添加可执行文件
-add_executable(strategy ${SRC_FILES})
+add_executable(${PROJECT_NAME} ${SRC_FILES})
