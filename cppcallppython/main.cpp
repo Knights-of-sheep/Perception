@@ -57,10 +57,6 @@ std::string FetchPyError() {
     return error_msg;
 }
 
-void PyStdOut(const std::string& s) {
-    std::cout << GREEN << ">>> " << RESET << s;
-}
-
 void PyStdErr(const std::string& s) {
     std::cerr << RED << "Traceback (most recent call last):\n" << s << RESET << std::endl;
 }
@@ -96,7 +92,7 @@ int main(int argc, char* argv[]) {
 
     std::string input;
     while (true) {
-        std::cout << ">>> ";
+        std::cout << CYAN << ">>> " << RESET;
         std::getline(std::cin, input);
 
         if (input == "exit") {
@@ -113,11 +109,15 @@ int main(int argc, char* argv[]) {
                 PyErr_Clear();
             }
         } else {
-            PyObject* resultStr = PyObject_Str(result);
-            if (resultStr) {
-                std::string resultString = PyObjectToStdString(resultStr);
-                PyStdOut(resultString + "\n");
-                Py_DECREF(resultStr);
+            if (!Py_IsNone(result)) { // 检查结果是否为None
+                PyObject* resultStr = PyObject_Str(result);
+                if (resultStr) {
+                    std::string resultString = PyObjectToStdString(resultStr);
+                    if (!resultString.empty()) {
+                        std::cout << RESET << resultString << std::endl; // 直接输出结果
+                    }
+                    Py_DECREF(resultStr);
+                }
             }
             Py_DECREF(result);
         }
