@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(pybind_example)
+project(calculatoraaaa)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,7 +14,7 @@ message(STATUS "Current Compiling directory: ${CMAKE_CURRENT_SOURCE_DIR}")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third-party/pybind11-2.13.6 pybind11_build)
 
 # 创建Python模块
-pybind11_add_module(calculatoraaaa SHARED ${SRC_FILES})
+pybind11_add_module(${PROJECT_NAME} SHARED ${SRC_FILES})
 
 # 设置后缀名
-set_target_properties(calculatoraaaa PROPERTIES SUFFIX ".pyd")
+set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".pyd")

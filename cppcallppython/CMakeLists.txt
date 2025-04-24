@@ -32,6 +32,6 @@ else()
 endif()
 
 # 添加可执行文件
-add_executable(cppcallppython ${SRC_FILES})
+add_executable(${PROJECT_NAME} ${SRC_FILES})
 # 链接外部库
-target_link_libraries(cppcallppython PRIVATE ${PYTHON_DLL} ${PYTHON_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PYTHON_DLL} ${PYTHON_LIBS})
