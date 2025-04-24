@@ -1,0 +1,3 @@
+[submodule "third-party/VTK-9-4-1-install"]
+	path = third-party/VTK-9-4-1-install
+	url = https://github.com/Knights-of-sheep/VTK-9-4-1-install.git
