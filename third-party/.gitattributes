@@ -1,0 +1,5 @@
+third-party/qt5.12.12/msvc2017_64/bin/*.dll filter=lfs diff=lfs merge=lfs -text
+third-party/qt5.12.12/msvc2017_64/bin/*.exe filter=lfs diff=lfs merge=lfs -text
+third-party/qt5.12.12/msvc2017_64/bin/Qt5WebEngineCore.dll filter=lfs diff=lfs merge=lfs -text
+third-party/qt5.12.12/msvc2017_64/bin/qdoc.exe filter=lfs diff=lfs merge=lfs -text
+third-party/qt5.12.12/msvc2017_64/bin/Qt5WebEngineCored.dll filter=lfs diff=lfs merge=lfs -text

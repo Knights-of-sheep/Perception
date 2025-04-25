@@ -9,7 +9,11 @@ cd  $SCRIPT_DIR
 SRC_DIR=$SCRIPT_DIR
 pwd
 # 删除旧的 build 文件夹
+<<<<<<< Updated upstream
 # rm -rf build
+=======
+rm -rf build
+>>>>>>> Stashed changes
 # rm -rf output
 
 # 构建和打包函数
@@ -32,12 +36,19 @@ build_and_package() {
     mkdir -p $OUTPUT_DIR
     cp -rf $BUILD_DIR/bin $OUTPUT_DIR
     cp -rf $BUILD_DIR/lib $OUTPUT_DIR
+    cp -rf $SCRIPT_DIR/third-party/VTK-9-4-1-install/debug/bin/*.dll $OUTPUT_DIR/bin/Debug
+    cp -rf $SCRIPT_DIR/third-party/VTK-9-4-1-install/release/bin/*.dll $OUTPUT_DIR/bin/Release
 
     # 返回上级目录
     cd - > /dev/null
 }
+<<<<<<< Updated upstream
 # # 构建和打包 Release 版本
 # build_and_package "Debug"
+=======
+# 构建和打包 Release 版本
+build_and_package "Debug"
+>>>>>>> Stashed changes
 # 构建和打包 Release 版本
 build_and_package "Release"
 
