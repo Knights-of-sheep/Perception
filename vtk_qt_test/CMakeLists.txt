@@ -700,12 +700,32 @@ endif()
 
 
 
-file(GLOB SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+# file(GLOB SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 message(STATUS "Compiling Source files: ${SRC_FILES}")
 message(STATUS "Current Compiling directory: ${CMAKE_CURRENT_SOURCE_DIR}")
 
+# # 添加可执行文件
+# add_executable(base base.cpp)
+# # 链接 VTK 库
+# target_link_libraries(base PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
+# # 添加可执行文件
+# add_executable(scalarbar scalarbar.cpp)
+# # 链接 VTK 库
+# target_link_libraries(scalarbar PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
+# # 添加可执行文件
+# add_executable(cutplane cutplane.cpp)
+# # 链接 VTK 库
+# target_link_libraries(cutplane PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
+# # 添加可执行文件
+# add_executable(cutline cutline.cpp)
+# # 链接 VTK 库
+# target_link_libraries(cutline PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
+# # 添加可执行文件
+# add_executable(curve3d curve3d.cpp)
+# # 链接 VTK 库
+# target_link_libraries(curve3d PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
 # 添加可执行文件
-add_executable(${PROJECT_NAME} ${SRC_FILES})
-
+add_executable(curve2d curve2d.cpp)
 # 链接 VTK 库
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
+target_link_libraries(curve2d PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui ${VTKDLL} ${VTKLIB})
+
