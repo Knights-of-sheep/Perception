@@ -6,9 +6,6 @@ cmake-build-*/
 # ===== Third-party (vendored locally, out of VCS) =====
 third-party/
 
-# ===== Spec-kit figma extension cache =====
-.figma/cache/
-
 # ===== Python =====
 __pycache__/
 *.py[cod]
