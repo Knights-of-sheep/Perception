@@ -4,19 +4,20 @@
 
 ## 概述
 
-日志子系统的数据面由三条实体构成：`LogRecord`（单条日志记录）、`LogLevel`（级别值域）、`LogSink`（输出目标抽象）。三者均定义于 `src/core/log/`，不持有任何 UI/Python 类型；UI 与 Python 桥接通过 `LogSink` 与回调函数实现跨层传递。
+日志子系统的数据面由四条实体构成：`LogRecord`（单条日志记录）、`LogLevel`（级别值域）、`LogLevelMatrix`（级别开关集合）、`LogSink`（输出目标抽象）。前四者定义于 `src/core/log/`，不持有任何 UI/Python 类型；UI 与 Python 桥接通过 `LogSink` 与回调函数实现跨层传递。
 
 ```text
                         ┌────────────────────┐
-                        │      Logger        │  单例：级别过滤 + 广播
+                        │      Logger        │  单例：广播（按各 sink 矩阵过滤）
                         └─────────┬──────────┘
                                   │ emits LogRecord
               ┌───────────────────┼───────────────────┐
-              ▼                   ▼                   ▼
+              ▼  isEnabled?       ▼  isEnabled?       ▼
         ┌──────────┐      ┌──────────────┐      ┌──────────────┐
         │ FileSink │      │ ConsoleSink  │      │ (future)     │
         │ (core)   │      │ (ui/log)     │      │ other sinks  │
-        └────┬─────┘      └──────┬───────┘      └──────────────┘
+        │ matrix_  │      │ matrix_      │      └──────────────┘
+        └────┬─────┘      └──────┬───────┘
              ▼                   ▼
       app.log.1..3 轮转    PythonConsole 控件
 ```
@@ -33,7 +34,8 @@
 | 字符串形式 | `const char*` | `"DEBUG"`, `"INFO"`, `"WARN"`, `"ERROR"`, `"FATAL"`（文件与控制台统一大写） |
 
 **验证规则**（FR-002）：
-- 默认阈值 `Info`；低于阈值的记录不广播到任何 sink
+- 每级别独立开关（无全局阈值）；过滤按各 sink 的 `LogLevelMatrix` 执行，控制台与文件可分别配置
+- 默认矩阵：DEBUG 关，INFO/WARN/ERROR/FATAL 开
 - 字符串→枚举映射对大小写不敏感（配置解析友好）；未知字符串回退 `Info` 并告警
 
 **Python 级别映射**（FR-008，详见 contracts/python-log-bridge.md）：
@@ -45,6 +47,20 @@
 | WARNING (30) | Warn |
 | ERROR (40) | Error |
 | CRITICAL (50) | Fatal |
+
+### LogLevelMatrix
+
+某输出目标的级别开关集合（spec Key Entity：每级别一个布尔位）。
+
+| 字段 | 类型 | 约束/说明 |
+|------|------|----------|
+| 开关位 | `bool[5]`（内部实现可为位掩码） | 索引 = `static_cast<int>(LogLevel)`；默认 DEBUG 关、INFO/WARN/ERROR/FATAL 开 |
+| 查询/设置 | `isEnabled(LogLevel) / setEnabled(LogLevel, bool)` | 线程安全由持有方（sink）保证 |
+
+**验证规则**（FR-002）：
+- 每个 sink 持有一个独立矩阵：`FileSink`（core）与 `ConsoleSink`（ui）互不影响
+- `Logger` 广播记录时，仅向 `isEnabled(level)` 为真的 sink 投递 `emit`（配置归属 sink、执行位于 Logger 广播路径）
+- 菜单栏切换即调对应 sink 的 `setLevelEnabled`，立即生效（FR-012，SC-006）
 
 ### LogRecord
 
@@ -83,20 +99,24 @@ Logger 单例的装配参数（`Logger::configure`，线程安全，可在启动
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `filePath` | `std::string` | `""`（空 = 不写文件） | `app.log` 完整路径（app 层传入） |
-| `level` | `LogLevel` | `Info` | 全局级别阈值（FR-002） |
+| `levelMatrix` | `LogLevelMatrix` | 默认矩阵（DEBUG 关、其余开） | 全局默认矩阵，作为 FileSink 初始矩阵与菜单 UI 初始态（FR-002） |
+| `vtkLoggingEnabled` | `bool` | `true` | VTK 日志纳入开关（FR-011） |
 | `maxFileSize` | `std::uint64_t` | `5 * 1024 * 1024` | 轮转阈值字节（FR-005） |
 | `maxBackups` | `int` | `3` | 保留归档份数（FR-005） |
 
 **验证规则**：
 - `filePath` 非空时：目录不存在自动创建（`std::filesystem::create_directories`）；创建/打开失败 → FileSink 按 R7 降级
 - 重复 `configure` 视为更新（重建 FileSink 或热更新阈值；本期仅启动一次配置）
+- `levelMatrix` 仅作初始值与 UI 初始态；运行时切换直接调 sink 矩阵，不回写 Config
 
 ## 关系
 
-- **Logger → LogSink**: 1:N 广播（默认注册 FileSink[配置非空时]；UI 注册 ConsoleSink）
+- **Logger → LogSink**: 1:N 广播（默认注册 FileSink[配置非空时]；UI 注册 ConsoleSink）；广播前按各 sink 的矩阵过滤
 - **LogSink → LogRecord**: 输入为不可变记录，无回写
-- **LogLevel → LogRecord**: LogRecord 引用级别值域；级别过滤发生在 Logger，不在 sink
-- **Python 桥接 → Logger**: `_cpp_log(level, message)` 是 LogRecord 的构造入口之一（来源为 `py:<name:lineno>` 或直接 `name:lineno`），与 C++ 直接调用 `Logger::instance().info(...)` 等价
+- **LogLevelMatrix → LogSink**: 每个 sink 恰持一个矩阵；控制台与文件独立（FR-002）
+- **LogLevel → LogRecord**: LogRecord 引用级别值域；过滤执行于 Logger 广播路径、配置归属 sink 矩阵
+- **Python 桥接 → Logger**: `_cpp_log(level, source, message)` 是 LogRecord 的构造入口之一（来源 `name:lineno`），与 C++ 直接调用 `Logger::instance().info(...)` 等价
+- **菜单栏 ↔ sink**: 菜单勾选状态是 sink 矩阵的视图；切换调 `setLevelEnabled` 并持久化 QSettings（FR-012/013）
 
 ## 存储
 

@@ -11,7 +11,8 @@
 #include "core/log/logger.h"
 #include "core/log/log_level.h"
 
-// 扩展 sink 时包含：
+// 扩展 sink / 配置级别矩阵时包含：
+#include "core/log/log_level_matrix.h"
 #include "core/log/log_sink.h"
 #include "core/log/log_record.h"
 ```
@@ -36,6 +37,26 @@ const char* toString(LogLevel level) noexcept;
 LogLevel parseLevel(const std::string& s) noexcept;
 ```
 
+## LogLevelMatrix（log_level_matrix.h，FR-002）
+
+每级别独立开关集合；控制台与文件各持一个独立实例。
+
+```cpp
+class LogLevelMatrix {
+public:
+    LogLevelMatrix();   // 默认：DEBUG 关，INFO/WARN/ERROR/FATAL 开
+
+    void setEnabled(LogLevel level, bool enabled);
+    bool isEnabled(LogLevel level) const noexcept;
+
+    // 一次打开/关闭全部级别（测试与 UI 重置用）
+    void setAll(bool enabled);
+
+private:
+    std::bitset<5> bits_;   // 索引 = static_cast<int>(LogLevel)
+};
+```
+
 ## 日志调用（logger.h）
 
 ```cpp
@@ -44,10 +65,11 @@ public:
     // 单例
     static Logger& instance();
 
-    // ---- 配置（FR-002/004/005；启动时调用一次即可）----
+    // ---- 配置（FR-002/004/005/011；启动时调用一次即可）----
     struct Config {
         std::string filePath;          // 空 = 不写文件；默认 ""
-        LogLevel level = LogLevel::Info;
+        LogLevelMatrix levelMatrix;    // 默认矩阵：DEBUG 关、其余开；作为 FileSink 初始矩阵与 UI 初始态（FR-002）
+        bool vtkLoggingEnabled = true; // VTK 日志纳入开关（FR-011）
         std::uint64_t maxFileSize = 5 * 1024 * 1024;  // 5MB
         int maxBackups = 3;            // 归档份数
     };
@@ -69,9 +91,10 @@ public:
     void errorAt(const char* file, int line, const std::string& msg);
     void fatalAt(const char* file, int line, const std::string& msg);
 
-    // ---- 级别查询 ----
-    LogLevel level() const noexcept;
-    void setLevel(LogLevel level) noexcept;  // 热更新阈值
+    // ---- 级别控制（FR-002）----
+    // 无全局 setLevel：过滤由广播路径按各 sink 的 LogLevelMatrix 执行。
+    // 运行时切换级别：持有 sink 指针（ConsoleSink/FileSink）后调 sink->setLevelEnabled(...)。
+    const LogLevelMatrix& defaultMatrix() const noexcept;
 
     // ---- sink 管理（扩展点）----
     void addSink(std::shared_ptr<LogSink> sink);
@@ -103,8 +126,17 @@ private:
 class LogSink {
 public:
     virtual ~LogSink() = default;
+
+    // ---- 级别矩阵（FR-002）：每 sink 独立；控制台与文件可分别配置 ----
+    void setLevelEnabled(LogLevel level, bool enabled);
+    bool isLevelEnabled(LogLevel level) const noexcept;
+    const LogLevelMatrix& levelMatrix() const noexcept;
+
     virtual void emit(const LogRecord& record) = 0;   // 不得抛异常
     virtual const char* name() const noexcept = 0;
+
+protected:
+    LogLevelMatrix matrix_;   // 默认 DEBUG 关、其余开
 };
 ```
 
@@ -127,7 +159,8 @@ public:
 ## 语义约定
 
 1. **线程安全**：`Logger` 全部公开方法线程安全（内部锁）；`emit` 广播在锁内遍历副本。
-2. **无异常逃逸**：`log(...)` 族不抛异常（内部捕获 sink 异常，FR-009）。
-3. **来源**：`debugAt(file, line, ...)` 生成 `source = "<basename>:<line>"`；无来源的重载记作 `source = "<core>"`。
-4. **UTF-8**：`std::string` 消息按 UTF-8 解释（宪法 Design Constraints）。
-5. **广播顺序**：sink 按注册顺序接收同一记录；文件与控制台内容一致（同一格式化规则）。
+2. **级别过滤**（FR-002）：广播时对每个已注册 sink，若 `!sink->isLevelEnabled(record.level)` 则跳过该 sink（`emit` 不被调用）；配置归属 sink 矩阵、执行位于 Logger 广播路径。
+3. **无异常逃逸**：`log(...)` 族不抛异常（内部捕获 sink 异常，FR-009）。
+4. **来源**：`debugAt(file, line, ...)` 生成 `source = "<basename>:<line>"`；无来源的重载记作 `source = "<core>"`；Qt 重定向为 `qt:<basename>:<line>`（FR-010）；VTK 为 `vtk:...`（FR-011）。
+5. **UTF-8**：`std::string` 消息按 UTF-8 解释（宪法 Design Constraints）。
+6. **广播顺序**：sink 按注册顺序接收同一记录；文件与控制台内容一致（同一格式化规则）。
