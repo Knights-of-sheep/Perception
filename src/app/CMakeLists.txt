@@ -1,5 +1,4 @@
 # ===== src/app：可执行程序入口 =====
-# 当前编译 M0 占位 main.cpp；M4 端到端 MVP 时改为加载真实主窗口。
 add_executable(perception main.cpp)
 
 set_target_properties(perception PROPERTIES
@@ -12,8 +11,14 @@ target_include_directories(perception PRIVATE
   ${CMAKE_SOURCE_DIR}/src
 )
 
+# 版本号：随顶层 PROJECT_VERSION（build.ps1 -Version 可覆盖）
+target_compile_definitions(perception PRIVATE
+  PERCEPTION_APP_VERSION="${PROJECT_VERSION}"
+)
+
 target_link_libraries(perception PRIVATE
   Qt5::Widgets
   perception_core
-  # M4: perception_ui perception_render
+  perception_ui
+  # M3: perception_render（VTK 曲线渲染）
 )

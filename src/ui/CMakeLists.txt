@@ -1,5 +1,25 @@
-# ===== src/ui：界面层（M4 启用）=====
-# 由顶层 CMakeLists 在 PERCEPTION_BUILD_GUI=ON 时 add_subdirectory。
-# 职责：Qt5 Widgets + Dock + QSS 深色主题；只持有 ICurveChart 抽象，不直接操作 VTK。
-# 预期 target：perception_ui（STATIC，链接 Qt5::Widgets + perception_render + perception_core）。
-# 界面事实源：docs/design/mockups/。
+# ===== src/ui：界面层（Qt5 Widgets + Dock + QSS 深色主题）=====
+# 规范：docs/design/ui-guidelines.md；视觉稿：docs/design/mockups/。
+add_library(perception_ui STATIC
+  MainWindow.cpp
+  console/PythonConsole.cpp
+  theme/theme_manager.cpp
+  theme/theme.qrc
+)
+
+target_include_directories(perception_ui PUBLIC
+  ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(perception_ui PUBLIC
+  Qt5::Widgets
+  # 内嵌 Python：静态库以 LINK_ONLY 透传至最终可执行文件；
+  # Python.h 只在 console/PythonConsole.cpp 内使用（pimpl 隔离），不污染公共头。
+  PRIVATE Python3::Python
+)
+
+set_target_properties(perception_ui PROPERTIES
+  AUTOMOC ON
+  AUTOUIC ON
+  AUTORCC ON
+)

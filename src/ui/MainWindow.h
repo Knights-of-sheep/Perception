@@ -1,0 +1,86 @@
+// ===== Perception 主窗口（M3a：界面框架）=====
+// 布局：菜单栏 / 工具栏 / 左侧文件树 Dock / 中央曲线视图（M3 接入 VTK）/ 右侧属性 Dock / 状态栏。
+// UI 事实源：docs/design/mockups/。
+#pragma once
+
+#include <QMainWindow>
+
+class QActionGroup;
+class QCloseEvent;
+class QDragEnterEvent;
+class QDropEvent;
+class QLabel;
+class QTreeWidget;
+
+#include <QList>
+
+namespace perception {
+namespace ui {
+
+class PythonConsole;  // 前向声明须与定义同名空间（类在 perception::ui 内）
+
+class MainWindow : public QMainWindow {
+    Q_OBJECT
+
+public:
+    explicit MainWindow(QWidget* parent = nullptr);
+
+public:
+    // 程序退出前释放 Python 运行时（main 中 app.exec() 返回后调用）
+    void shutdownPython();
+    // 访问底部 Python 控制台（--console-script 调试注入等）
+    PythonConsole* pythonConsole() const { return pythonConsole_; }
+
+public slots:
+    void resetLayout();            // 恢复默认布局（Ctrl+Shift+L / --snapshot 模式调用）
+    void applyTheme(const QString& themeId);  // 主题热切换（菜单触发 / --snapshot 模式调用）
+
+private slots:
+    void openFile();
+    void about();
+    void exportMainWindowImage();  // 导出主界面图片（grab + PNG）
+    void exportPythonCommands();   // 导出控制台已执行的命令为 .py 脚本
+
+protected:
+    // 拖放打开 / 布局记忆（ui-guidelines §6 / §5.1）
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
+
+private:
+    void createActions();
+    void createMenus();
+    void createDocks();
+    void createCentralArea();
+    void createStatusBar();
+    void addFileToTree(const QString& path);  // 占位：加载后加入文件树
+    void updateEmptyHints();                  // 空状态提示节点
+
+    // 动作
+    QAction* openAction_ = nullptr;
+    QAction* exportAction_ = nullptr;
+    QAction* exitAction_ = nullptr;
+    QAction* toggleFileDockAction_ = nullptr;
+    QAction* togglePropertyDockAction_ = nullptr;
+    QAction* resetLayoutAction_ = nullptr;
+    QAction* aboutAction_ = nullptr;
+    QAction* exportImageAction_ = nullptr;  // 导出主界面图片（grab + save）
+    QAction* togglePythonConsoleAction_ = nullptr;  // 底部 Python 控制台开关
+
+    // 主题
+    QActionGroup* themeGroup_ = nullptr;          // 单选互斥（15 项）
+    QList<QAction*> themeActions_;                // 主题菜单动作（勾选当前项）
+
+    // Dock / 中央
+    QDockWidget* fileDock_ = nullptr;
+    QDockWidget* propertyDock_ = nullptr;
+    QDockWidget* pythonDock_ = nullptr;    // 底部：Python 控制台
+    PythonConsole* pythonConsole_ = nullptr;
+    QTreeWidget* fileTree_ = nullptr;      // 左侧：文件树
+    QTreeWidget* propertyTree_ = nullptr;  // 右侧：属性/曲线列表
+    QLabel*      centralPlaceholder_ = nullptr; // 中央：曲线视图占位
+    QLabel*      versionLabel_ = nullptr;       // 状态栏版本号（主题切换时刷新颜色）
+};
+
+}  // namespace ui
+}  // namespace perception

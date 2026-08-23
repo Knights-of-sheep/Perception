@@ -1,0 +1,309 @@
+/* ==========================================================================
+   Perception 主题模板 theme_template.qss
+   规范：docs/design/ui-guidelines.md §3 / §4
+   token 占位符（唯一来源 theme/theme_catalog.h，运行时渲染替换）：
+     @windowBg@ @panelBg@ @controlBg@ @viewBg@
+     @text@ @textWeak@ @textDisabled@ @border@ @borderWeak@
+     @accent@ @accentHover@ @accentPressed@ @selectionBg@
+     @hoverBg@ @surfaceElev@ @itemHover@ @buttonHover@ @handleHover@
+     @dockTitleBg@ @dangerText@ @dangerHoverBg@
+     @success@ @warning@ @danger@
+     @white@ @textOnSelection@ @textOnAccent@
+   覆盖范围：ui-guidelines §4.1 控件矩阵（全家族 x 全状态）
+   ========================================================================== */
+
+/* ===== 窗口 ===== */
+QMainWindow, QDialog, QMessageBox {
+    background-color: @windowBg@;   /* BG_WINDOW */
+    color: @text@;                  /* FG_TEXT */
+}
+
+/* ===== 通用控件文字 ===== */
+QWidget {
+    color: @text@;
+    font-size: 9pt;
+}
+
+/* ===== 菜单栏 ===== */
+QMenuBar {
+    background-color: @panelBg@;   /* BG_PANEL */
+    border-bottom: 1px solid @border@;  /* BORDER */
+    padding: 2px 6px;
+}
+QMenuBar::item {
+    background: transparent;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+QMenuBar::item:selected { background: @hoverBg@; }   /* BG_CONTROL */
+QMenuBar::item:pressed  { background: @selectionBg@; }   /* SELECTION_BG */
+
+/* ===== 菜单（弹出层）===== */
+QMenu {
+    background-color: @controlBg@;   /* BG_CONTROL */
+    border: 1px solid @border@;   /* BORDER */
+    padding: 4px;
+}
+QMenu::item {
+    padding: 5px 24px 5px 12px;
+    border-radius: 4px;
+}
+QMenu::item:selected { background: @selectionBg@; color: @textOnSelection@; }
+QMenu::item:disabled { color: @textDisabled@; }           /* FG_TEXT_DISABLED */
+QMenu::separator { height: 1px; background: @border@; margin: 4px 8px; }
+
+/* ===== 工具栏 ===== */
+QToolBar {
+    background-color: @panelBg@;   /* BG_PANEL */
+    border-bottom: 1px solid @border@;
+    spacing: 2px;
+    padding: 3px 6px;
+}
+QToolBar::separator { width: 1px; background: @border@; margin: 3px 4px; }
+QToolButton {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+QToolButton:hover   { background: @hoverBg@; }
+QToolButton:pressed { background: @selectionBg@; }
+QToolButton:checked { background: @selectionBg@; }
+QToolButton:disabled { color: @textDisabled@; }
+
+/* ===== 按钮 ===== */
+QPushButton {
+    background-color: @controlBg@;   /* BG_CONTROL */
+    border: 1px solid @border@;
+    border-radius: 4px;
+    padding: 5px 14px;
+}
+QPushButton:hover   { background-color: @buttonHover@; }
+QPushButton:pressed { background-color: @selectionBg@; }
+QPushButton:disabled {
+    color: @textDisabled@;
+    background-color: @surfaceElev@;
+    border-color: @borderWeak@;
+}
+QPushButton:default, QPushButton[emphasis="primary"] {
+    background-color: @accent@;   /* ACCENT */
+    color: @textOnAccent@;
+    border-color: @accent@;
+}
+QPushButton:default:hover, QPushButton[emphasis="primary"]:hover {
+    background-color: @accentHover@;
+}
+QPushButton:default:pressed, QPushButton[emphasis="primary"]:pressed {
+    background-color: @accentPressed@;
+}
+
+/* ===== 输入控件 ===== */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit {
+    background-color: @controlBg@;
+    border: 1px solid @border@;
+    border-radius: 4px;
+    padding: 4px 6px;
+    selection-background-color: @accent@;
+    selection-color: @textOnAccent@;
+}
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
+QTextEdit:focus, QPlainTextEdit:focus {
+    border-color: @accent@;       /* ACCENT 焦点环（几何一致性） */
+}
+QComboBox::drop-down { border: none; width: 20px; }
+QComboBox QAbstractItemView {
+    background-color: @controlBg@;
+    border: 1px solid @border@;
+    selection-background-color: @selectionBg@;
+    selection-color: @textOnSelection@;
+    outline: none;
+}
+
+/* ===== Dock ===== */
+/* 自定义标题栏（修复 Qt5+Fusion 下浮动态不绘制 normal-button 的问题）：
+   通过 QDockWidget::setTitleBarWidget(DockTitleBar) 接管，按钮显式 QToolButton。 */
+QDockWidget {
+    background-color: @panelBg@;   /* BG_PANEL */
+    color: @textWeak@;              /* FG_TEXT_WEAK */
+}
+QWidget#dockTitleBar {
+    background-color: @dockTitleBg@;
+    border-bottom: 1px solid @borderWeak@;
+    min-height: 26px;
+}
+QLabel#dockTitleLabel {
+    color: @text@;
+    font-weight: 600;
+    background: transparent;
+}
+QToolButton#dockFloatBtn, QToolButton#dockCloseBtn {
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: @text@;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 0;
+}
+QToolButton#dockFloatBtn:hover, QToolButton#dockCloseBtn:hover {
+    background: @hoverBg@;
+}
+QToolButton#dockCloseBtn {
+    color: @dangerText@;
+}
+QToolButton#dockCloseBtn:hover {
+    background: @dangerHoverBg@;
+    color: @white@;
+}
+
+/* ===== 树 / 列表 / 表 ===== */
+QTreeWidget, QTreeView, QListView, QTableView {
+    background-color: @panelBg@;
+    alternate-background-color: @surfaceElev@;
+    border: none;
+    outline: none;
+}
+QTreeView::item, QListView::item, QTableView::item {
+    padding: 4px 6px;
+    border: none;
+    border-radius: 4px;
+}
+QTreeView::item:hover, QListView::item:hover, QTableView::item:hover {
+    background: @itemHover@;
+}
+QTreeView::item:selected, QListView::item:selected, QTableView::item:selected {
+    background: @selectionBg@;         /* SELECTION_BG */
+    color: @textOnSelection@;
+}
+QHeaderView::section {
+    background-color: @surfaceElev@;
+    color: @textWeak@;
+    border: none;
+    border-right: 1px solid @borderWeak@;
+    border-bottom: 1px solid @borderWeak@;
+    padding: 4px 8px;
+}
+QTreeView::branch { background: transparent; }
+
+/* ===== 滚动条（横/纵，三态）===== */
+QScrollBar:vertical {
+    background: @panelBg@;
+    width: 10px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: @border@;
+    border-radius: 4px;
+    min-height: 24px;
+    margin: 2px;
+}
+QScrollBar::handle:vertical:hover   { background: @handleHover@; }
+QScrollBar::handle:vertical:pressed { background: @accent@; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+
+QScrollBar:horizontal {
+    background: @panelBg@;
+    height: 10px;
+    margin: 0;
+}
+QScrollBar::handle:horizontal {
+    background: @border@;
+    border-radius: 4px;
+    min-width: 24px;
+    margin: 2px;
+}
+QScrollBar::handle:horizontal:hover   { background: @handleHover@; }
+QScrollBar::handle:horizontal:pressed { background: @accent@; }
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+
+/* ===== 状态栏 ===== */
+QStatusBar {
+    background-color: @windowBg@;   /* BG_WINDOW */
+    border-top: 1px solid @border@;
+    color: @textWeak@;
+}
+QStatusBar::item { border: none; }
+
+/* ===== 分割 ===== */
+/* Dock 之间/与中央区用 1px 弱分隔线（BORDER_WEAK），保持清晰但不喧宾夺主 */
+QSplitter::handle { background: @borderWeak@; }
+QSplitter::handle:horizontal { width: 1px; }
+QSplitter::handle:vertical   { height: 1px; }
+QSplitter::handle:hover { background: @accent@; }
+
+/* ===== ToolTip（弹层，禁默认黄底）===== */
+QToolTip {
+    background-color: @controlBg@;
+    color: @text@;
+    border: 1px solid @border@;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+/* ===== Tab（预留）===== */
+QTabWidget::pane {
+    border: 1px solid @border@;
+    background: @panelBg@;
+}
+QTabBar::tab {
+    background: @surfaceElev@;
+    color: @textWeak@;
+    padding: 6px 14px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    margin-right: 2px;
+}
+QTabBar::tab:selected { background: @panelBg@; color: @text@; }
+QTabBar::tab:hover { color: @text@; }
+
+/* ===== 中央视图空状态（BG_VIEW）===== */
+QLabel#centralPlaceholder {
+    color: @textWeak@;
+    font-size: 12pt;
+    background-color: @viewBg@;   /* BG_VIEW */
+}
+
+/* ===== Python 控制台（底部 Dock，内嵌 REPL）===== */
+/* 容器：控制台区域带弱边框，与 Dock 标题栏、右侧操作栏区分 */
+QWidget#pythonConsoleContainer {
+    background-color: @panelBg@;
+}
+QPlainTextEdit#pythonConsole {
+    background-color: @controlBg@;
+    color: @text@;
+    border: 1px solid @borderWeak@;
+    border-radius: 0;
+    padding: 0;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 10pt;
+}
+QPlainTextEdit#pythonConsole:focus { border-color: @accent@; }
+/* 右侧操作栏：垂直排列"导出命令 / 清空控制台" */
+QWidget#pythonSideBar {
+    background-color: @panelBg@;
+    border-left: 1px solid @borderWeak@;
+}
+QToolButton#pythonExportBtn, QToolButton#pythonClearBtn {
+    background-color: @controlBg@;
+    border: 1px solid @border@;
+    border-radius: 4px;
+    color: @text@;
+    font-size: 9pt;
+    padding: 2px 4px;
+}
+QToolButton#pythonExportBtn:hover, QToolButton#pythonClearBtn:hover {
+    background-color: @buttonHover@;
+}
+QToolButton#pythonExportBtn:pressed, QToolButton#pythonClearBtn:pressed {
+    background-color: @selectionBg@;
+    color: @textOnSelection@;
+}
+/* 清空是破坏性操作：弱化默认态、hover 显红，降低误触 */
+QToolButton#pythonClearBtn {
+    color: @textWeak@;
+}
+QToolButton#pythonClearBtn:hover {
+    background-color: @dangerHoverBg@;
+    color: @white@;
+    border-color: @danger@;
+}

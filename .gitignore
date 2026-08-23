@@ -2,6 +2,8 @@
 build/
 out/
 cmake-build-*/
+bin/
+lib/
 
 # ===== Third-party (vendored locally, out of VCS) =====
 third-party/
@@ -11,6 +13,9 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# ===== Tool logs =====
+aqtinstall.log
 
 # ===== IDE =====
 .vscode/
