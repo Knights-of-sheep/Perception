@@ -3,20 +3,38 @@ project(Perception VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
+
+# 说明：Qt 的 AUTOMOC/AUTOUIC/AUTORCC 在 GUI target（src/app、M3 后 render/ui）
+# 上按需开启，避免 core/tests 无 Qt 时产生 AUTOGEN 警告。
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# ==== Third-party / system dependencies (M1+ 逐步接入) ====
-# find_package(Qt5 COMPONENTS Widgets REQUIRED)   # Qt 5.12.12 (C:\Qt\Qt5.12.12)
-# find_package(VTK REQUIRED)                      # VTK 9.4.1 (本地安装目录)
-# find_package(pybind11 CONFIG REQUIRED)          # pybind11 (M5)
+# MSVC：源码含 UTF-8 中文注释，统一用 /utf-8 编译，避免 C4819 警告
+if(MSVC)
+  add_compile_options(/utf-8)
+endif()
 
-# ==== Targets（M1+ 逐个打开） ====
-add_executable(perception src/app/main.cpp)
-target_include_directories(perception PRIVATE src)
-# target_link_libraries(perception PRIVATE Qt5::Widgets VTK::ChartsCore)  # M3/M4
+# ===== 骨架开关 =====
+# M0-M1：GUI 依赖（Qt5 / VTK）尚未接入，默认只构建 core 层 + 单测，
+# 保证「克隆即构建、构建即可测」。
+# M3 起打开界面：-DPERCEPTION_BUILD_GUI=ON，并配置 Qt5_DIR / VTK_DIR。
+option(PERCEPTION_BUILD_GUI "构建 Qt5/VTK 界面层（src/render + src/ui + src/app，M3+ 打开）" OFF)
+
+# ===== 子目录 =====
+enable_testing()
+
+# 数据层：无 UI 依赖，M1 起独立可测
+add_subdirectory(src/core)
+# 单测：CTest
+add_subdirectory(tests)
+
+if(PERCEPTION_BUILD_GUI)
+  find_package(Qt5 5.12 REQUIRED COMPONENTS Widgets)
+  find_package(VTK 9.4 REQUIRED
+    COMPONENTS ChartsCore GUISupportQt ViewsQt RenderingQt)
+  add_subdirectory(src/render)  # M3：VTK 曲线渲染
+  add_subdirectory(src/ui)      # M4：Qt Widgets 界面层
+  add_subdirectory(src/app)     # 可执行程序入口
+endif()
