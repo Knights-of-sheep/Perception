@@ -1,0 +1,14 @@
+{
+  "$schema": "https://specs.codebuddy.ai/mcp.schema.json",
+  "mcpServers": {
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "description": "GitHub MCP Server - taskstoissues 依赖 list_issues + issue_write"
+    }
+  }
+}

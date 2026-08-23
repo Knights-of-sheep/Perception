@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "git": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:89711dec9716473fba4afc54f7224bcb28ebd3c55fb5aaa30df854ab02b07a75",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "codebuddy": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-08-23T01:37:54.147373+00:00"
+    },
+    "figma": {
+      "version": "1.7.0",
+      "source": "local",
+      "manifest_hash": "sha256:e95663f33e9ec09d7b6390474b70101643fae7a9abc148cbe5d0c3b5d1c2e6d2",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "codebuddy": [
+          "speckit.figma.setup",
+          "speckit.figma.update",
+          "speckit.figma.ensure",
+          "speckit.figma.introspect",
+          "speckit.figma.verify"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-08-23T01:40:56.983957+00:00"
+    }
+  }
+}

@@ -1,13 +1,25 @@
-# 忽略 build 和 output 文件夹
+# ===== Build artifacts =====
 build/
-output/
-.vscode
+out/
+cmake-build-*/
 
-# IDE和编辑器文件
-*.swp
-*.swo
-*~
+# ===== Third-party (vendored locally, out of VCS) =====
+third-party/
 
-# 操作系统生成的文件
-.DS_Store
-Thumbs.db
+# ===== Spec-kit figma extension cache =====
+.figma/cache/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.user
+
+# ===== CMake =====
+CMakeCache.txt
+CMakeFiles/
