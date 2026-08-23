@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/perception/theme">
+        <file>theme_template.qss</file>
+    </qresource>
+</RCC>

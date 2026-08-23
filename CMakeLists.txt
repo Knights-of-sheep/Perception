@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-project(Perception VERSION 0.1.0 LANGUAGES CXX)
+
+# 程序版本号：默认 0.1.0，构建时可用 -DPERCEPTION_VERSION=<版本> 覆盖
+#（构建脚本 scripts/build.ps1 的 -Version 参数即透传此变量）。
+set(PERCEPTION_VERSION "0.1.0" CACHE STRING "Perception program version")
+
+project(Perception VERSION ${PERCEPTION_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,6 +39,10 @@ if(PERCEPTION_BUILD_GUI)
   find_package(Qt5 5.12 REQUIRED COMPONENTS Widgets)
   find_package(VTK 9.4 REQUIRED
     COMPONENTS ChartsCore GUISupportQt ViewsQt RenderingQt)
+  # 内嵌 Python 控制台（M5 命令层同源）：需 Python 开发库（python3X.lib / Python.h）。
+  # Windows 下 Anaconda / python.org 官方安装器的 libs 目录均自带；若未找到，
+  # 请安装含开发库的 Python 或指定 -DPython3_ROOT_DIR=<前缀>。
+  find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter Development)
   add_subdirectory(src/render)  # M3：VTK 曲线渲染
   add_subdirectory(src/ui)      # M4：Qt Widgets 界面层
   add_subdirectory(src/app)     # 可执行程序入口
