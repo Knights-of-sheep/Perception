@@ -129,15 +129,16 @@
 
 ### R9: VTK 日志如何拦截与开关？
 
-**Decision**: `src/render/vtk_log_bridge` 提供两条能力：1) 关闭 VTK 自身弹窗/控制台输出（`vtkOutputWindow::SetInstance` 自定义窗口 or `SetGlobalWarningDisplay`），2) 将 VTK 警告/错误（`vtkOutputWindow::DisplayWarningText/DisplayErrorText` 覆写）转发为 `LogRecord`（`source = "vtk:..."`）。开关 `vtkLoggingEnabled`（默认 `true`）存于 `Logger::Config`，关闭时桥接不注册/不转发。
+**Decision**: **VTK 当前未引入项目**（render 层仅 CMake 骨架；CMake 已声明 `find_package(VTK)` 但仅 GUI 构建启用，后续涉及渲染需求时引入）。本期**只落配置开关**：`Logger::Config.vtkLoggingEnabled`（默认 `true`）与菜单栏"VTK 日志拦截"复选项、QSettings 持久化。VTK 拦截/桥接实现（`src/render/vtk_log_bridge`：覆写 `vtkOutputWindow` 的 `DisplayWarningText/DisplayErrorText` 转发为 `LogRecord`，`source = "vtk:..."`；关闭时桥接不注册/不转发）**随后续引入 VTK 时一并落地**，本期不编写依赖 VTK 头文件的代码。
 
 **Rationale**:
-- FR-011：VTK 日志纳入统一流且有独立开关；默认启用、可关闭
-- render 层当前仅为 CMake 骨架（M3 才实现渲染代码），本期落地：1) 桥接头文件 + 开关配置接入 Logger（可单测开关默认值）；2) 桥接实现随 render 落地时随行启用（拦截代码需 VTK 头文件，编译期即验证）
+- FR-011：VTK 日志纳入统一流且有独立开关（默认启用、可关闭）；用户明确"VTK 暂时没有引入，后期涉及到需求时会引入"
+- 本期写 VTK 拦截代码属死代码（无法编译验证、无法测试），违背最小实现原则；开关配置与默认值、持久化是本期可验证且对后续引入有效的部分
 - 开关配置同时作为菜单栏"VTK 日志拦截"复选项的读写目标（`设置 → 日志级别` 菜单尾部分隔线下的独立项，用户 Clarifications 2026-08-23 补充）
 
 **Alternatives considered**:
-- 在 app 层拦截 VTK：app 层链接 VTK 但非渲染域，职责错位 → 放弃
+- 本期即实现 `vtk_log_bridge` 完整拦截：无 VTK 可链接，纯死代码且不可验证 → 放弃（推迟至 VTK 引入）
+- 在 app 层拦截 VTK：app 层非渲染域，职责错位 → 放弃
 - 无条件拦截不做开关：违反用户"增加开关控制"要求 → 放弃
 
 ---
