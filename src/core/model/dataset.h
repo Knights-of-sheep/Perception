@@ -3,12 +3,14 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
-namespace perception::core {
+namespace perception::core::model {
 
 // 一条曲线：x/y 数据 + 可选名称。
-// 对应 .plt 文件中的一个数据块（如 drain current vs gate voltage）。
+// 对应一个曲线数据文件中的一条曲线（如 drain current vs gate voltage）。
+// 格式无关：io 层读取器负责把各格式映射到本模型。
 struct Curve {
     std::string name;
     std::vector<double> x;
@@ -21,7 +23,7 @@ struct Curve {
     }
 };
 
-// 数据集抽象：一个 .plt 文件解析出的全部曲线集合。
+// 曲线数据集抽象：一个曲线数据文件解析出的全部曲线集合。
 class IDataSet {
 public:
     virtual ~IDataSet() = default;
@@ -31,7 +33,7 @@ public:
     virtual void addCurve(Curve curve) = 0;
 };
 
-// 默认实现（M1 细化：列名/单位/元数据）。
+// 默认实现（M1 细化：列名 / 单位 / 元数据）。
 class DataSet : public IDataSet {
 public:
     explicit DataSet(std::string name) : name_(std::move(name)) {}
@@ -45,4 +47,4 @@ private:
     std::vector<Curve> curves_;
 };
 
-} // namespace perception::core
+} // namespace perception::core::model
