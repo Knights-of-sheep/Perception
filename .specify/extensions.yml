@@ -1,0 +1,228 @@
+installed:
+- figma
+- git
+settings:
+  auto_execute_hooks: true
+hooks:
+  before_constitution:
+  - extension: git
+    command: speckit.git.initialize
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.git.initialize?
+    description: Initialize Git repository before constitution setup
+    condition: null
+  before_specify:
+  - extension: git
+    command: speckit.git.feature
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.git.feature?
+    description: Create feature branch before specification
+    condition: null
+  - extension: figma
+    command: speckit.figma.ensure
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.figma.ensure?
+    description: Automatically refresh and inject Figma design context (incl. direct
+      links in the feature input) before specification generation; safe no-op when
+      Figma does not apply
+    condition: null
+  before_clarify:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before clarification?
+    description: Auto-commit before spec clarification
+    condition: null
+  before_plan:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before planning?
+    description: Auto-commit before implementation planning
+    condition: null
+  - extension: figma
+    command: speckit.figma.ensure
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.figma.ensure?
+    description: 'Automatically refresh and inject the Figma design plan section before
+      plan generation; safe no-op when Figma does not apply. Mandatory (optional:
+      false) so the step is auto-executed and the agent cannot decline it.'
+    condition: null
+  before_tasks:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before task generation?
+    description: Auto-commit before task generation
+    condition: null
+  - extension: figma
+    command: speckit.figma.ensure
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.figma.ensure?
+    description: Automatically refresh and inject Figma design context (incl. direct
+      links in the feature input) before task generation; safe no-op when Figma does
+      not apply
+    condition: null
+  before_implement:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before implementation?
+    description: Auto-commit before implementation
+    condition: null
+  before_checklist:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before checklist?
+    description: Auto-commit before checklist generation
+    condition: null
+  before_analyze:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before analysis?
+    description: Auto-commit before analysis
+    condition: null
+  before_taskstoissues:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit outstanding changes before issue sync?
+    description: Auto-commit before tasks-to-issues conversion
+    condition: null
+  after_constitution:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit constitution changes?
+    description: Auto-commit after constitution update
+    condition: null
+  after_specify:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit specification changes?
+    description: Auto-commit after specification
+    condition: null
+  - extension: figma
+    command: speckit.figma.verify
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.figma.verify?
+    description: 'After spec generation, verify the Figma section was integrated (when
+      a mockup was detected) and self-correct if missing. Mandatory (optional: false)
+      so the verification always runs and the agent cannot skip the gate.'
+    condition: null
+  after_clarify:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit clarification changes?
+    description: Auto-commit after spec clarification
+    condition: null
+  after_plan:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit plan changes?
+    description: Auto-commit after implementation planning
+    condition: null
+  - extension: figma
+    command: speckit.figma.verify
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.figma.verify?
+    description: 'After plan generation, verify the Figma plan section was integrated
+      (when a mockup was detected) and self-correct if missing. Mandatory (optional:
+      false) so the verification always runs and the agent cannot skip the gate.'
+    condition: null
+  after_tasks:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit task changes?
+    description: Auto-commit after task generation
+    condition: null
+  - extension: figma
+    command: speckit.figma.verify
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.figma.verify?
+    description: 'After tasks generation, verify the Figma tasks section was integrated
+      (when a mockup was detected) and self-correct if missing. Mandatory (optional:
+      false) so the verification always runs and the agent cannot skip the gate.'
+    condition: null
+  after_implement:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit implementation changes?
+    description: Auto-commit after implementation
+    condition: null
+  after_checklist:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit checklist changes?
+    description: Auto-commit after checklist generation
+    condition: null
+  after_analyze:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit analysis results?
+    description: Auto-commit after analysis
+    condition: null
+  after_taskstoissues:
+  - extension: git
+    command: speckit.git.commit
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Commit after syncing issues?
+    description: Auto-commit after tasks-to-issues conversion
+    condition: null
