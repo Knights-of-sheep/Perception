@@ -1,50 +1,38 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Perception Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spec-First (NON-NEGOTIABLE)
+Every feature starts with `specify` → `plan` → `tasks` from the spec-kit workflow. No implementation before a ratified spec exists in `specs/<feature>/`.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Local Design Source
+The UI's only design source of truth is `docs/design/mockups/` (pure-local scheme; NO figma extension, NO Figma REST/MCP, no `FIGMA_PAT`).
+- Before `specify`: read `docs/design/mockups/**/preview.png` + `notes.md`, and write visual requirements into `specs/<feature>/spec.md`.
+- At `plan`: order UI work against the mockups.
+- At `tasks`: each UI task references the corresponding `NNN-<界面名>/` as its completion standard.
+- After implementation: self-check by comparing screenshots to mockups; fix discrepancies.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Library-First Architecture
+`src/core` is a standalone, self-contained, testable library with no UI dependencies. `src/ui` consumes `src/core` via a stable API. `src/python` exposes the same core via pybind11.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Test-First
+CTest mandatory for `src/core`: tests written → approved → fail → then implement. Red-Green-Refactor strictly enforced.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+## Design Constraints
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- Deep dark theme with a fixed color palette defined in `docs/design/design.md` (main window / Dock / curve view).
+- Qt5 Widgets + Dock layout + QSS; no external UI frameworks.
+- All text I/O (file parsing, logs) is UTF-8.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## Quality Gates
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- `ctest` green required before merge.
+- UI screenshots compared against mockups at M2/M4 milestones.
+- One feature per branch; merges to `main` via PR.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Constitution supersedes other practices. Amendments require documentation + approval.
+Mockup conventions live in `docs/design/mockups/README.md` (this file links there).
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-23
