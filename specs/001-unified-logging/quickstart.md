@@ -43,17 +43,18 @@
 
 **判断**：来源 `file:line` 正确 → 通过。
 
-### V3: 级别阈值（FR-002）
+### V3: 级别开关矩阵（FR-002）
 
 **步骤**：
 ```python
 import logging
 logging.debug("should be hidden")
+logging.warning("visible warning")
 ```
 
-**预期**（默认 INFO 阈值）：
-- 控制台**不**显示该行
-- 文件**不**写入该行
+**预期**（默认矩阵：DEBUG 关、INFO/WARN/ERROR/FATAL 开）：
+- 控制台**不**显示 DEBUG 行、显示 WARN 行
+- 文件**不**写入 DEBUG 行、写入 WARN 行
 
 **判断**：DEBUG 被过滤、其余级别正常 → 通过。
 
@@ -112,6 +113,45 @@ logging.error("中文消息测试 你好")
 - 其余日志仍正常显示在控制台
 
 **判断**：不崩溃、单次告警、控制台可用 → 通过。
+
+### V8: 菜单栏设置日志级别并持久化（FR-012/013，SC-006）
+
+**步骤**：
+1. 启动应用，打开 `设置 → 日志级别 → 控制台`，勾选 `DEBUG`
+2. 在 PythonConsole 执行：
+   ```python
+   import logging
+   logging.debug("console debug visible")
+   ```
+3. 观察控制台与文件；重启应用后再看控制台 DEBUG 勾选状态
+
+**预期**：
+- 勾选后控制台立即显示 DEBUG 行（无需重启），文件**不**写入（文件矩阵未开 DEBUG）
+- 取消勾选后控制台立即停止显示 DEBUG
+- 重启应用后 `控制台 → DEBUG` 保持勾选（QSettings 持久化）
+
+**判断**：立即生效、控制台/文件独立、重启保持 → 通过。
+
+### V9: Qt 输出重定向（FR-010）
+
+**步骤**：启动应用后在任意 C++ 路径触发一次 `qWarning() << "qt-side warning"`（或通过 UI 操作间接触发 Qt 警告）。
+
+**预期**：
+- 控制台出现 `WARN  [qt:<file>:<line>] qt-side warning`（格式与统一 API 一致）
+- 文件同样写入该行；`控制台`/`文件` 矩阵中 WARN 关时两处均不出现
+
+**判断**：Qt 输出进入统一流、遵守格式与级别开关 → 通过。
+
+### V10: VTK 日志纳入开关（FR-011）
+
+**步骤**：
+1. 确认 render 层代码已落地（`src/render/vtk_log_bridge` 随 M3 render 启用）；未落地前仅验证开关默认值与配置
+2. 默认状态：`设置 → 日志级别 → VTK 日志拦截` 为勾选，VTK 警告/错误出现在控制台与文件（`source = "vtk:..."`）
+3. 取消勾选后触发 VTK 警告：统一流不再出现该输出
+
+**预期**：开关默认启用；关闭后 VTK 输出不进统一流；开关状态持久化（QSettings）
+
+**判断**：开关生效、默认启用、持久化 → 通过。
 
 ## 参考
 

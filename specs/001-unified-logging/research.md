@@ -18,7 +18,7 @@
 - C++17 标准库在 MSVC 上完整支持 `std::filesystem`（文件轮转）与 `std::chrono`（毫秒时间戳）
 
 **Alternatives considered**:
-- `qInstallMessageHandler` + `QFile`：Qt 内置日志消息模式，但绑定 Qt、格式自定义受限、轮转需手写 → 放弃（core 层禁 Qt）
+- `qInstallMessageHandler` + `QFile`：作为 core 日志实现被否决（绑定 Qt、格式自定义受限、轮转需手写、core 层禁 Qt）；但**仅作为 UI 层捕获 Qt 自身输出的重定向桥**保留（FR-010，见 R8）
 - 引入 spdlog 等第三方库：功能全但新增 vendored 依赖，与项目"最小依赖"取向不符 → 放弃
 
 ---
@@ -59,7 +59,7 @@
 **Decision**: 在 `PythonConsole::initPython()` 引导脚本（`kBootstrap`）中：
 1. C++ 向 Python globals 注入一个 `_cpp_log(level, message)` 函数（`PyCFunction`，回调 C++ `Logger`，并在内部持有 GIL 释放/再获取以不阻塞 Python 调用方——实际 `PyRun_String` 期间 GIL 已在手，直接调用即可）
 2. 引导脚本定义 `PerceptionLogHandler(logging.Handler)`，`emit()` 中映射 Python 级别 → `LogLevel`，调用 `_cpp_log(level, record.name + ":" + str(record.lineno), record.getMessage())`
-3. `logging.getLogger().addHandler(handler)`，并把 root logger 级别设为 DEBUG（真实过滤由 C++ Logger 统一做，保持"单一阈值"）
+3. `logging.getLogger().addHandler(handler)`，并把 root logger 级别设为 DEBUG（真实过滤由 C++ Logger 按各 sink 的级别开关矩阵统一做，控制台与文件可分别配置）
 
 **Rationale**:
 - 与既有 `sys.stdout/stderr` 重定向同构：Python 侧薄桥接 → C++ 侧统一处理，符合 spec FR-008"同一文件、同一级别与格式策略"
@@ -112,16 +112,68 @@
 
 ---
 
+### R8: Qt 自身输出如何纳入统一日志流？
+
+**Decision**: UI 层（`src/ui/log/qt_message_bridge`）安装 `qInstallMessageHandler`：回调把 `QtMsgType`（QtDebugMsg/QtInfoMsg/QtWarningMsg/QtCriticalMsg/QtFatalMsg）映射为 `LogLevel`（Debug/Info/Warn/Error/Fatal），构造 `LogRecord`（`source = "qt:<file>:<line>"`，`file` 取 basename）后调用 `Logger::instance().log(...)`。安装与卸载配对（`RAII` 或显式 restore），仅 GUI 构建启用。
+
+**Rationale**:
+- FR-010 要求 Qt 输出纳入统一流且遵守统一格式与级别开关；qInstallMessageHandler 是 Qt 官方捕获钩子，不改任何 Qt 源码
+- 回调中若 Qt 内部再触发统一 API（嵌套），用一层"重入标志"防递归：标志置位时直通 `fprintf(stderr)`（Edge Case：最多一层跳转）
+- `qt_message_bridge` 属 UI 层：`qInstallMessageHandler` 是 Qt 全局 API，core 层禁 Qt → 桥接放 `src/ui/log/`，与 ConsoleLogSink 同目录
+
+**Alternatives considered**:
+- 在 core 层提供 `QtLogBridge` 但仅链接时启用：core 仍会引入 Qt 头文件 → 违反宪法 III 构建隔离 → 放弃
+- 不捕获 Qt 输出：违反"全局日志纳入此模块"（Clarifications 2026-08-23 Q1=A）→ 放弃
+
+---
+
+### R9: VTK 日志如何拦截与开关？
+
+**Decision**: `src/render/vtk_log_bridge` 提供两条能力：1) 关闭 VTK 自身弹窗/控制台输出（`vtkOutputWindow::SetInstance` 自定义窗口 or `SetGlobalWarningDisplay`），2) 将 VTK 警告/错误（`vtkOutputWindow::DisplayWarningText/DisplayErrorText` 覆写）转发为 `LogRecord`（`source = "vtk:..."`）。开关 `vtkLoggingEnabled`（默认 `true`）存于 `Logger::Config`，关闭时桥接不注册/不转发。
+
+**Rationale**:
+- FR-011：VTK 日志纳入统一流且有独立开关；默认启用、可关闭
+- render 层当前仅为 CMake 骨架（M3 才实现渲染代码），本期落地：1) 桥接头文件 + 开关配置接入 Logger（可单测开关默认值）；2) 桥接实现随 render 落地时随行启用（拦截代码需 VTK 头文件，编译期即验证）
+- 开关配置同时作为菜单栏"VTK 日志拦截"复选项的读写目标（`设置 → 日志级别` 菜单尾部分隔线下的独立项，用户 Clarifications 2026-08-23 补充）
+
+**Alternatives considered**:
+- 在 app 层拦截 VTK：app 层链接 VTK 但非渲染域，职责错位 → 放弃
+- 无条件拦截不做开关：违反用户"增加开关控制"要求 → 放弃
+
+---
+
+### R10: 菜单栏设置入口与持久化如何实现？
+
+**Decision**: `MainWindow` 新增 `设置(&S)` 菜单 → `日志级别(&L)` 子菜单：
+- 子菜单含 `控制台(&C)` 与 `文件(&F)` 两组，每组 5 个 `QAction`（checkable、非互斥、可多选），勾选状态与 `ConsoleSink`/`FileSink` 的 `LogLevelMatrix` 双向同步（`setLevelEnabled` / `isLevelEnabled`）
+- 菜单尾部分隔线后加 `VTK 日志拦截` 独立复选项（FR-011 开关）
+- 任何切换立即生效（调 sink 矩阵），并写 QSettings：`logging/console/debug` 等 10 个布尔 key（`logging/vtk` 第 11 个），启动时 `Logger::configure` 前读取并作为各 sink 初始矩阵
+- 勾选展示沿用主题菜单模式（QAction checkable + 深色 QSS）
+
+**Rationale**:
+- FR-012/013 + SC-006：无需重启立即生效、持久化、重启保持
+- 菜单栏结构调研：现有菜单为 文件/视图/主题/帮助，无"设置"菜单 → 顶层新增 `设置(&S)`（置于"帮助"之前）
+- 矩阵数据源唯一：sink 内部 `LogLevelMatrix` 为 truth；菜单只是视图/控制器（与主题菜单同构：`triggered(bool)` 转发 lambda）
+
+**Alternatives considered**:
+- 设置对话框：范围大、引入对话框，与用户确认的"菜单栏直接呈现"（Q3=A）不符 → 放弃
+- 不持久化（每次启动默认矩阵）：桌面应用设置惯例要求保持 → 放弃（FR-013）
+
+---
+
 ## 结论汇总
 
 | # | 决策 | 关联需求 |
 |---|------|---------|
-| R1 | core `log/` 纯 std（C++17），无 Qt/Python | 宪法 III/V、FR-001 |
+| R1 | core `log/` 纯 std（C++17），无 Qt/Python | 宪法 III/V、FR-001、Clarifications: 标准日志 |
 | R2 | 写前检查 + close→rename 链→reopen，锁内滚动 | FR-005、Edge: 轮转瞬间写入 |
 | R3 | Logger 锁 + FileSink 锁；ConsoleSink 队列投递 GUI | FR-007、SC-003 |
 | R4 | 注入 `_cpp_log` + `logging.Handler` 桥接 | FR-008、SC-004 |
 | R5 | `chrono` 毫秒 + `localtime_s` | FR-003 |
 | R6 | `QStandardPaths::AppDataLocation` + `create_directories` | FR-004、Edge: 目录被删 |
 | R7 | FileSink 首次失败告警一次后降级静默 | FR-009、SC-005 |
+| R8 | `qInstallMessageHandler` 桥接于 ui/log，映射 QtMsgType→LogLevel，防递归 | FR-010、Clarifications Q1=A |
+| R9 | `vtk_log_bridge` 于 render 层，开关 `vtkLoggingEnabled` 默认启用、可菜单关闭 | FR-011、Clarifications Q1 补充 |
+| R10 | 设置菜单 + 控制台/文件 5 级别复选 + VTK 开关，QSettings 持久化、立即生效 | FR-012/013、SC-006、Clarifications Q2/Q3 |
 
 无未解决的 NEEDS CLARIFICATION。可以进入 Phase 1 设计。

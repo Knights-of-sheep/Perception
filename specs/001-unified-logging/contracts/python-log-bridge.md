@@ -16,7 +16,7 @@ _cpp_log(level, source, message)   ← C++ 注入的 PyCFunction
         ▼
 perception::core::log::Logger::instance().log(level, "<py:name:lineno>", message)
         ▼
-FileSink + ConsoleSink（统一格式、统一级别阈值）
+Logger 广播 → 按各 sink 的 LogLevelMatrix 过滤 → FileSink + ConsoleSink（统一格式）
 ```
 
 ## C++ 侧：注入 `_cpp_log`
@@ -55,7 +55,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 ## 语义约定
 
 1. **来源标识**：`record.name:lineno`（如 `__main__:12`）。不携带路径前缀，避免噪音；需要定位时结合消息上下文。
-2. **级别策略**：root logger 设为 `DEBUG`，Python 侧不做阈值过滤；C++ `Logger` 阈值统一生效（"单一阈值"，spec FR-002）。因此 Python `logging.DEBUG` 在 C++ 默认 INFO 阈值下会被过滤——行为与 C++ `debug()` 一致。
+2. **级别策略**：root logger 设为 `DEBUG`，Python 侧不做过滤；C++ 侧按各 sink 的 `LogLevelMatrix` 统一过滤（默认 DEBUG 关、其余开，FR-002）。因此 Python `logging.DEBUG` 在默认矩阵下控制台与文件均不出现——行为与 C++ `debug()` 一致；控制台与文件矩阵可分别配置。
 3. **消息转义**：`record.getMessage()` 后的字符串按 C++ 侧转义规则（`\n`→字面量）进入日志行，保证单条=单行。
 4. **异常安全**：handler 失败仅 `handleError`，不影响 Python 调用方与 REPL。
 5. **不拦截** `print()`/`sys.stderr`：二者仍走既有 `ConsoleOutObject` 重定向（仅控制台，不进文件）——与 `logging` 的职责分离保持不变。
@@ -63,6 +63,6 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 ## 验证要点
 
-- Python `logging.warning("...")` → 文件与控制台均出现 `WARN [__main__:N] ...`（阈值允许时）
-- Python `logging.debug(...)` 在默认 INFO 阈值下：控制台不显示，文件不写入（与 C++ 行为一致）
+- Python `logging.warning("...")` → 文件与控制台均出现 `WARN [__main__:N] ...`（该 sink 矩阵中 WARN 为开）
+- Python `logging.debug(...)` 在默认矩阵（DEBUG 关）下：控制台不显示，文件不写入（与 C++ 行为一致）；勾选控制台 DEBUG 后控制台显示、文件仍不显示
 - Python 中文消息：UTF-8 正确落盘无乱码（SC-004）
