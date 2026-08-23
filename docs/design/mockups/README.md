@@ -43,7 +43,8 @@ docs/design/mockups/
 3. **tasks 阶段**：每个 UI 任务引用对应 `NNN-<界面名>/` 作为完成标准
 4. 实现完成后自查：截图对比 mockup，不一致则修正
 
-## Figma 扩展的关系
+## 设计稿方案：纯本地（不使用 Figma 远端）
 
-figma 扩展（`Fyloss/spec-kit-figma`）保持 installed 但**未启用**（`figma.projects.config.json` 的 `figmaFileId` 未填，safe no-op）。
-将来若提供 Figma 文件 key，填入后扩展会自动接管内省，本目录仍可作为快速预览。
+- **figma 扩展已卸载**（`.specify/extensions.yml` 仅剩 git），**无 `FIGMA_PAT` / Figma REST / MCP 依赖**。
+- 本目录是界面**唯一**设计事实源；CodeBuddy 在 specify/plan/tasks 阶段读取本目录注入规约。
+- 将来若改用 Web 前端技术栈并需要 `verify` 门禁，可重新引入 figma 扩展（`specify extension add figma --dev <目录>`），届时本目录仍可作为快速预览。
