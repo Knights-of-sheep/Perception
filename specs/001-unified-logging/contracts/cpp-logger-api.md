@@ -69,7 +69,7 @@ public:
     struct Config {
         std::string filePath;          // 空 = 不写文件；默认 ""
         LogLevelMatrix levelMatrix;    // 默认矩阵：DEBUG 关、其余开；作为 FileSink 初始矩阵与 UI 初始态（FR-002）
-        bool vtkLoggingEnabled = true; // VTK 日志纳入开关（FR-011）
+        bool vtkLoggingEnabled = true; // VTK 日志纳入开关（FR-011）；VTK 未引入，仅配置占位，桥接随后续落地
         std::uint64_t maxFileSize = 5 * 1024 * 1024;  // 5MB
         int maxBackups = 3;            // 归档份数
     };

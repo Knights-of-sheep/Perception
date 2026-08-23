@@ -100,7 +100,7 @@ Logger 单例的装配参数（`Logger::configure`，线程安全，可在启动
 |------|------|--------|------|
 | `filePath` | `std::string` | `""`（空 = 不写文件） | `app.log` 完整路径（app 层传入） |
 | `levelMatrix` | `LogLevelMatrix` | 默认矩阵（DEBUG 关、其余开） | 全局默认矩阵，作为 FileSink 初始矩阵与菜单 UI 初始态（FR-002） |
-| `vtkLoggingEnabled` | `bool` | `true` | VTK 日志纳入开关（FR-011） |
+| `vtkLoggingEnabled` | `bool` | `true` | VTK 日志纳入开关（FR-011）；VTK 未引入，桥接随后续落地，开关配置与持久化本期生效 |
 | `maxFileSize` | `std::uint64_t` | `5 * 1024 * 1024` | 轮转阈值字节（FR-005） |
 | `maxBackups` | `int` | `3` | 保留归档份数（FR-005） |
 

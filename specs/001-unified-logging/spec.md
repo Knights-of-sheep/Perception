@@ -79,7 +79,7 @@ Python 命令层（`perception_py`，pybind11）产生的日志（含 `logging` 
 
 1. **Given** 菜单栏设置入口可用，**When** 用户勾选/取消某一级别，**Then** 控制台与文件各自按本侧开关矩阵立即过滤，无需重启。
 2. **Given** 用户修改过日志级别设置，**When** 应用重启，**Then** 设置保持上次的值（持久化生效）。
-3. **Given** VTK 日志开关处于关闭状态，**When** VTK 产生输出，**Then** 该输出不进入统一日志流。
+3. **Given** VTK 日志开关处于关闭状态，**When** VTK 产生输出，**Then** 该输出不进入统一日志流。（VTK 引入后生效；引入前仅验证开关默认值与配置持久化）
 
 ---
 
@@ -108,7 +108,7 @@ Python 命令层（`perception_py`，pybind11）产生的日志（含 `logging` 
 - **FR-008**: 系统 MUST 将 Python 命令层（`perception_py`）产生的日志汇入统一日志流：同一文件、同一级别与格式策略；提供 Python 侧接入机制（logging handler 桥接）。
 - **FR-009**: 系统 MUST 在日志写入失败（如路径不可写）时降级为仅控制台输出并告警，不崩溃应用。
 - **FR-010**: 系统 MUST 将 Qt 框架自身的日志输出（qDebug/qWarning/qCritical/qFatal）通过消息处理重定向机制纳入统一日志流，遵守统一格式与级别开关。
-- **FR-011**: 系统 MUST 为 VTK 日志纳入提供独立开关（默认启用）；关闭后 VTK 输出不再进入统一日志流。
+- **FR-011**: 系统 MUST 为 VTK 日志纳入提供独立开关（默认启用）；关闭后 VTK 输出不再进入统一日志流。**注**：VTK 当前尚未引入项目，本期落地开关配置（`Config.vtkLoggingEnabled`，默认 `true`）与默认值校验；VTK 拦截/桥接实现随后续 render 层引入 VTK 时一并落地。
 - **FR-012**: 系统 MUST 在菜单栏提供日志级别设置入口：`设置 → 日志级别 → {控制台 / 文件}` 子菜单，各含 5 个级别复选项（可多选），选择后立即生效、无需重启。
 - **FR-013**: 系统 MUST 将日志级别设置持久化（QSettings），应用重启后保持上次配置。
 
@@ -140,3 +140,4 @@ Python 命令层（`perception_py`，pybind11）产生的日志（含 `logging` 
 - Python 命令层与 C++ 运行于同一进程（pybind11 嵌入式解释器），跨进程日志分发不在本期。
 - 轮转策略固定为大小轮转（5MB × 3 份）；按日期轮转等其他策略不在本期。
 - 依赖现有开发控制台输出通道（`PythonConsole` 控制台）作为 ConsoleSink 的承载，复用其已有的错误展示样式（如 ERROR 级红色高亮）。
+- VTK 当前未引入项目（render 层仅为 CMake 骨架，CMake 中已声明 `find_package(VTK)` 但仅在 `PERCEPTION_BUILD_GUI` 打开时启用）：本期不链接 VTK、不编写 VTK 拦截代码；`vtk_log_bridge` 与拦截验证随后续引入 VTK 时落地（FR-011 开关配置与取值本期即生效并持久化）。
