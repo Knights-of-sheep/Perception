@@ -4,6 +4,7 @@
 
 .DESCRIPTION
     通过入参控制：
+      -CmakeExe     指定 cmake.exe 完整路径；缺省时依次探测 PATH、VS 自带 CMake
       -Version      程序版本号（透传 -DPERCEPTION_VERSION，默认沿用 CMakeLists 缓存值）
       -UnitTests    构建成功后运行 CTest（C++ 单元测试）
       -Pytest       构建成功后运行 pytest（命令层测试）
@@ -14,6 +15,11 @@
       -Clean        先删除 build 目录再重新配置
       -BinDir       可执行文件（exe/dll）输出目录，默认 <仓库根>/bin
       -LibDir       库文件（.lib/.a/.so）输出目录，默认 <仓库根>/lib
+
+.PARAMETER CmakeExe
+    指定 cmake.exe 的完整路径（例如 "D:\Program Files\CMake\bin\cmake.exe" 或
+    VS 自带 "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"）。
+    不传时按原逻辑探测：PATH → vswhere 查找 VS 自带 CMake。
 
 .PARAMETER Version
     程序版本号，例如 "0.2.0"、"1.0.0"。
@@ -27,21 +33,26 @@
     .\scripts\build.ps1 -Version 0.2.0 -UnitTests -Pytest
 
 .EXAMPLE
-    # 构建 GUI 层（需先指定 Qt/VTK 路径）
-    .\scripts\build.ps1 -Version 0.3.0 -Gui -Qt5Dir "C:\Qt\5.12.12\msvc2019_64\lib\cmake\Qt5" -VtkDir "D:\vtk-941-qt\bak\lib\cmake\vtk-9.4"
+    # 构建 GUI 层（默认路径已在 CMakeLists.txt 中固化，可省略 Qt5Dir/VtkDir）
+    .\scripts\build.ps1 -Version 0.3.0 -Gui
 
 .EXAMPLE
     # 清理后重新构建并跑单测
     .\scripts\build.ps1 -Clean -UnitTests -Config Debug
+
+    # 指定 cmake.exe 路径（如 VS 自带或独立安装的 CMake，未加入 PATH 时）
+    .\scripts\build.ps1 -CmakeExe "D:\Program Files\CMake\bin\cmake.exe" -UnitTests
 #>
 [CmdletBinding()]
 param(
+    [string]$CmakeExe = "",
     [string]$Version = "",
     [switch]$UnitTests,
     [switch]$Pytest,
     [switch]$Gui,
     [string]$Qt5Dir = "",
     [string]$VtkDir = "",
+    [ValidateSet("Debug", "Release")]
     [string]$Config = "Release",
     [switch]$Clean,
     [string]$BinDir = "",
@@ -70,7 +81,8 @@ function Find-Tool([string]$name) {
     return $null
 }
 
-$cmakeExe = Find-Tool "cmake"
+$cmakeExe = $CmakeExe  # -CmakeExe 显式指定优先；否则 PATH 探测，再兜底 VS 自带 CMake
+if (-not $cmakeExe) { $cmakeExe = Find-Tool "cmake" }
 if (-not $cmakeExe) {
     # 兜底：通过 vswhere 查找 VS 自带的 CMake
     $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
@@ -132,7 +144,8 @@ if ($Version) {
 
 if ($Gui) {
     $configureArgs += "-DPERCEPTION_BUILD_GUI=ON"
-    if (-not $Qt5Dir) { $Qt5Dir = "C:\Qt\5.12.12\msvc2019_64\lib\cmake\Qt5" }
+    # 默认路径与 CMakeLists.txt 中的 CACHE 默认值保持一致；可用 -Qt5Dir / -VtkDir 覆盖
+    if (-not $Qt5Dir) { $Qt5Dir = "D:\Qt\5.15.2\msvc2019_64\lib\cmake\Qt5" }
     if (-not $VtkDir) { $VtkDir = "D:\vtk-941-qt\bak\lib\cmake\vtk-9.4" }
     if (-not (Test-Path $Qt5Dir)) {
         throw "Qt5_DIR 不存在: $Qt5Dir（请用 -Qt5Dir 指定正确路径）"
