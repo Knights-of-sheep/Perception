@@ -3,8 +3,6 @@
 add_library(perception_ui STATIC
   MainWindow.cpp
   console/PythonConsole.cpp
-  log/console_log_sink.cpp
-  log/log_console_widget.cpp
   log/qt_message_bridge.cpp
   theme/theme_manager.cpp
   theme/theme.qrc

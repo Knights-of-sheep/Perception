@@ -231,3 +231,24 @@ With multiple developers:
 - VTK 未引入：本期不创建 `src/render/vtk_log_bridge`，仅落配置开关（FR-011）；render 层本期零改动
 - Commit after each task or logical group
 - 端到端验证以 quickstart.md V1~V15 为准，验证结果记录于提交信息或任务备注
+
+---
+
+## 修订记录（Session 2026-08-25）
+
+以下为**已实现并交付**的修订，T 编号沿用旧实现时点的任务记录，历史不变：
+
+- **全局级别矩阵（FR-002/FR-012 修订）**：`设置 → 日志级别` 直接列出 5 个级别复选项（另含"全部启用/全部禁用"），不再分"控制台/文件"子菜单；toggle 通过 `Logger::sinks()` 同步应用到全部 sink（终端/面板/文件），保持一致。
+- **控制台=终端（FR-006 修订）**：新增 `src/core/log/terminal_sink.{h,cpp}`（`TerminalSink`，stdout/stderr + ANSI 颜色 + `WriteConsoleW` UTF-16 无乱码）；`src/app/CMakeLists.txt` 恢复 CONSOLE subsystem（`add_executable(perception main.cpp)`）；`main()` 中 `window.show()` 后 `raise()+activateWindow()` 防终端窗口遮挡 GUI。
+- **面板更名（FR-006 修订）**：`LogConsoleWidget`→`LogPanelWidget`（`src/ui/log/log_panel_widget.{h,cpp}`，objectName `logPanel`）、`ConsoleLogSink`→`LogPanelSink`（`src/ui/log/log_panel_sink.{h,cpp}`，`name()="LogPanelSink"`）；dock 标题"日志面板"、状态栏指示"日志: …"；QSettings 新 key `log/level/<LEVEL>`（兼容回退旧 `log/console/<LEVEL>`）。
+- **格式共享（FR-002「保持一致」）**：`FileSink` 与 `TerminalSink` 复用 `src/core/log/log_format_internal.h` 的 `detail::formatLine`，保证终端与文件行格式完全一致；因 core 开启 Unity Build，helper 以 inline 共享避免合并 TU 重定义。
+- **端到端验证**：`.\bin\Release\perception.exe --snapshot` 捕获 stdout 出现 `INFO [main.cpp:NN] app started` + `snapshot saved`；`app.log` 同步记录（同格式）；logger_test 3/3 通过。
+
+## 修订记录 2（Session 2026-08-25，移除 GUI 内日志面板）
+
+用户反馈："程序中的日志面板拿掉，状态栏 v0.1.0 日志：... 按钮也拿掉，不需要"。
+
+- **删除** `src/ui/log/log_panel_widget.{h,cpp}`、`src/ui/log/log_panel_sink.{h,cpp}`；`src/ui/CMakeLists.txt` 移除对应源文件。
+- **MainWindow**：移除 `logPanelDock_`/`logPanel_`/`logPanelIndicator_`/`toggleLogPanelAction_` 及 `logPanel()` 访问器、`refreshLogStatusIndicator()`；`视图` 菜单不再有"日志面板"；状态栏不再有"日志: …"按钮（仅保留 `v0.1.0`）。
+- **main.cpp**：不再注册 LogPanelSink；输出目标仅 TerminalSink + FileSink。
+- **验证**：构建通过、logger_test 3/3；`--snapshot` 冒烟截图确认底部仅 Python 控制台 dock、状态栏无日志按钮；终端照常输出日志。

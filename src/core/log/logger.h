@@ -49,7 +49,9 @@ public:
 
     // ---- 级别控制（FR-002）----
     // 无全局 setLevel：过滤由广播路径按各 sink 的 LogLevelMatrix 执行。
-    // 运行时切换级别：持有 sink 指针（ConsoleSink/FileSink）后调 sink->setLevelEnabled(...)。
+    // 运行时切换级别：持有 sink 指针（TerminalSink/FileSink）后调
+    // sink->setLevelEnabled(...)。FR-002 全局矩阵：UI 遍历 sinks() 同步设置全部 sink。
+    // 注：GUI 内不内置日志面板（2026-08-25 用户反馈移除），输出目标=终端+文件。
     const LogLevelMatrix& defaultMatrix() const noexcept;
 
     // ---- sink 管理（扩展点）----
@@ -58,6 +60,8 @@ public:
     std::size_t sinkCount() const noexcept;
     // 按名称查找已注册 sink（用于 UI 双向同步；未找到返回 nullptr）
     LogSinkPtr findSink(const char* name) const;
+    // 已注册 sink 快照（用于 UI 全局级别切换时遍历全部 sink，保持矩阵一致；FR-002）
+    std::vector<LogSinkPtr> sinks() const;
 
     // ---- 运行期日志路径管理（设置菜单：日志路径可配置 + 清除历史日志；FR-016/017）----
     // 切换文件路径：旧日志（app.log 及归档）迁移到新路径所在目录后重建 FileSink，

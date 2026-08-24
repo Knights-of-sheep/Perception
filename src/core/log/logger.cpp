@@ -158,6 +158,12 @@ std::size_t Logger::sinkCount() const noexcept
     return impl_->sinks.size();
 }
 
+std::vector<LogSinkPtr> Logger::sinks() const
+{
+    std::lock_guard<std::mutex> lock(impl_->mutex);
+    return impl_->sinks;
+}
+
 Logger::Logger()
     : impl_(std::make_unique<Impl>())
 {

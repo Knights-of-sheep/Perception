@@ -1,4 +1,5 @@
 #include "core/log/file_sink.h"
+#include "core/log/log_format_internal.h"
 
 #include <chrono>
 #include <ctime>
@@ -7,37 +8,6 @@
 #include <mutex>
 
 namespace perception::core::log {
-
-namespace {
-
-std::string formatTimestamp(const std::chrono::system_clock::time_point& tp)
-{
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        tp.time_since_epoch()).count() % 1000;
-    const std::time_t t = std::chrono::system_clock::to_time_t(tp);
-    std::tm tm{};
-#if defined(_WIN32)
-    localtime_s(&tm, &t);
-#else
-    localtime_r(&t, &tm);
-#endif
-    char buf[32];
-    std::snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d.%03d",
-                  tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                  tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms));
-    return buf;
-}
-
-// 级别固定 5 字符右对齐补空格（契约 log-file-format.md：`WARN `）
-std::string paddedLevel(LogLevel level)
-{
-    std::string s = toString(level);
-    while (s.size() < 5)
-        s.push_back(' ');
-    return s;
-}
-
-} // namespace
 
 struct FileSink::Impl {
     std::mutex mutex;
@@ -80,11 +50,8 @@ void FileSink::emit(const LogRecord& record)
     if (!ec && curSize >= maxFileSize_)
         rotateLocked();
 
-    // 格式：YYYY-MM-DD HH:MM:SS.mmm LEVEL [source] message\n（LEVEL 固定 5 字符）
-    impl_->stream << formatTimestamp(record.timestamp) << ' '
-                  << paddedLevel(record.level) << " ["
-                  << record.source << "] "
-                  << record.message << '\n';
+    // 格式：YYYY-MM-DD HH:MM:SS.mmm LEVEL [source] message\n（共享 detail::formatLine）
+    impl_->stream << detail::formatLine(record) << '\n';
     impl_->stream.flush();
 }
 
