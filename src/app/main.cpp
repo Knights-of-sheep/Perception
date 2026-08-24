@@ -7,9 +7,9 @@
 #include <QTimer>
 
 #include "core/log/logger.h"
+#include "core/log/terminal_sink.h"
 #include "ui/MainWindow.h"
 #include "ui/console/PythonConsole.h"
-#include "ui/log/console_log_sink.h"
 #include "ui/log/qt_message_bridge.h"
 #include "ui/theme/theme_manager.h"
 
@@ -46,6 +46,9 @@ int main(int argc, char* argv[])
 
     perception::ui::MainWindow window;
     window.show();
+    // CONSOLE 子系统（终端显示日志）下，确保 GUI 主窗口不被终端窗口遮挡/抢占焦点
+    window.raise();
+    window.activateWindow();
 
     // ===== 统一日志装配（M4：统一日志模块）=====
     // 默认文件路径：%APPDATA%/Perception/logs/app.log（core 层不依赖 Qt，由 app 层计算传入）。
@@ -83,10 +86,12 @@ int main(int argc, char* argv[])
     perception::core::log::Logger::instance().configure(cfg);
     window.setLogFilePath(logPath);  // 设置菜单展示路径 + 打开日志目录（FR-014）
 
-    // 注册控制台 sink：日志投递到独立"日志输出"面板（FR-006；
-    // 与 Python REPL 分离，避免 C++ 日志混入 py shell 交互输出）
-    auto consoleSink = std::make_shared<perception::ui::ConsoleLogSink>(window.logConsole());
-    perception::core::log::Logger::instance().addSink(consoleSink);
+    // 注册终端 sink：日志实时输出到进程终端（stdout/stderr，带级别颜色）。
+    // 终端中运行 .\perception.exe 即在终端看到彩色日志；双击启动由系统分配控制台窗口。
+    // 级别过滤与文件共用全局矩阵（FR-002），由下方 restoreLogSettings 统一设置。
+    // GUI 内不再内置日志面板（2026-08-25 用户反馈：控制台=终端，嵌入面板不合理）。
+    auto terminalSink = std::make_shared<perception::core::log::TerminalSink>();
+    perception::core::log::Logger::instance().addSink(terminalSink);
 
     // 恢复 QSettings 中的日志级别矩阵与 VTK 开关（FR-013）
     window.restoreLogSettings();

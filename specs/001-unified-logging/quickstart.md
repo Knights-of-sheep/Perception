@@ -18,22 +18,22 @@
 
 ## 验证场景
 
-### V1: 统一 API → 日志输出面板 + 文件（FR-001/003/006，SC-001）
+### V1: 统一 API → 终端 + 文件（FR-001/003/006，SC-001）
 
 **步骤**：
-1. 启动应用，在 PythonConsole 输入并执行：
+1. 在终端（PowerShell/Cmd）启动应用（`.\bin\Release\perception.exe`），在 PythonConsole 输入并执行：
    ```python
    import logging
    logging.info("hello from python")
    logging.warning("warn: divisor zero")
    ```
-2. 打开底部"日志输出"面板（`视图 → 日志输出` 或 `Ctrl+3`）观察输出。
+2. 观察启动终端（即"控制台"，GUI 内不内置日志面板）。
 
 **预期**：
-- 日志输出面板出现两行，格式为 `HH:MM:SS.mmm INFO  [__main__:N] hello from python` 与对应 WARN 行（含主题色：WARN 用警示色、ERROR 用红色，与现有错误样式一致）
-- 文件 `%APPDATA%/Perception/logs/app.log` 出现同两条记录（完整格式 `YYYY-MM-DD HH:MM:SS.mmm LEVEL [source] message`，UTF-8）
+- 启动终端（控制台）出现两条记录（完整格式 `YYYY-MM-DD HH:MM:SS.mmm INFO  [__main__:N] hello from python`，WARN 黄色、ERROR 红色着色）
+- 文件 `%APPDATA%/Perception/logs/app.log` 出现同两条记录（完整格式，UTF-8）
 
-**判断**：日志输出面板与文件内容一致、字段齐全 → 通过。
+**判断**：终端与文件内容一致、字段齐全 → 通过。
 
 ### V2: C++ 侧日志调用（FR-001/003）
 
@@ -52,11 +52,11 @@ logging.debug("should be hidden")
 logging.warning("visible warning")
 ```
 
-**预期**（默认矩阵：DEBUG 关、INFO/WARN/ERROR/FATAL 开）：
-- 日志输出面板**不**显示 DEBUG 行、显示 WARN 行
+**预期**（默认全局矩阵：DEBUG 关、INFO/WARN/ERROR/FATAL 开）：
+- 终端**不**显示 DEBUG 行、显示 WARN 行
 - 文件**不**写入 DEBUG 行、写入 WARN 行
 
-**判断**：DEBUG 被过滤、其余级别正常 → 通过。
+**判断**：DEBUG 被全局过滤、其余级别三方正常 → 通过。
 
 ### V4: 文件轮转 5MB×3（FR-005，SC-002）
 
@@ -95,7 +95,7 @@ logging.error("中文消息测试 你好")
 ```
 
 **预期**：
-- 日志输出面板红色显示该行
+- 终端红色显示该行
 - 文件出现 `ERROR [__main__:N] 中文消息测试 你好`，UTF-8 无乱码
 - 与相邻 C++ 日志按时间顺序排列
 
@@ -109,45 +109,45 @@ logging.error("中文消息测试 你好")
 
 **预期**：
 - 应用正常运行、不崩溃
-- 日志输出面板出现**一次**文件写入失败告警，不重复刷屏
-- 其余日志仍正常显示在日志输出面板
+- 终端出现**一次**文件写入失败告警，不重复刷屏
+- 其余日志仍正常输出到终端
 
-**判断**：不崩溃、单次告警、日志输出面板可用 → 通过。
+**判断**：不崩溃、单次告警、终端可用 → 通过。
 
-### V8: 菜单栏设置日志级别并持久化（FR-012/013，SC-006）
+### V8: 菜单栏设置日志级别并持久化（FR-002/012/013，SC-006）
 
 **步骤**：
-1. 启动应用，打开 `设置 → 日志级别 → 控制台`，勾选 `DEBUG`
+1. 启动应用，打开 `设置 → 日志级别`，勾选 `DEBUG`
 2. 在 PythonConsole 执行：
    ```python
    import logging
    logging.debug("console debug visible")
    ```
-3. 观察日志输出面板与文件；重启应用后再看控制台 DEBUG 勾选状态
+3. 观察终端与文件；重启应用后再看 DEBUG 勾选状态
 
 **预期**：
-- 勾选后日志输出面板立即显示 DEBUG 行（无需重启），文件**不**写入（文件矩阵未开 DEBUG）
-- 取消勾选后日志输出面板立即停止显示 DEBUG
-- 重启应用后 `控制台 → DEBUG` 保持勾选（QSettings 持久化）
+- 勾选后终端、文件**同时**开始输出 DEBUG 行（无需重启，全局矩阵一致）
+- 取消勾选后三方同时停止输出 DEBUG
+- 重启应用后 `DEBUG` 保持勾选（QSettings 持久化）
 
-**判断**：立即生效、控制台/文件独立、重启保持 → 通过。
+**判断**：立即生效、全局一致、重启保持 → 通过。
 
 ### V9: Qt 输出重定向（FR-010）
 
 **步骤**：启动应用后在任意 C++ 路径触发一次 `qWarning() << "qt-side warning"`（或通过 UI 操作间接触发 Qt 警告）。
 
 **预期**：
-- 日志输出面板出现 `WARN  [qt:<file>:<line>] qt-side warning`（格式与统一 API 一致）
-- 文件同样写入该行；`控制台`/`文件` 矩阵中 WARN 关时两处均不出现
+- 终端出现 `WARN  [qt:<file>:<line>] qt-side warning`（格式与统一 API 一致）
+- 文件同样写入该行；全局矩阵 WARN 关时终端/文件均不出现
 
-**判断**：Qt 输出进入统一流、遵守格式与级别开关 → 通过。
+**判断**：Qt 输出进入统一流、遵守格式与全局级别开关 → 通过。
 
 ### V10: VTK 日志开关配置（FR-011；VTK 未引入，拦截桥接随后续落地）
 
 **步骤**：
 1. 验证 `Logger::Config.vtkLoggingEnabled` 默认值为 `true`
 2. 菜单栏 `设置 → 日志级别 → VTK 日志拦截` 复选项存在且默认勾选；切换后立即生效并写入 QSettings，重启保持
-3. （后续 VTK 引入后，随 `src/render/vtk_log_bridge` 落地）默认勾选时 VTK 警告/错误出现在日志输出面板与文件（`source = "vtk:..."`）；取消勾选后不再进入统一流
+3. （后续 VTK 引入后，随 `src/render/vtk_log_bridge` 落地）默认勾选时 VTK 警告/错误出现在终端与文件（`source = "vtk:..."`）；取消勾选后不再进入统一流
 
 **预期**：开关默认启用、持久化；拦截行为在 VTK 引入后补充验证
 
@@ -170,14 +170,13 @@ logging.error("中文消息测试 你好")
 ### V12: 日志与 Python REPL 分离（FR-006 修订）
 
 **步骤**：
-1. 启动应用，**不**打开"日志输出"面板，直接在 PythonConsole 执行 `print("hello")` 与 `import logging; logging.warning("warn x")`
-2. 观察 PythonConsole（REPL）输出
-3. 打开"日志输出"面板（`视图 → 日志输出` 或 `Ctrl+3`）
+1. 启动应用（GUI 内不内置日志面板），在 PythonConsole 执行 `print("hello")` 与 `import logging; logging.warning("warn x")`
+2. 观察 PythonConsole（REPL）输出、启动终端与 `app.log`
 
 **预期**：
 - PythonConsole（REPL）**不**出现统一日志流内容（C++ 启动日志 `INFO [main.cpp:NN] app started`、Python logging 的 `WARN [__main__:N] ...`），仅显示 Python 交互输出（`hello`、异常 traceback 等）
-- "日志输出"面板实时显示上述统一日志流记录，按级别着色（WARN 警示色、ERROR 红色）
-- 关闭面板（再次 Ctrl+3）后日志流继续写入文件，不影响文件侧
+- 启动终端与 `app.log` 实时出现上述统一日志流记录（按级别着色，WARN 黄色、ERROR 红色）
+- 统一日志流持续写入文件，不影响 REPL 交互
 
 **判断**：py shell 与统一日志流职责分离 → 通过。
 
