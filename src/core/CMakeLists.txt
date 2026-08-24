@@ -16,6 +16,7 @@ add_library(perception_core STATIC
   log/log_level_matrix.cpp
   log/logger.cpp
   log/file_sink.cpp
+  log/terminal_sink.cpp
 )
 
 # 统一 include 前缀：core/model/... core/io/... 等

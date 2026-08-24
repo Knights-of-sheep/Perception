@@ -1,11 +1,10 @@
 # ===== src/app：可执行程序入口 =====
-# WIN32：标记为 GUI 应用，链接器使用 /SUBSYSTEM:WINDOWS 替代默认 CONSOLE。
-# 行为差异：
-#   1) PowerShell/Cmd 启动时不弹/继承控制台窗口（避免遮挡 GUI 主窗口）
-#   2) stdout/stderr 无控制台载体 → 调 AllocConsole 或 OutputDebugString 才能看
-#   3) 调试/回归仍可由 Allocation=console (Debug) 或 windbg/cdb attach 看 qInfo
-# 副作用：app.log 文件 sink 仍记录所有日志，与控制台可见性无关。
-add_executable(perception WIN32 main.cpp)
+# CONSOLE subsystem（默认，不写 WIN32）：「控制台=终端」（FR-006 修订）。
+#  1) 终端（PowerShell/Cmd）运行 .\perception.exe → 日志经 TerminalSink 打到该终端
+#  2) 双击启动 → 系统分配一个控制台窗口显示彩色日志（即"终端"）
+#  3) GUI 主窗口由 Qt 正常创建；main() 中 raise()+activateWindow() 防遮挡
+# 注意：不要改回 WIN32_EXECUTABLE，否则 stdout/stderr 失去终端载体、TerminalSink 失效。
+add_executable(perception main.cpp)
 
 set_target_properties(perception PROPERTIES
   AUTOMOC ON
