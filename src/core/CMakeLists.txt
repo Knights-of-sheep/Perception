@@ -12,6 +12,10 @@ add_library(perception_core STATIC
   io/csv_reader.cpp
   process/transform.cpp
   event/event_bus.cpp
+  log/log_level.cpp
+  log/log_level_matrix.cpp
+  log/logger.cpp
+  log/file_sink.cpp
 )
 
 # 统一 include 前缀：core/model/... core/io/... 等

@@ -1,10 +1,16 @@
 #include <QApplication>
+#include <QDir>
 #include <QDockWidget>
 #include <QFont>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QTimer>
 
+#include "core/log/logger.h"
 #include "ui/MainWindow.h"
 #include "ui/console/PythonConsole.h"
+#include "ui/log/console_log_sink.h"
+#include "ui/log/qt_message_bridge.h"
 #include "ui/theme/theme_manager.h"
 
 #ifndef PERCEPTION_APP_VERSION
@@ -24,6 +30,9 @@ int main(int argc, char* argv[])
     QApplication::setApplicationName("Perception");
     QApplication::setApplicationVersion(PERCEPTION_APP_VERSION);
 
+    // 工作目录：保持进程启动时的当前路径不变（从哪启动、QDir::current() 就是哪）。
+    // 文件对话框（打开数据文件/导出图片/命令）默认目录与相对路径解析均以它为基准（FR-015）。
+
     // 切到 Fusion 风格：Windows 默认的 "windows" 风格会让 QMenuBar 等走系统原生绘制，
     // 即使 setNativeMenuBar(false) 也无法让 QSS 背景色生效（呈现"两层菜单栏"的浅色条）。
     // Fusion 是 Qt 自带的跨平台 style，QSS 100% 生效，是深色主题的标配。
@@ -37,6 +46,55 @@ int main(int argc, char* argv[])
 
     perception::ui::MainWindow window;
     window.show();
+
+    // ===== 统一日志装配（M4：统一日志模块）=====
+    // 默认文件路径：%APPDATA%/Perception/logs/app.log（core 层不依赖 Qt，由 app 层计算传入）。
+    // Windows 显式取 %APPDATA% 环境变量。实测/踩坑记录（Qt5.15）：
+    //   AppDataLocation     -> %APPDATA%\<Org>\<App>（多一层 Perception，路径不符直觉）
+    //   GenericDataLocation -> C:\ProgramData（系统级，普通用户不可写，mkpath 静默失败）
+    //   GenericConfigLocation -> %LOCALAPPDATA%（与 %APPDATA% 混用会踩坑，已弃）
+    // 其他平台用 GenericDataLocation（= $XDG_DATA_HOME 或 ~/.local/share）。
+#ifdef Q_OS_WIN
+    QString appData = QString::fromLocal8Bit(qgetenv("APPDATA"));
+    if (appData.isEmpty())  // 极端环境（如非交互会话）兜底
+        appData = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+    const QString logDir = appData + QStringLiteral("/Perception/logs");
+#else
+    const QString logDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+                         + QStringLiteral("/Perception/logs");
+#endif
+    QDir().mkpath(logDir);  // 确保目录存在（FileSink 亦会尝试创建，此处先行兜底）
+    const QString defaultLogPath = logDir + QStringLiteral("/app.log");
+
+    // 用户配置的日志路径覆盖默认值（设置菜单"设置日志路径..."，FR-016）：
+    // 已保存则直接采用（路径无效时由 FileSink 降级处理，FR-005）
+    const QString savedLogPath = QSettings().value(QLatin1String("log/path")).toString();
+    const QString logPath = savedLogPath.isEmpty() ? defaultLogPath : savedLogPath;
+
+    // 默认矩阵：DEBUG 关、INFO/WARN/ERROR/FATAL 开（FR-002）
+    perception::core::log::LogLevelMatrix defaultMatrix;
+
+    perception::core::log::Logger::Config cfg;
+    cfg.filePath = logPath.toUtf8().toStdString();
+    cfg.levelMatrix = defaultMatrix;
+    cfg.vtkLoggingEnabled = true;      // FR-011 配置占位（VTK 未引入，拦截桥随后续落地）
+    cfg.maxFileSize = 5 * 1024 * 1024; // 5MB
+    cfg.maxBackups = 3;
+    perception::core::log::Logger::instance().configure(cfg);
+    window.setLogFilePath(logPath);  // 设置菜单展示路径 + 打开日志目录（FR-014）
+
+    // 注册控制台 sink：日志投递到独立"日志输出"面板（FR-006；
+    // 与 Python REPL 分离，避免 C++ 日志混入 py shell 交互输出）
+    auto consoleSink = std::make_shared<perception::ui::ConsoleLogSink>(window.logConsole());
+    perception::core::log::Logger::instance().addSink(consoleSink);
+
+    // 恢复 QSettings 中的日志级别矩阵与 VTK 开关（FR-013）
+    window.restoreLogSettings();
+
+    // 安装 Qt 消息重定向（FR-010）：qDebug/qWarning 等纳入统一日志流
+    perception::ui::installQtMessageBridge();
+
+    PERCEPTION_LOG_I("app started");
 
     // 调试参数（启动后抓图并自动退出，用于回归 UI 修复）：
     //   --snapshot <path>           默认布局抓主窗口
