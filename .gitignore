@@ -16,6 +16,10 @@ venv/
 
 # ===== Tool logs =====
 aqtinstall.log
+build_log.txt
+
+# ===== Local clangd config (generated from .clangd.in by CMake configure) =====
+.clangd
 
 # ===== IDE =====
 .vscode/

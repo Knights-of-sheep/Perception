@@ -90,6 +90,16 @@ cmake --build build --config Release
 .\bin\Release\perception.exe
 ```
 
+### 清理
+
+删除 CMake 中间生成物与构建产物（`build\`、`build-gui\`、`bin\`、`lib\`、Python 缓存），恢复「克隆即构建」状态；源码 / 规格 / 文档 / `third-party\` 一律保留：
+
+```powershell
+.\scripts\clean.ps1        # 交互确认后清理
+.\scripts\clean.ps1 -Force # 免确认直接清理
+.\scripts\clean.ps1 -WhatIf # 仅预览将删除的内容
+```
+
 ## 测试
 
 - **C++ 单测**（CTest）：`tests/cpp/`，core 层逻辑，无头可跑（见上）

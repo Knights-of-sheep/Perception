@@ -6,6 +6,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QDir>
 #include <QDockWidget>
 #include <QDragEnterEvent>
@@ -29,7 +30,10 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+#include "core/log/logger.h"
+
 #include "ui/console/PythonConsole.h"
+#include "ui/log/log_console_widget.h"
 #include "ui/theme/theme_catalog.h"
 #include "ui/theme/theme_manager.h"
 
@@ -40,10 +44,17 @@ namespace {
 constexpr const char* kFileDockObjectName     = "fileDock";        // QSS 定位（ui-guidelines §4.1）
 constexpr const char* kPropertyDockObjectName = "propertyDock";
 constexpr const char* kPythonDockObjectName   = "pythonConsoleDock";  // 布局记忆用
+constexpr const char* kLogDockObjectName      = "logDock";            // 布局记忆用
 constexpr const char* kSettingsLayoutKey      = "mainWindow/layout";
 constexpr const char* kSettingsGeometryKey    = "mainWindow/geometry";
 constexpr const char* kEmptyTreeText          = "(尚未加载文件)";
 constexpr const char* kEmptyPropertyText      = "(选择对象查看属性)";
+
+// 日志级别持久化 key（FR-013）
+constexpr const char* kLogConsolePrefix = "log/console/";
+constexpr const char* kLogFilePrefix    = "log/file/";
+constexpr const char* kLogVtkEnabled    = "log/vtkEnabled";
+constexpr const char* kLogPathKey       = "log/path";  // 用户配置的日志文件路径（FR-016）
 
 // ---- 自定义 Dock 标题栏 ----
 // 背景：Qt5 + Fusion 风格下，浮动的 QDockWidget 不绘制 normal-button 子控件，
@@ -209,6 +220,11 @@ void MainWindow::createActions() {
     togglePythonConsoleAction_->setCheckable(true);
     togglePythonConsoleAction_->setShortcut(QKeySequence("Ctrl+`"));
 
+    toggleLogConsoleAction_ = new QAction(tr("日志输出(&L)"), this);
+    toggleLogConsoleAction_->setCheckable(true);
+    toggleLogConsoleAction_->setShortcut(QKeySequence("Ctrl+3"));
+    toggleLogConsoleAction_->setStatusTip(tr("显示/隐藏统一日志输出面板（C++ / Python logging / Qt 消息）"));
+
     resetLayoutAction_ = new QAction(tr("重置布局"), this);
     resetLayoutAction_->setShortcut(QKeySequence("Ctrl+Shift+L"));
     resetLayoutAction_->setStatusTip(tr("恢复左侧数据集、右侧属性的默认布局"));
@@ -235,6 +251,7 @@ void MainWindow::createMenus() {
     viewMenu->addAction(toggleFileDockAction_);
     viewMenu->addAction(togglePropertyDockAction_);
     viewMenu->addAction(togglePythonConsoleAction_);
+    viewMenu->addAction(toggleLogConsoleAction_);
     viewMenu->addSeparator();
     viewMenu->addAction(resetLayoutAction_);
 
@@ -270,13 +287,84 @@ void MainWindow::createMenus() {
         if (act->data().toString() == curId) { act->setChecked(true); break; }
     }
 
+    // ---- 设置 → 日志级别（FR-012/013）----
+    QMenu* settingsMenu = menuBar()->addMenu(tr("设置(&S)"));
+    QMenu* logLevelMenu = settingsMenu->addMenu(tr("日志级别(&L)"));
+    QMenu* consoleSub = logLevelMenu->addMenu(tr("控制台(&C)"));
+    QMenu* fileSub = logLevelMenu->addMenu(tr("文件(&F)"));
+
+    const char* const kLevelNames[] = {"DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
+
+    // 批量开关：解决"单级别勾选状态不一致/用户找不到入口"的痛点。
+    // 置于级别列表顶部，与具体级别分隔，语义直观。
+    {
+        consoleSub->addSeparator();
+        consoleAllAction_ = consoleSub->addAction(tr("全部启用"));
+        consoleNoneAction_ = consoleSub->addAction(tr("全部禁用"));
+        connect(consoleAllAction_, &QAction::triggered, this, [this] { onConsoleAll(true); });
+        connect(consoleNoneAction_, &QAction::triggered, this, [this] { onConsoleAll(false); });
+
+        fileSub->addSeparator();
+        fileAllAction_ = fileSub->addAction(tr("全部启用"));
+        fileNoneAction_ = fileSub->addAction(tr("全部禁用"));
+        connect(fileAllAction_, &QAction::triggered, this, [this] { onFileAll(true); });
+        connect(fileNoneAction_, &QAction::triggered, this, [this] { onFileAll(false); });
+    }
+
+    for (int i = 0; i < 5; ++i) {
+        QAction* c = consoleSub->addAction(QString::fromLatin1(kLevelNames[i]));
+        c->setCheckable(true);
+        c->setChecked(true);  // 默认矩阵：DEBUG 关、其余开
+        if (i == 0) c->setChecked(false);
+        c->setData(i);  // LogLevel 索引
+        connect(c, &QAction::toggled, this, &MainWindow::onConsoleLevelToggled);
+        consoleLevelActions_.append(c);
+
+        QAction* f = fileSub->addAction(QString::fromLatin1(kLevelNames[i]));
+        f->setCheckable(true);
+        f->setChecked(true);
+        if (i == 0) f->setChecked(false);
+        f->setData(i);
+        connect(f, &QAction::toggled, this, &MainWindow::onFileLevelToggled);
+        fileLevelActions_.append(f);
+    }
+
+    // VTK 日志拦截开关（FR-011；VTK 未引入，仅配置项）
+    vtkLogAction_ = settingsMenu->addAction(tr("VTK 日志拦截(&V)"));
+    vtkLogAction_->setCheckable(true);
+    vtkLogAction_->setChecked(true);  // 默认开启
+    connect(vtkLogAction_, &QAction::toggled, this, [](bool checked) {
+        QSettings settings;
+        settings.setValue(QLatin1String(kLogVtkEnabled), checked);
+    });
+
+    // ---- 日志路径可达性（FR-014）：只读路径 + 一键打开日志目录 ----
+    // 日志写入 %APPDATA%\Perception\logs（隐藏目录），用户无从查找，
+    // 故在设置菜单直接展示完整路径并给出"打开日志目录"直达入口。
+    settingsMenu->addSeparator();
+    logPathAction_ = settingsMenu->addAction(tr("日志文件：未配置"));
+    logPathAction_->setEnabled(false);  // 只读展示（可选中复制），路径由 main.cpp 注入后更新
+    openLogDirAction_ = settingsMenu->addAction(tr("打开日志目录(&O)"));
+    openLogDirAction_->setEnabled(false);  // 路径注入前不可用
+    connect(openLogDirAction_, &QAction::triggered, this, &MainWindow::openLogDir);
+
+    // 日志路径可配置（FR-016）：选择目录后迁移旧日志并持久化
+    setLogPathAction_ = settingsMenu->addAction(tr("设置日志路径...(&P)"));
+    setLogPathAction_->setEnabled(false);  // 路径注入前不可用
+    connect(setLogPathAction_, &QAction::triggered, this, &MainWindow::setLogPath);
+    // 清除历史日志（FR-017）：删除当前日志目录全部日志文件与归档
+    clearLogAction_ = settingsMenu->addAction(tr("清除历史日志(&C)"));
+    clearLogAction_->setEnabled(false);
+    connect(clearLogAction_, &QAction::triggered, this, &MainWindow::clearLogHistory);
+
     QMenu* helpMenu = menuBar()->addMenu(tr("帮助(&H)"));
     helpMenu->addAction(aboutAction_);
 }
 
 // ---- 导出主界面图片（grab + PNG）----
 void MainWindow::exportMainWindowImage() {
-    const QString defaultPath = QDir(QDir::homePath()).filePath(QStringLiteral("perception.png"));
+    // 默认目录跟随程序当前工作目录（= 启动程序时所在路径，FR-015）
+    const QString defaultPath = QDir::current().filePath(QStringLiteral("perception.png"));
     const QString path = QFileDialog::getSaveFileName(
         this, tr("导出主界面图片"), defaultPath, tr("PNG 图片 (*.png)"),
         nullptr, QFileDialog::DontUseNativeDialog);  // 禁原生对话框（ui-guidelines §4.3）
@@ -300,7 +388,7 @@ void MainWindow::exportPythonCommands() {
     }
     const QString path = QFileDialog::getSaveFileName(
         this, tr("导出 Python 命令"),
-        QDir(QDir::homePath()).filePath(QStringLiteral("console_commands.py")),
+        QDir::current().filePath(QStringLiteral("console_commands.py")),
         tr("Python 脚本 (*.py)"),
         nullptr, QFileDialog::DontUseNativeDialog);  // 禁原生对话框（ui-guidelines §4.3）
     if (path.isEmpty()) return;
@@ -321,15 +409,230 @@ void MainWindow::exportPythonCommands() {
         tr("已导出 %1 条命令：%2").arg(cmds.size()).arg(QFileInfo(path).fileName()), 5000);
 }
 
+// ---- 日志级别（FR-012/013）----
+void MainWindow::onConsoleLevelToggled(bool checked) {
+    auto* act = qobject_cast<QAction*>(sender());
+    if (!act) return;
+    const int idx = act->data().toInt();
+    const auto level = static_cast<perception::core::log::LogLevel>(idx);
+
+    // 立即生效：找到已注册的控制台 sink 并更新其矩阵
+    auto sink = perception::core::log::Logger::instance().findSink("ConsoleSink");
+    if (sink) {
+        sink->setLevelEnabled(level, checked);
+    } else {
+        // 之前静默返回——导致用户看到菜单勾上但无输出，以为"设置没用"。
+        // 现写入 Logger，让"设置失败"可在日志/控制台中看到。
+        perception::core::log::Logger::instance().warnAt(
+            __FILE__, __LINE__,
+            std::string("ConsoleSink not registered; toggling has no effect (level=")
+            + perception::core::log::toString(level) + ")");
+    }
+
+    // 持久化
+    QSettings settings;
+    settings.setValue(QString::fromLatin1(kLogConsolePrefix)
+                          + QString::fromLatin1(perception::core::log::toString(level)),
+                      checked);
+
+    refreshLogStatusIndicator();
+}
+
+void MainWindow::onFileLevelToggled(bool checked) {
+    auto* act = qobject_cast<QAction*>(sender());
+    if (!act) return;
+    const int idx = act->data().toInt();
+    const auto level = static_cast<perception::core::log::LogLevel>(idx);
+
+    auto sink = perception::core::log::Logger::instance().findSink("FileSink");
+    if (sink) {
+        sink->setLevelEnabled(level, checked);
+    } else {
+        perception::core::log::Logger::instance().warnAt(
+            __FILE__, __LINE__,
+            std::string("FileSink not registered; toggling has no effect (level=")
+            + perception::core::log::toString(level) + ")");
+    }
+
+    QSettings settings;
+    settings.setValue(QString::fromLatin1(kLogFilePrefix)
+                          + QString::fromLatin1(perception::core::log::toString(level)),
+                      checked);
+
+    refreshLogStatusIndicator();
+}
+
+// 控制台级别批量开关：解决"用户找不到单级别怎么开"和"QSettings 残留导致状态混乱"。
+void MainWindow::onConsoleAll(bool enabled) {
+    auto sink = perception::core::log::Logger::instance().findSink("ConsoleSink");
+    if (!sink) {
+        perception::core::log::Logger::instance().warnAt(
+            __FILE__, __LINE__,
+            "ConsoleSink not registered; batch toggle has no effect");
+        return;
+    }
+    QSettings settings;
+    for (int i = 0; i < consoleLevelActions_.size() && i < 5; ++i) {
+        const auto level = static_cast<perception::core::log::LogLevel>(i);
+        // setChecked 不会触发 toggled（避免重入），需显式应用 + 持久化
+        consoleLevelActions_[i]->setChecked(enabled);
+        sink->setLevelEnabled(level, enabled);
+        settings.setValue(QString::fromLatin1(kLogConsolePrefix)
+                          + QString::fromLatin1(perception::core::log::toString(level)),
+                          enabled);
+    }
+    refreshLogStatusIndicator();
+}
+
+void MainWindow::onFileAll(bool enabled) {
+    auto sink = perception::core::log::Logger::instance().findSink("FileSink");
+    if (!sink) {
+        perception::core::log::Logger::instance().warnAt(
+            __FILE__, __LINE__,
+            "FileSink not registered; batch toggle has no effect");
+        return;
+    }
+    QSettings settings;
+    for (int i = 0; i < fileLevelActions_.size() && i < 5; ++i) {
+        const auto level = static_cast<perception::core::log::LogLevel>(i);
+        fileLevelActions_[i]->setChecked(enabled);
+        sink->setLevelEnabled(level, enabled);
+        settings.setValue(QString::fromLatin1(kLogFilePrefix)
+                          + QString::fromLatin1(perception::core::log::toString(level)),
+                          enabled);
+    }
+}
+
+// 状态栏实时显示 ConsoleSink 当前启用的级别——让"设置有没有用"一眼可验。
+// 直接读 sink.matrix_（事实源），而非 action 的 checked（UI 状态），避免两边漂移。
+void MainWindow::refreshLogStatusIndicator() {
+    if (!consoleLogIndicator_) return;
+    auto sink = perception::core::log::Logger::instance().findSink("ConsoleSink");
+    if (!sink) {
+        consoleLogIndicator_->setText(tr("控制台: 未注册"));
+        return;
+    }
+    QStringList on;
+    for (int i = 0; i < 5; ++i) {
+        const auto level = static_cast<perception::core::log::LogLevel>(i);
+        if (sink->isLevelEnabled(level))
+            on.append(QString::fromLatin1(perception::core::log::toString(level)));
+    }
+    if (on.isEmpty()) {
+        consoleLogIndicator_->setText(tr("控制台: 无输出"));
+    } else {
+        consoleLogIndicator_->setText(tr("控制台: %1").arg(on.join(QLatin1Char('+'))));
+    }
+}
+
+// 启动恢复：main.cpp 在 Logger::configure + addSink 后调用（FR-013）
+void MainWindow::restoreLogSettings() {
+    QSettings settings;
+    for (int i = 0; i < consoleLevelActions_.size() && i < 5; ++i) {
+        const auto level = static_cast<perception::core::log::LogLevel>(i);
+        const QString key = QString::fromLatin1(kLogConsolePrefix)
+                          + QString::fromLatin1(perception::core::log::toString(level));
+        const bool on = settings.value(key, i != 0).toBool();  // 默认：DEBUG 关、其余开
+        consoleLevelActions_[i]->setChecked(on);
+        if (auto sink = perception::core::log::Logger::instance().findSink("ConsoleSink"))
+            sink->setLevelEnabled(level, on);
+    }
+    for (int i = 0; i < fileLevelActions_.size() && i < 5; ++i) {
+        const auto level = static_cast<perception::core::log::LogLevel>(i);
+        const QString key = QString::fromLatin1(kLogFilePrefix)
+                          + QString::fromLatin1(perception::core::log::toString(level));
+        const bool on = settings.value(key, i != 0).toBool();
+        fileLevelActions_[i]->setChecked(on);
+        if (auto sink = perception::core::log::Logger::instance().findSink("FileSink"))
+            sink->setLevelEnabled(level, on);
+    }
+    if (vtkLogAction_) {
+        const bool on = settings.value(QLatin1String(kLogVtkEnabled), true).toBool();
+        vtkLogAction_->setChecked(on);
+        // VTK 未引入：仅持久化开关；拦截桥随后续落地（FR-011）
+    }
+
+    refreshLogStatusIndicator();
+}
+
+// ---- 日志路径可达性（FR-014）----
+void MainWindow::setLogFilePath(const QString& path) {
+    logFilePath_ = path;
+    if (logPathAction_)
+        logPathAction_->setText(tr("日志文件：%1").arg(path));
+    if (openLogDirAction_)
+        openLogDirAction_->setEnabled(!path.isEmpty());
+    if (setLogPathAction_)
+        setLogPathAction_->setEnabled(!path.isEmpty());
+    if (clearLogAction_)
+        clearLogAction_->setEnabled(!path.isEmpty());
+}
+
+void MainWindow::openLogDir() {
+    if (logFilePath_.isEmpty()) return;
+    const QString dir = QFileInfo(logFilePath_).absolutePath();
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(dir))) {
+        QMessageBox::warning(this, tr("无法打开日志目录"),
+                             tr("无法打开目录：%1").arg(dir));
+    }
+}
+
+// ---- 设置日志路径（FR-016）：选目录 -> 迁移旧日志 -> 重建 FileSink -> 持久化 ----
+void MainWindow::setLogPath() {
+    if (logFilePath_.isEmpty()) return;
+    const QString curDir = QFileInfo(logFilePath_).absolutePath();
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, tr("选择日志保存目录"), curDir,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (dir.isEmpty()) return;
+
+    const QString newPath = QDir(dir).filePath(QStringLiteral("app.log"));
+    if (newPath == logFilePath_) return;
+
+    const bool ok = perception::core::log::Logger::instance()
+                        .setFilePath(newPath.toStdString());
+    setLogFilePath(newPath);  // 更新菜单展示与"打开日志目录"/动作可用性
+    QSettings settings;
+    settings.setValue(QLatin1String(kLogPathKey), newPath);
+
+    PERCEPTION_LOG_I(std::string("log path changed to ") + newPath.toStdString());
+    statusBar()->showMessage(
+        ok ? tr("日志路径已切换并迁移历史日志：%1").arg(newPath)
+           : tr("日志路径已设置（旧日志迁移失败）：%1").arg(newPath), 6000);
+}
+
+// ---- 清除历史日志（FR-017）：删除当前日志目录全部日志文件与归档 ----
+void MainWindow::clearLogHistory() {
+    if (logFilePath_.isEmpty()) return;
+    const QString dir = QFileInfo(logFilePath_).absolutePath();
+    const auto ret = QMessageBox::question(
+        this, tr("清除历史日志"),
+        tr("将删除日志目录中的全部日志文件（含归档）。\n\n目录：%1\n\n确定继续吗？").arg(dir),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (ret != QMessageBox::Yes) return;
+
+    const bool ok = perception::core::log::Logger::instance().clearLogFiles();
+    if (ok) {
+        PERCEPTION_LOG_I("log history cleared");
+        statusBar()->showMessage(tr("已清除历史日志：%1").arg(dir), 5000);
+    } else {
+        QMessageBox::warning(this, tr("清除失败"),
+                             tr("无法清除日志文件，请检查目录权限或磁盘状态。"));
+    }
+}
+
 // ---- 重置布局（默认布局恢复，供 Ctrl+Shift+L / --snapshot 模式调用）----
 void MainWindow::resetLayout() {
     removeDockWidget(fileDock_);
     removeDockWidget(propertyDock_);
     removeDockWidget(pythonDock_);
+    removeDockWidget(logDock_);
     QSettings().remove(kSettingsLayoutKey);  // 先清记忆，避免 restoreState 把 dock 再次隐藏
     addDockWidget(Qt::LeftDockWidgetArea, fileDock_);
     addDockWidget(Qt::RightDockWidgetArea, propertyDock_);
     addDockWidget(Qt::BottomDockWidgetArea, pythonDock_);
+    addDockWidget(Qt::BottomDockWidgetArea, logDock_);
+    tabifyDockWidget(pythonDock_, logDock_);  // 日志面板与 Python 控制台同 tab 组
     // 强制可见+非浮动（旧 QSettings 状态可能让 dock 隐藏/浮动）
     fileDock_->setVisible(true);
     fileDock_->setFloating(false);
@@ -337,6 +640,9 @@ void MainWindow::resetLayout() {
     propertyDock_->setFloating(false);
     pythonDock_->setVisible(true);
     pythonDock_->setFloating(false);
+    logDock_->setVisible(true);   // 默认布局：日志面板可见（同 tab 组，可在 Python/Python 中切换）
+    logDock_->setFloating(false);
+    pythonDock_->raise();         // 默认激活 Python 控制台
     // 给 dock 一个合理的默认宽度（中央区域给 800+px）
     resizeDocks({fileDock_}, {240}, Qt::Horizontal);
     resizeDocks({propertyDock_}, {280}, Qt::Horizontal);
@@ -474,6 +780,32 @@ void MainWindow::createDocks() {
     });
     togglePythonConsoleAction_->setChecked(true);
 
+    // 底：日志输出面板（FR-006 修订——与 Python REPL 分离，C++/Python/Qt 日志
+    // 统一投递到独立面板，不再混入 py shell 交互输出）。与 Python 控制台同 tab 组，
+    // 默认隐藏：视图 → 日志输出（Ctrl+3）随时查看。
+    logDock_ = new QDockWidget(tr("日志输出"), this);
+    logDock_->setObjectName(kLogDockObjectName);
+    logDock_->setAllowedAreas(Qt::TopDockWidgetArea | Qt::BottomDockWidgetArea);
+    logDock_->setFeatures(QDockWidget::DockWidgetClosable |
+                          QDockWidget::DockWidgetMovable |
+                          QDockWidget::DockWidgetFloatable);
+    logConsole_ = new LogConsoleWidget(logDock_);
+    logDock_->setWidget(logConsole_);
+    logDock_->setTitleBarWidget(new DockTitleBar(logDock_));
+    addDockWidget(Qt::BottomDockWidgetArea, logDock_);
+    tabifyDockWidget(pythonDock_, logDock_);  // 与 Python 控制台同 tab 组
+    logDock_->setVisible(true);               // 默认布局：日志面板与 Python 控制台同 tab 组可见
+    pythonDock_->raise();                     // 默认激活 Python 控制台（日志面板可 Ctrl+3 切换）
+
+    connect(toggleLogConsoleAction_, &QAction::triggered,
+            this, [this](bool on) {
+        if (on) { logDock_->setVisible(true); logDock_->raise(); }  // raise 激活该 tab
+        else    { logDock_->setVisible(false); }
+    });
+    connect(logDock_, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+        toggleLogConsoleAction_->setChecked(visible);
+    });
+
     // 重置布局
     connect(resetLayoutAction_, &QAction::triggered, this, &MainWindow::resetLayout);
 }
@@ -502,6 +834,22 @@ void MainWindow::createStatusBar() {
     const QColor weak = ThemeManager::current()->colors.textWeak;
     versionLabel_->setStyleSheet(QStringLiteral("color: %1;").arg(weak.name()));
     sb->addPermanentWidget(versionLabel_);
+
+    // 实时显示 ConsoleSink 启用的级别——一眼看出"控制台设置有没有用"。
+    // 点击该按钮即打开日志面板（避免用户找不到 dock）。直接读 sink.matrix_ 而非
+    // action 的 checked，保证状态栏与实际过滤行为一致（事实源）。
+    consoleLogIndicator_ = new QToolButton(sb);
+    consoleLogIndicator_->setToolTip(tr("点击打开日志输出面板"));
+    consoleLogIndicator_->setAutoRaise(true);
+    consoleLogIndicator_->setCursor(Qt::PointingHandCursor);
+    connect(consoleLogIndicator_, &QToolButton::clicked, this, [this] {
+        if (logDock_) {
+            logDock_->setVisible(true);
+            logDock_->raise();
+            if (toggleLogConsoleAction_) toggleLogConsoleAction_->setChecked(true);
+        }
+    });
+    sb->addPermanentWidget(consoleLogIndicator_);
 }
 
 // ---- 空状态提示 ----
@@ -522,7 +870,7 @@ void MainWindow::updateEmptyHints() {
 // ---- 打开文件 ----
 void MainWindow::openFile() {
     const QString file = QFileDialog::getOpenFileName(
-        this, tr("打开数据文件"), QDir::homePath(),
+        this, tr("打开数据文件"), QDir::currentPath(),
         tr("曲线数据 (*.plt *.csv);;所有文件 (*)"),
         nullptr, QFileDialog::DontUseNativeDialog);  // 禁原生对话框（ui-guidelines §4.3）
     if (file.isEmpty()) return;

@@ -1,6 +1,17 @@
 // Python.h 必须最先包含：Qt 的 qobjectdefs.h 定义了 slots/signals/emit 宏，
 // 若先包含 Qt 头，object.h 中 "PyType_Slot *slots" 会被展开导致 C2059（CPython C API 规范）。
+// 说明：pyconfig.h 在 _DEBUG 下会 #define Py_DEBUG，使 Py_INCREF/Py_DECREF 引用调试版
+// Python 专用符号（_Py_INCREF_IncRefTotal 等）。Anaconda 只有发布版 python313.dll，
+// MSVC Debug 链接会 LNK2019；兼容实现见本目录 python_debug_shim.cpp。
+// 注意：此处不可取消 _DEBUG 宏——会破坏 MSVC STL 的 RuntimeLibrary/_ITERATOR_DEBUG_LEVEL
+// 一致性（LNK2038），只能通过 shim 提供缺失符号。
+// 也不可定义 Py_NO_ENABLE_SHARED：它会使数据符号（PyAPI_DATA，如 _Py_NoneStruct）退化为
+// 普通引用，而导入库只提供 __imp_<name>（数据无 thunk 别名）→ LNK2001。
+// 调试符号的解决：保持 dllimport 引用（__imp_<name>），由 python_debug_shim.cpp 提供
+// 普通实现，并经 /alternatename 链接选项映射（见 src/app/CMakeLists.txt）。
 #include <Python.h>
+
+#include "core/log/logger.h"
 
 #include "ui/console/PythonConsole.h"
 
@@ -101,9 +112,31 @@ PyType_Spec ConsoleOut_spec = {
     ConsoleOut_slots,
 };
 
+// _cpp_log：Python logging handler 的落点（FR-008）。
+// 桥接 Python logging → C++ 统一日志流；错误在内部捕获，不影响 Python 执行。
+PyObject* cpp_log_impl(PyObject*, PyObject* args) {
+    int level = 1;
+    const char* source = nullptr;
+    const char* message = nullptr;
+    if (!PyArg_ParseTuple(args, "iss", &level, &source, &message)) return nullptr;
+    // 防御：level 越界回退 Info；不抛异常逃逸
+    if (level < 0 || level > 4) level = 1;
+    perception::core::log::Logger::instance().log(
+        static_cast<perception::core::log::LogLevel>(level),
+        source ? source : "python",
+        message ? message : "");
+    Py_RETURN_NONE;
+}
+
+PyMethodDef cpp_log_def[] = {
+    {"_cpp_log", cpp_log_impl, METH_VARARGS, "C++ 统一日志桥接（Python logging 专用）"},
+    {nullptr, nullptr, 0, nullptr},
+};
+
 // 引导脚本：续行判定（codeop.compile_command 为无状态的标准判定器，
 // 返回 None=不完整 / code=完整 / 抛异常=语法错误；与 code.InteractiveConsole 同源）
 // + traceback 格式化 + 空 stdin（防止 help() 等交互函数读输入时阻塞 GUI）
+// + PerceptionLogHandler：Python logging → _cpp_log 桥接（FR-008，契约 python-log-bridge.md）
 const char kBootstrap[] =
     "import codeop, sys, traceback\n"
     "def _check_complete(src):\n"
@@ -121,7 +154,19 @@ const char kBootstrap[] =
     "    def readline(self, *a, **k): return ''\n"
     "    def readlines(self, *a, **k): return []\n"
     "    def isatty(self): return False\n"
-    "sys.stdin = _EmptyIn()\n";
+    "sys.stdin = _EmptyIn()\n"
+    "import logging\n"
+    "_LEVEL_MAP = {10: 0, 20: 1, 30: 2, 40: 3, 50: 4}  # Python -> C++ LogLevel\n"
+    "class PerceptionLogHandler(logging.Handler):\n"
+    "    def emit(self, record):\n"
+    "        try:\n"
+    "            level = _LEVEL_MAP.get(record.levelno, 1)\n"
+    "            source = '%s:%d' % (record.name, record.lineno)\n"
+    "            _cpp_log(level, source, record.getMessage())\n"
+    "        except Exception:\n"
+    "            self.handleError(record)  # 桥接失败不影响 Python 执行\n"
+    "logging.getLogger().addHandler(PerceptionLogHandler())\n"
+    "logging.getLogger().setLevel(logging.DEBUG)\n";
 
 }  // namespace
 
@@ -198,6 +243,13 @@ void PythonConsole::initPython() {
     }
     d_->globals = PyDict_New();
     PyDict_SetItemString(d_->globals, "__builtins__", PyEval_GetBuiltins());
+
+    // 注入 _cpp_log 桥接（必须在 kBootstrap 执行前，handler 引用它）
+    PyObject* cppLogFunc = PyCFunction_New(&cpp_log_def[0], nullptr);
+    if (cppLogFunc) {
+        PyDict_SetItemString(d_->globals, "_cpp_log", cppLogFunc);
+        Py_DECREF(cppLogFunc);
+    }
 
     PyRun_String(kBootstrap, Py_file_input, d_->globals, d_->globals);
     if (PyErr_Occurred()) printError();

@@ -1,0 +1,29 @@
+# 本文件由 CMake 从 .clangd.in 生成，请勿手改。
+# 修改请编辑 .clangd.in，或改 CMakeLists.txt 中的依赖路径
+# （Qt5_DIR / Python3_ROOT_DIR），然后重新 configure 即会重新生成。
+#
+# 用途：让 IDE 的 clangd（静态分析/诊断/跳转/补全）正确解析本项目。
+# 项目未使用 compile_commands.json 时，clangd 需借助本文件得到
+# C++ 标准与 Qt/Python include 路径，否则会报"头文件 not found"类连锁误报
+# （那些不是编译错误，构建与单测均不受影响）。
+CompileFlags:
+  Add:
+    - "-std=c++17"
+    - "-fms-extensions"
+    - "-DUNICODE"
+    - "-D_UNICODE"
+    - "-DWIN32"
+    - "-D_WIN32"
+    - "-D_MSC_VER=1929"
+    - "-DQT_CORE_LIB"
+    - "-DQT_GUI_LIB"
+    - "-DQT_WIDGETS_LIB"
+    # 项目自身 include 根：源码用 #include "core/..." / "ui/..." 相对 src 引入
+    - "-I@PERCEPTION_CLANGD_SRC_DIR@"
+    # Qt5 include 根 + 各模块目录（代码直接 #include <QWidgets> 风格）
+    - "-I@PERCEPTION_CLANGD_QT_INCLUDE@"
+    - "-I@PERCEPTION_CLANGD_QT_INCLUDE@/QtCore"
+    - "-I@PERCEPTION_CLANGD_QT_INCLUDE@/QtGui"
+    - "-I@PERCEPTION_CLANGD_QT_INCLUDE@/QtWidgets"
+    # 内嵌 Python（Python.h / python3X.lib 开发库）
+    - "-I@PERCEPTION_CLANGD_PYTHON_INCLUDE@"
