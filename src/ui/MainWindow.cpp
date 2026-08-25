@@ -25,6 +25,7 @@
 #include <QStatusBar>
 #include <QStyle>
 #include <QTextStream>
+#include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QUrl>
@@ -32,7 +33,9 @@
 
 #include "core/log/logger.h"
 
+#include "ui/action_icon_map.h"
 #include "ui/console/PythonConsole.h"
+#include "ui/theme/icon_factory.h"
 #include "ui/theme/theme_catalog.h"
 #include "ui/theme/theme_manager.h"
 
@@ -55,6 +58,12 @@ constexpr const char* kLogLevelPrefix         = "log/level/";
 constexpr const char* kLogLegacyConsolePrefix = "log/console/";
 constexpr const char* kLogVtkEnabled          = "log/vtkEnabled";
 constexpr const char* kLogPathKey       = "log/path";  // 用户配置的日志文件路径（FR-016）
+
+// 003-install-icon-bars：动作图标统一构造（IconFactory 五态派生，T-04/T-06）
+QIcon makeActionIcon(const QString& iconId) {
+    const auto* t = ThemeManager::current();
+    return theme::IconFactory::actionIcon(iconId, t->colors.textDisabled, t->colors.accent);
+}
 
 // ---- 自定义 Dock 标题栏 ----
 // 背景：Qt5 + Fusion 风格下，浮动的 QDockWidget 不绘制 normal-button 子控件，
@@ -169,6 +178,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     createActions();
     createMenus();
+    createToolbars();
     createDocks();
     createCentralArea();
     createStatusBar();
@@ -187,45 +197,86 @@ void MainWindow::createActions() {
     openAction_ = new QAction(tr("打开(&O)..."), this);
     openAction_->setShortcut(QKeySequence::Open);  // Ctrl+O
     openAction_->setStatusTip(tr("打开 .plt / .csv 数据文件"));
-    openAction_->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    openAction_->setIcon(makeActionIcon("file-open"));  // 003：契约图标（下同）
     connect(openAction_, &QAction::triggered, this, &MainWindow::openFile);
 
-    exportAction_ = new QAction(tr("导出(&E)..."), this);
+    exportAction_ = new QAction(tr("导出命令脚本(&E)..."), this);
     exportAction_->setShortcut(QKeySequence::SaveAs);  // Ctrl+Shift+S
-    exportAction_->setEnabled(false);  // M4 提供
-    exportAction_->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    exportAction_->setEnabled(false);  // 契约 §1：禁用态保持（导出命令脚本未实现）
+    exportAction_->setIcon(makeActionIcon("file-export-data"));
     connect(exportAction_, &QAction::triggered, this, [this] {
-        statusBar()->showMessage(tr("导出功能将在后续版本提供"), 3000);
+        statusBar()->showMessage(tr("导出命令脚本将在后续版本提供"), 3000);
     });
 
     // 导出主界面图片（与"打开"同级，文件菜单；M3a 截图调试验证用）
     exportImageAction_ = new QAction(tr("导出主界面图片(&I)..."), this);
     exportImageAction_->setShortcut(QKeySequence("Ctrl+I"));
     exportImageAction_->setStatusTip(tr("将当前主窗口（含菜单/Dock/状态栏）保存为 PNG 图片"));
+    exportImageAction_->setIcon(makeActionIcon("file-export-screenshot"));
     connect(exportImageAction_, &QAction::triggered, this, &MainWindow::exportMainWindowImage);
 
     exitAction_ = new QAction(tr("退出(&X)"), this);
     exitAction_->setShortcut(QKeySequence::Quit);
+    exitAction_->setIcon(makeActionIcon("file-close"));
     connect(exitAction_, &QAction::triggered, this, &QWidget::close);
 
     toggleFileDockAction_ = new QAction(tr("数据集面板"), this);
     toggleFileDockAction_->setCheckable(true);
     toggleFileDockAction_->setShortcut(QKeySequence("Ctrl+1"));
+    toggleFileDockAction_->setIcon(makeActionIcon("view-panel-toggle"));
 
     togglePropertyDockAction_ = new QAction(tr("属性面板"), this);
     togglePropertyDockAction_->setCheckable(true);
     togglePropertyDockAction_->setShortcut(QKeySequence("Ctrl+2"));
+    togglePropertyDockAction_->setIcon(makeActionIcon("view-panel-toggle"));
 
     togglePythonConsoleAction_ = new QAction(tr("Python 控制台"), this);
     togglePythonConsoleAction_->setCheckable(true);
     togglePythonConsoleAction_->setShortcut(QKeySequence("Ctrl+`"));
+    togglePythonConsoleAction_->setIcon(makeActionIcon("view-panel-toggle"));
 
     resetLayoutAction_ = new QAction(tr("重置布局"), this);
     resetLayoutAction_->setShortcut(QKeySequence("Ctrl+Shift+L"));
     resetLayoutAction_->setStatusTip(tr("恢复左侧数据集、右侧属性的默认布局"));
-    resetLayoutAction_->setIcon(style()->standardIcon(QStyle::SP_DialogResetButton));
+    resetLayoutAction_->setIcon(makeActionIcon("view-reset-camera"));
+
+    // 003：未实现功能占位动作（FR-011：禁用态 + tooltip 明确提示，不连接功能槽）
+    undoAction_ = new QAction(tr("撤销(&U)"), this);
+    undoAction_->setShortcut(QKeySequence::Undo);
+    undoAction_->setEnabled(false);
+    undoAction_->setStatusTip(tr("撤销上一步操作（功能即将推出）"));
+    undoAction_->setIcon(makeActionIcon("edit-undo"));
+
+    redoAction_ = new QAction(tr("重做(&R)"), this);
+    redoAction_->setShortcut(QKeySequence::Redo);
+    redoAction_->setEnabled(false);
+    redoAction_->setStatusTip(tr("重做被撤销的操作（功能即将推出）"));
+    redoAction_->setIcon(makeActionIcon("edit-redo"));
+
+    loadScriptAction_ = new QAction(tr("加载脚本(&L)..."), this);
+    loadScriptAction_->setEnabled(false);
+    loadScriptAction_->setStatusTip(tr("加载 Python 脚本（功能即将推出）"));
+    loadScriptAction_->setIcon(makeActionIcon("file-load-script"));
+
+    recordScreenAction_ = new QAction(tr("主界面视频录制(&V)"), this);
+    recordScreenAction_->setEnabled(false);
+    recordScreenAction_->setStatusTip(tr("录制主界面为视频（功能即将推出）"));
+    recordScreenAction_->setIcon(makeActionIcon("file-record-screen"));
+
+    refreshAction_ = new QAction(tr("刷新(&F)"), this);
+    refreshAction_->setEnabled(false);
+    refreshAction_->setStatusTip(tr("刷新当前视图（功能即将推出）"));
+    refreshAction_->setIcon(makeActionIcon("view-refresh"));
+
+    helpAction_ = new QAction(tr("帮助(&H)"), this);
+    helpAction_->setStatusTip(tr("查看帮助文档"));
+    helpAction_->setIcon(makeActionIcon("tools-help"));
+    connect(helpAction_, &QAction::triggered, this, [this] {
+        QMessageBox::information(this, tr("帮助"), tr("帮助文档将在后续版本提供"));
+    });
 
     aboutAction_ = new QAction(tr("关于(&A)..."), this);
+    aboutAction_->setIcon(makeActionIcon("tools-about"));
     connect(aboutAction_, &QAction::triggered, this, &MainWindow::about);
 }
 
@@ -237,10 +288,15 @@ void MainWindow::createMenus() {
 
     QMenu* fileMenu = menuBar()->addMenu(tr("文件(&F)"));
     fileMenu->addAction(openAction_);
+    fileMenu->addAction(exportAction_);  // 导出命令脚本（禁用态保持，契约 §1）
     fileMenu->addAction(exportImageAction_);  // 导出主界面图片（与"打开"同级，调试快照）
-    // exportAction_ 暂不加入菜单：M4 导出图表数据时再加回；避免与"导出主界面图片"混淆
     fileMenu->addSeparator();
     fileMenu->addAction(exitAction_);
+
+    // 编辑（003：撤销/重做占位，FR-011 禁用态）
+    QMenu* editMenu = menuBar()->addMenu(tr("编辑(&E)"));
+    editMenu->addAction(undoAction_);
+    editMenu->addAction(redoAction_);
 
     QMenu* viewMenu = menuBar()->addMenu(tr("视图(&V)"));
     viewMenu->addAction(toggleFileDockAction_);
@@ -312,6 +368,7 @@ void MainWindow::createMenus() {
     vtkLogAction_ = settingsMenu->addAction(tr("VTK 日志拦截(&V)"));
     vtkLogAction_->setCheckable(true);
     vtkLogAction_->setChecked(true);  // 默认开启
+    vtkLogAction_->setIcon(makeActionIcon("tools-settings"));  // 003：契约图标
     connect(vtkLogAction_, &QAction::toggled, this, [](bool checked) {
         QSettings settings;
         settings.setValue(QLatin1String(kLogVtkEnabled), checked);
@@ -325,19 +382,83 @@ void MainWindow::createMenus() {
     logPathAction_->setEnabled(false);  // 只读展示（可选中复制），路径由 main.cpp 注入后更新
     openLogDirAction_ = settingsMenu->addAction(tr("打开日志目录(&O)"));
     openLogDirAction_->setEnabled(false);  // 路径注入前不可用
+    openLogDirAction_->setIcon(makeActionIcon("tools-settings"));  // 003：契约图标
     connect(openLogDirAction_, &QAction::triggered, this, &MainWindow::openLogDir);
 
     // 日志路径可配置（FR-016）：选择目录后迁移旧日志并持久化
     setLogPathAction_ = settingsMenu->addAction(tr("设置日志路径...(&P)"));
     setLogPathAction_->setEnabled(false);  // 路径注入前不可用
+    setLogPathAction_->setIcon(makeActionIcon("tools-settings"));  // 003：契约图标
     connect(setLogPathAction_, &QAction::triggered, this, &MainWindow::setLogPath);
     // 清除历史日志（FR-017）：删除当前日志目录全部日志文件与归档
     clearLogAction_ = settingsMenu->addAction(tr("清除历史日志(&C)"));
     clearLogAction_->setEnabled(false);
+    clearLogAction_->setIcon(makeActionIcon("edit-delete-selection"));  // 003：契约图标
     connect(clearLogAction_, &QAction::triggered, this, &MainWindow::clearLogHistory);
 
     QMenu* helpMenu = menuBar()->addMenu(tr("帮助(&H)"));
+    helpMenu->addAction(helpAction_);
     helpMenu->addAction(aboutAction_);
+}
+
+// ---- 功能栏（003：左侧通用 + 右侧领域，纵向 ToolButtonIconOnly）----
+void MainWindow::createToolbars() {
+    // 左：通用功能栏（FR-003：10 按钮 = 5 可用复用菜单动作 + 5 禁用占位，顺序契约 §2）
+    leftToolBar_ = new QToolBar(tr("左侧功能栏"), this);
+    leftToolBar_->setObjectName(QStringLiteral("leftToolBar"));
+    leftToolBar_->setOrientation(Qt::Vertical);
+    leftToolBar_->setMovable(false);
+    leftToolBar_->setFloatable(false);
+    leftToolBar_->setIconSize(QSize(24, 24));
+    leftToolBar_->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    leftToolBar_->setAllowedAreas(Qt::LeftToolBarArea);
+    addToolBar(Qt::LeftToolBarArea, leftToolBar_);
+
+    // 契约 id → 既有 QAction 成员映射（FR-004：与菜单同动作，行为 100% 一致）
+    const QStringList leftIds = ActionIconMap::leftToolBarOrder();
+    for (const QString& id : leftIds) {
+        const ActionSpec* spec = ActionIconMap::find(id);
+        if (!spec) continue;
+        QAction* act = nullptr;
+        if (spec->id == QLatin1String("action.openFile"))                act = openAction_;
+        else if (spec->id == QLatin1String("action.exportImage"))        act = exportImageAction_;
+        else if (spec->id == QLatin1String("action.toggleFileDock"))     act = toggleFileDockAction_;
+        else if (spec->id == QLatin1String("action.togglePropertyDock")) act = togglePropertyDockAction_;
+        else if (spec->id == QLatin1String("action.togglePythonConsole")) act = togglePythonConsoleAction_;
+        else if (spec->id == QLatin1String("action.undo"))               act = undoAction_;
+        else if (spec->id == QLatin1String("action.redo"))               act = redoAction_;
+        else if (spec->id == QLatin1String("action.loadScript"))         act = loadScriptAction_;
+        else if (spec->id == QLatin1String("action.recordScreen"))       act = recordScreenAction_;
+        else if (spec->id == QLatin1String("action.refresh"))            act = refreshAction_;
+        if (act) {
+            act->setToolTip(spec->tooltip);  // FR-006：中文悬停提示
+            leftToolBar_->addAction(act);
+        }
+    }
+
+    // 右：领域功能栏（FR-005：9 按钮，全部禁用态占位，顺序契约 §3）
+    rightToolBar_ = new QToolBar(tr("右侧功能栏"), this);
+    rightToolBar_->setObjectName(QStringLiteral("rightToolBar"));
+    rightToolBar_->setOrientation(Qt::Vertical);
+    rightToolBar_->setMovable(false);
+    rightToolBar_->setFloatable(false);
+    rightToolBar_->setIconSize(QSize(24, 24));
+    rightToolBar_->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    rightToolBar_->setAllowedAreas(Qt::RightToolBarArea);
+    addToolBar(Qt::RightToolBarArea, rightToolBar_);
+
+    const QStringList rightIds = ActionIconMap::rightToolBarOrder();
+    for (const QString& id : rightIds) {
+        const ActionSpec* spec = ActionIconMap::find(id);
+        if (!spec) continue;
+        // 右栏为独立动作（数据/视图领域功能未实现，全部禁用占位，FR-011）
+        QAction* act = new QAction(spec->text, this);
+        act->setObjectName(QStringLiteral("rightBar_") + spec->id);
+        act->setEnabled(false);
+        act->setToolTip(spec->tooltip);  // FR-006：中文悬停提示
+        act->setIcon(makeActionIcon(spec->iconId));
+        rightToolBar_->addAction(act);
+    }
 }
 
 // ---- 导出主界面图片（grab + PNG）----

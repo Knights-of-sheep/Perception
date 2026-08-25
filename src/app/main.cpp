@@ -27,6 +27,8 @@ int main(int argc, char* argv[])
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
     QApplication app(argc, argv);
+    // 003：静态库 perception_ui 中 theme.qrc 的资源符号需显式引用（MSVC /OPT:REF）
+    Q_INIT_RESOURCE(theme);
     QApplication::setOrganizationName("Perception");
     QApplication::setApplicationName("Perception");
     QApplication::setApplicationVersion(PERCEPTION_APP_VERSION);

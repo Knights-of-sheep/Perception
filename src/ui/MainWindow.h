@@ -10,6 +10,7 @@ class QCloseEvent;
 class QDragEnterEvent;
 class QDropEvent;
 class QLabel;
+class QToolBar;
 class QToolButton;
 class QTreeWidget;
 
@@ -70,6 +71,7 @@ protected:
 private:
     void createActions();
     void createMenus();
+    void createToolbars();  // 003：左右功能栏（纵向，ToolButtonIconOnly）
     void createDocks();
     void createCentralArea();
     void createStatusBar();
@@ -86,6 +88,17 @@ private:
     QAction* aboutAction_ = nullptr;
     QAction* exportImageAction_ = nullptr;  // 导出主界面图片（grab + save）
     QAction* togglePythonConsoleAction_ = nullptr;  // 底部 Python 控制台开关
+    // 003-install-icon-bars：未实现功能占位动作（禁用态 + 明确提示，FR-011）
+    QAction* undoAction_ = nullptr;
+    QAction* redoAction_ = nullptr;
+    QAction* loadScriptAction_ = nullptr;
+    QAction* recordScreenAction_ = nullptr;
+    QAction* refreshAction_ = nullptr;
+    QAction* helpAction_ = nullptr;  // 帮助菜单项（契约 §1）
+
+    // 003：功能栏（纵向，ToolButtonIconOnly，iconSize 24）
+    QToolBar* leftToolBar_ = nullptr;   // 左：通用功能（FR-003）
+    QToolBar* rightToolBar_ = nullptr;  // 右：领域功能（FR-005）
 
     // 主题
     QActionGroup* themeGroup_ = nullptr;          // 单选互斥（15 项）

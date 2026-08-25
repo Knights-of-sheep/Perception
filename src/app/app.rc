@@ -1,0 +1,5 @@
+// ===== Perception 可执行文件图标（003-install-icon-bars US4）=====
+// app-icon.ico 位于 src/ui/theme/icons/app/（002-icon-design 交付，含多分辨率）。
+// 资源路径以本 .rc 文件所在目录（src/app/）为基准。
+// 注意：保持 CONSOLE 子系统（src/app/CMakeLists.txt），图标不影响控制台行为。
+IDI_ICON1 ICON "../ui/theme/icons/app/app-icon.ico"
