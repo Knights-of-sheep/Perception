@@ -3,8 +3,11 @@
 #include <QDockWidget>
 #include <QFont>
 #include <QIcon>
+#include <QMouseEvent>
+#include <QScreen>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QThread>
 #include <QTimer>
 
 #include "core/log/logger.h"
@@ -112,9 +115,13 @@ int main(int argc, char* argv[])
     //   --snapshot <path>           默认布局抓主窗口
     //   --snapshot-float <path>     fileDock 分离（浮动）后，抓浮动窗口自身
     //   --snapshot-restore <path>   fileDock 分离 -> 模拟双击标题栏(toggleFloating) -> 抓主窗口
-    //   --theme <id>                抓图前先切换主题（dark-classic / nord / ... 15 种）
+    //   --theme <id>                抓图前先切换主题（dark-classic / nord / ... 25 种）
+    //   --snapshot-drag <zone>      抓图前模拟 Dock 拖拽：显示放置高亮（left/right/bottom/dock）
+    //   --snapshot-focus <obj>      抓图前给指定 dock 设焦点，验证 focus rect 是否被抑制
+    //   --snapshot-real-drag <dock> 用 QTest::mousePress/MouseMove/MouseRelease 模拟真实拖拽
+    //                                （验证 DockTitleBar::eventFilter 拦截链是否生效）
     QString snapshotPath, snapshotFloatPath, snapshotRestorePath, snapshotThemeId,
-            consoleScript;
+            snapshotDragZone, snapshotFocusDock, snapshotRealDragDock, consoleScript;
     for (int i = 1; i < argc; ++i) {
         QString arg = QString::fromLocal8Bit(argv[i]);
         if (arg == QLatin1String("--snapshot") && i + 1 < argc) {
@@ -125,15 +132,25 @@ int main(int argc, char* argv[])
             snapshotRestorePath = QString::fromLocal8Bit(argv[++i]);
         } else if (arg == QLatin1String("--theme") && i + 1 < argc) {
             snapshotThemeId = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QLatin1String("--snapshot-drag") && i + 1 < argc) {
+            snapshotDragZone = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QLatin1String("--snapshot-focus") && i + 1 < argc) {
+            snapshotFocusDock = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QLatin1String("--snapshot-real-drag") && i + 1 < argc) {
+            snapshotRealDragDock = QString::fromLocal8Bit(argv[++i]);
         } else if (arg == QLatin1String("--console-script") && i + 1 < argc) {
             consoleScript = QString::fromLocal8Bit(argv[++i]);
         }
     }
     const bool wantSnapshot = !snapshotPath.isEmpty() || !snapshotFloatPath.isEmpty()
-                           || !snapshotRestorePath.isEmpty();
+                           || !snapshotRestorePath.isEmpty() || !snapshotDragZone.isEmpty()
+                           || !snapshotFocusDock.isEmpty()
+                           || !snapshotRealDragDock.isEmpty();
     if (wantSnapshot) {
         QTimer::singleShot(800, &window, [&window, snapshotPath, snapshotFloatPath,
                                           snapshotRestorePath, snapshotThemeId,
+                                          snapshotDragZone, snapshotFocusDock,
+                                          snapshotRealDragDock,
                                           consoleScript, &app] {
             QString savedThemeId;
             if (!snapshotThemeId.isEmpty()) {
@@ -148,6 +165,55 @@ int main(int argc, char* argv[])
             }
             window.resetLayout();                        // 强制默认布局（不受 QSettings 记忆影响）
             QApplication::processEvents();
+            // 分界线拖拽高亮：模拟按住 pythonConsoleDock 上缘（水平分隔条）拖动，
+            // 验证真实分隔条（QDockWidgetSeparator）命中 + 高亮线长度=分隔条长度
+            const QString themeIdNow = perception::ui::ThemeManager::currentThemeId();
+            qInfo("sash-test: theme=%s window=(%d,%d,%d,%d)", themeIdNow.toUtf8().constData(),
+                  window.x(), window.y(), window.width(), window.height());
+            if (auto* sashDock =
+                    window.findChild<QDockWidget*>(QStringLiteral("pythonConsoleDock"))) {
+                const int sepY = sashDock->geometry().top();  // 水平分隔条（主窗口坐标）
+                if (sepY > 0 && sepY < window.height()) {
+                    const QPoint g1 = window.mapToGlobal(QPoint(window.width() / 2, sepY));
+                    const QPoint g2 = window.mapToGlobal(QPoint(window.width() / 2, sepY));
+                    QMouseEvent sashPress(QEvent::MouseButtonPress, window.mapFromGlobal(g1),
+                                          g1, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    QApplication::sendEvent(&window, &sashPress);
+                    QApplication::processEvents();
+                    QMouseEvent sashMv(QEvent::MouseMove, window.mapFromGlobal(g2), g2,
+                                       Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+                    QApplication::sendEvent(&window, &sashMv);
+                    QApplication::processEvents();
+                    QThread::msleep(120);  // 等待 overlay 重绘提交到屏幕合成
+                    QApplication::processEvents();
+                    // 验证高亮线"整条"：沿分隔条 y 采样 5 个 x（左/中左/中/中右/右），
+                    // 每个点抓 3x3 中心像素，亮度 > 180 视为命中高亮线
+                    int litCount = 0;
+                    QColor centers[5];
+                    const int xs[5] = {window.width() / 10, window.width() / 4,
+                                       window.width() / 2, window.width() * 3 / 4,
+                                       window.width() * 9 / 10};
+                    for (int i = 0; i < 5; ++i) {
+                        const QPoint gp = window.mapToGlobal(QPoint(xs[i], sepY));
+                        const QPixmap px = QGuiApplication::primaryScreen()
+                                               ->grabWindow(0, gp.x() - 1, gp.y() - 1, 3, 3);
+                        if (px.isNull()) continue;
+                        const QColor c = px.toImage().pixelColor(1, 1);
+                        centers[i] = c;
+                        if (qGray(c.rgb()) > 180) ++litCount;
+                    }
+                    qInfo("sash-test: horizontal sash lit=%d/5 x=[%d,%d,%d,%d,%d] colors=[#%02X%02X%02X,#%02X%02X%02X,#%02X%02X%02X,#%02X%02X%02X,#%02X%02X%02X]",
+                          litCount, xs[0], xs[1], xs[2], xs[3], xs[4],
+                          centers[0].red(), centers[0].green(), centers[0].blue(),
+                          centers[1].red(), centers[1].green(), centers[1].blue(),
+                          centers[2].red(), centers[2].green(), centers[2].blue(),
+                          centers[3].red(), centers[3].green(), centers[3].blue(),
+                          centers[4].red(), centers[4].green(), centers[4].blue());
+                } else {
+                    qInfo("sash-test: python dock top=%d invalid for window height=%d", sepY,
+                          window.height());
+                }
+            }
             auto savePng = [](const QPixmap& pm, const QString& path) {
                 if (pm.isNull() || path.isEmpty()) return;
                 if (pm.save(path, "PNG")) {
@@ -156,6 +222,57 @@ int main(int argc, char* argv[])
                     qWarning("snapshot save failed: %s", qPrintable(path));
                 }
             };
+
+            // 模拟 Dock 拖拽：在目标区域显示放置高亮后抓图（验证分割线高亮效果）
+            if (!snapshotDragZone.isEmpty() && !snapshotPath.isEmpty()) {
+                if (auto* dragDock = window.findChild<QDockWidget*>(QStringLiteral("fileDock"))) {
+                    const QSize ws = window.size();
+                    QPoint target;  // 主窗口坐标的目标放置点
+                    if (snapshotDragZone == QLatin1String("right"))
+                        target = QPoint(qRound(ws.width() * 0.92), ws.height() / 2);
+                    else if (snapshotDragZone == QLatin1String("bottom"))
+                        target = QPoint(ws.width() / 2, qRound(ws.height() * 0.92));
+                    else if (snapshotDragZone == QLatin1String("dock"))
+                        target = dragDock->geometry().center();  // 鼠标在 dock 内部（不在 zone 带内）
+                    else
+                        target = QPoint(qRound(ws.width() * 0.08), ws.height() / 2);
+                    window.beginDockDrag(dragDock);
+                    window.updateDockDrag(window.mapToGlobal(target));
+                    QApplication::processEvents();
+                }
+            }
+
+            // 让指定 dock 获得键盘焦点，验证 focus rect 是否被代理样式抑制
+            if (!snapshotFocusDock.isEmpty()) {
+                if (auto* d = window.findChild<QDockWidget*>(snapshotFocusDock)) {
+                    d->setFocus();
+                    QApplication::processEvents();
+                }
+            }
+
+            // 真实拖拽测试：sendEvent 模拟标题栏拖拽，验证 DockTitleBar::eventFilter 拦截链。
+            if (!snapshotRealDragDock.isEmpty() && !snapshotPath.isEmpty()) {
+                if (auto* dock = window.findChild<QDockWidget*>(snapshotRealDragDock)) {
+                    if (auto* tb = dock->titleBarWidget()) {
+                        const QPoint pressLocal = tb->rect().center();
+                        const QPoint pressGlobal = tb->mapToGlobal(pressLocal);
+                        QMouseEvent pressEv(QEvent::MouseButtonPress, pressLocal,
+                                            pressGlobal, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                        QApplication::sendEvent(tb, &pressEv);
+                        QApplication::processEvents();
+                        const QPoint moveGlobal = dock->mapToGlobal(QPoint(20, 20));
+                        QMouseEvent mv(QEvent::MouseMove, tb->mapFromGlobal(moveGlobal),
+                                       moveGlobal, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                        QApplication::sendEvent(tb, &mv);
+                        QApplication::processEvents();
+                    } else {
+                        qWarning("real drag: dock %s has no titleBarWidget",
+                                 qPrintable(snapshotRealDragDock));
+                    }
+                } else {
+                    qWarning("real drag: dock %s not found", qPrintable(snapshotRealDragDock));
+                }
+            }
 
             if (!snapshotPath.isEmpty())
                 savePng(window.grab(), snapshotPath);

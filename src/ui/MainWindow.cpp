@@ -9,8 +9,10 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QDockWidget>
+#include <QProxyStyle>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -19,17 +21,34 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QPixmap>
+#include <QScreen>
+#include <QScreen>
+#include <QSizeGrip>
 #include <QSettings>
 #include <QStatusBar>
 #include <QStyle>
 #include <QTextStream>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QUrl>
 #include <QVBoxLayout>
+
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX  // 避免与 Qt 的 qMin/qMax 及标准库 min/max 宏冲突
+#endif
+#include <windows.h>
+#include <windowsx.h>  // GET_X_LPARAM / GET_Y_LPARAM
+#endif
+
+
 
 #include "core/log/logger.h"
 
@@ -62,14 +81,86 @@ constexpr const char* kLogPathKey       = "log/path";  // 用户配置的日志�
 // 003-install-icon-bars：动作图标统一构造（IconFactory 五态派生，T-04/T-06）
 QIcon makeActionIcon(const QString& iconId) {
     const auto* t = ThemeManager::current();
-    return theme::IconFactory::actionIcon(iconId, t->colors.textDisabled, t->colors.accent);
+    return theme::IconFactory::actionIcon(iconId, t->colors.textWeak, t->colors.textOnSelection,
+                                          t->colors.textDisabled, t->colors.accent);
+}
+
+// ---- 窗口控制按钮图标（统一 16px 矢量绘制；文本字符字形/基线不一，观感不齐）----
+enum class WinBtnKind { Minimize, Maximize, Restore, Close, FloatDock, Undock };
+
+void drawWinBtnIcon(QPainter& p, WinBtnKind kind, const QColor& color) {
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, true);
+    QPen pen(color, 1.6);
+    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Qt::RoundJoin);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+    switch (kind) {
+    case WinBtnKind::Minimize:
+        // 横线垂直居中（与其他图标 centerY 对齐，避免按钮排布不齐平）
+        p.drawLine(QPointF(3, 8.5), QPointF(13, 8.5));
+        break;
+    case WinBtnKind::Maximize:
+        p.drawRect(QRectF(3.2, 3.2, 9.6, 9.6));  // 方框
+        break;
+    case WinBtnKind::Restore:
+        // 两个重叠小方框（Windows 还原惯例：后框 + 前框）
+        p.drawRect(QRectF(2.4, 5.4, 8.2, 8.2));
+        p.drawRect(QRectF(5.4, 2.4, 8.2, 8.2));
+        break;
+    case WinBtnKind::Close:
+        // 对角交叉
+        p.drawLine(QPointF(3.6, 3.6), QPointF(12.4, 12.4));
+        p.drawLine(QPointF(12.4, 3.6), QPointF(3.6, 12.4));
+        break;
+    case WinBtnKind::FloatDock:
+        // 分离：上下对三角（⇅ 语义，停靠面板分离为浮动窗口）
+        p.drawPolyline(QPolygonF() << QPointF(8, 3.2) << QPointF(4.6, 7.4)
+                                   << QPointF(11.4, 7.4) << QPointF(8, 3.2));
+        p.drawPolyline(QPolygonF() << QPointF(8, 12.8) << QPointF(4.6, 8.6)
+                                   << QPointF(11.4, 8.6) << QPointF(8, 12.8));
+        break;
+    case WinBtnKind::Undock:
+        // 恢复嵌入：L 形返回箭头（↩ 语义，浮动窗口回到主窗口停靠）
+        p.drawLine(QPointF(12.5, 4.2), QPointF(12.5, 9.2));
+        p.drawLine(QPointF(12.5, 9.2), QPointF(4.8, 9.2));
+        p.drawLine(QPointF(4.8, 9.2), QPointF(7.6, 6.8));
+        p.drawLine(QPointF(4.8, 9.2), QPointF(7.6, 11.6));
+        break;
+    }
+    p.restore();
+}
+
+QIcon makeWinBtnIcon(WinBtnKind kind, const QPalette& pal) {
+    const QColor normal = pal.color(QPalette::WindowText);
+    // 关闭按钮 hover 背景为红色（QSS @dangerHoverBg@），图标取白色保证对比；
+    // 其余按钮 hover 沿用主文字色。
+    const QColor active = (kind == WinBtnKind::Close)
+                              ? pal.color(QPalette::BrightText)
+                              : pal.color(QPalette::WindowText);
+    QIcon icon;
+    const int sizes[] = {16, 32};  // 兼容高 DPI 缩放
+    for (int s : sizes) {
+        QPixmap base(s, s);
+        base.fill(Qt::transparent);
+        { QPainter p(&base); drawWinBtnIcon(p, kind, normal); }
+        QPixmap act(s, s);
+        act.fill(Qt::transparent);
+        { QPainter p(&act); drawWinBtnIcon(p, kind, active); }
+        icon.addPixmap(base);                             // Normal / Off
+        icon.addPixmap(act, QIcon::Active, QIcon::Off);   // hover / 按下
+    }
+    return icon;
 }
 
 // ---- 自定义 Dock 标题栏 ----
 // 背景：Qt5 + Fusion 风格下，浮动的 QDockWidget 不绘制 normal-button 子控件，
 //       导致"恢复嵌入"按钮缺失，用户分离后找不到还原入口。
-// 方案：setTitleBarWidget(DockTitleBar) 接管标题栏，三个按钮（分离/恢复嵌入/关闭）
-//       全用显式 QToolButton，停靠态与浮动态均稳定可见；同时支持双击标题栏切换浮动。
+// 方案：setTitleBarWidget(DockTitleBar) 接管标题栏——浮动时彻底无系统标题栏
+//       （Qt::FramelessWindowHint），标题栏自身承担拖动移动 / 双击最大化/还原；
+//       按钮集：停靠态 = 最大化 + 分离 + 关闭；浮动态 = 最小化 + 最大化/还原 +
+//       恢复嵌入 + 关闭，全用显式 QToolButton，停靠/浮动均稳定可见。
 class DockTitleBar : public QWidget {
 public:
     explicit DockTitleBar(QDockWidget* parent)
@@ -84,28 +175,33 @@ public:
         titleLabel_->setObjectName(QStringLiteral("dockTitleLabel"));
         titleLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-        floatBtn_ = new QToolButton(this);
-        floatBtn_->setObjectName(QStringLiteral("dockFloatBtn"));
-        floatBtn_->setFixedSize(20, 20);
-        floatBtn_->setCursor(Qt::PointingHandCursor);
-        floatBtn_->setAutoRaise(true);
-        floatBtn_->setFocusPolicy(Qt::NoFocus);
-
-        closeBtn_ = new QToolButton(this);
-        closeBtn_->setObjectName(QStringLiteral("dockCloseBtn"));
-        closeBtn_->setFixedSize(20, 20);
-        closeBtn_->setCursor(Qt::PointingHandCursor);
-        closeBtn_->setAutoRaise(true);
-        closeBtn_->setFocusPolicy(Qt::NoFocus);
-        closeBtn_->setText(QString(QChar(0x2715)));   // ✕
+        minBtn_ = makeDockBtn(QStringLiteral("dockMinBtn"));
+        minBtn_->setToolTip(tr("最小化"));
+        maxBtn_ = makeDockBtn(QStringLiteral("dockMaxBtn"));
+        floatBtn_ = makeDockBtn(QStringLiteral("dockFloatBtn"));
+        closeBtn_ = makeDockBtn(QStringLiteral("dockCloseBtn"));
+        // 图标统一用 makeWinBtnIcon（16px 矢量；文本字符字形/基线不一，观感不齐）
 
         layout->addWidget(titleLabel_);
+        layout->addWidget(minBtn_);
+        layout->addWidget(maxBtn_);
         layout->addWidget(floatBtn_);
         layout->addWidget(closeBtn_);
 
         titleLabel_->setText(dock_->windowTitle());
         refreshByState();
 
+        connect(minBtn_, &QToolButton::clicked, this, [this] {
+            if (dock_->isFloating()) dock_->showMinimized();
+        });
+        connect(maxBtn_, &QToolButton::clicked, this, [this] {
+            if (dock_->isMaximized()) {
+                dock_->showNormal();              // 还原（浮动正常大小）
+            } else {
+                if (!dock_->isFloating()) dock_->setFloating(true);  // 停靠 → 先浮动
+                dock_->showMaximized();           // 再最大化
+            }
+        });
         connect(floatBtn_, &QToolButton::clicked, this, [this] {
             dock_->setFloating(!dock_->isFloating());
         });
@@ -113,60 +209,269 @@ public:
         connect(dock_, &QDockWidget::windowTitleChanged,
                 titleLabel_, &QLabel::setText);
         connect(dock_, &QDockWidget::featuresChanged,
-                this, [this](QDockWidget::DockWidgetFeatures f) {
-            floatBtn_->setVisible(f & QDockWidget::DockWidgetFloatable);
-            closeBtn_->setVisible(f & QDockWidget::DockWidgetClosable);
-        });
+                this, [this](QDockWidget::DockWidgetFeatures) { refreshByState(); });
         connect(dock_, &QDockWidget::topLevelChanged,
                 this, &DockTitleBar::onTopLevelChanged);
+        // 先于 QMainWindowLayout 安装拦截器，替换默认拖拽预览为"分割线高亮"指示
+        installEventFilter(this);
     }
 
 protected:
+    // 停靠态：press→超过阈值→Dragging，通知主窗口显示放置高亮；release 执行放置。
+    // 浮动态：press/move 直接移动浮动窗口。
+    bool eventFilter(QObject* obj, QEvent* ev) override {
+        if (obj != this) return QWidget::eventFilter(obj, ev);
+        switch (ev->type()) {
+        case QEvent::MouseButtonPress: {
+            auto* e = static_cast<QMouseEvent*>(ev);
+            if (e->button() != Qt::LeftButton) break;
+            if (dock_->isFloating()) {
+                pressGlobal_ = e->globalPos();
+                winPos_ = dock_->pos();
+                dragState_ = DragState::FloatMove;
+                grabMouse();  // 移出标题栏后仍持续收到 move，窗口移动不中断
+                return true;
+            }
+            pressGlobal_ = e->globalPos();
+            dragState_ = DragState::Candidate;
+            return true;  // 吞掉按下，避免 QMainWindowLayout 启动默认拖拽
+        }
+        case QEvent::MouseMove: {
+            if (dragState_ == DragState::None) break;
+            auto* e = static_cast<QMouseEvent*>(ev);
+            const QPoint g = e->globalPos();
+            if (dragState_ == DragState::Candidate) {
+                if ((g - pressGlobal_).manhattanLength() >= QApplication::startDragDistance()) {
+                    dragState_ = DragState::Dragging;
+                    if (auto* mw = mainWindow()) {
+                        mw->beginDockDrag(dock_);
+                        mw->updateDockDrag(g);   // 立即更新高亮，避免极快 release 时 overlay 为空
+                        grabMouse(Qt::ClosedHandCursor);  // 拖出标题栏后仍收到鼠标事件
+                    }
+                }
+                return true;
+            }
+            if (dragState_ == DragState::Dragging) {
+                if (auto* mw = mainWindow()) mw->updateDockDrag(g);
+                return true;
+            }
+            if (dragState_ == DragState::FloatMove) {
+                dock_->move(winPos_ + g - pressGlobal_);
+                return true;
+            }
+            break;
+        }
+        case QEvent::MouseButtonRelease: {
+            if (dragState_ == DragState::None) break;
+            auto* e = static_cast<QMouseEvent*>(ev);
+            if (dragState_ == DragState::Dragging) {
+                if (auto* mw = mainWindow()) mw->endDockDrag(e->globalPos());
+            }
+            if (mouseGrabber() == this) releaseMouse();
+            dragState_ = DragState::None;
+            unsetCursor();
+            return true;
+        }
+        default:
+            break;
+        }
+        return QWidget::eventFilter(obj, ev);
+    }
+
     void mouseDoubleClickEvent(QMouseEvent* e) override {
-        // 双击标题栏 = 切换浮动态（与默认 QDockWidget 行为一致，setTitleBarWidget 后
-        // QDockWidget 的内置 mouseDoubleClickEvent 不再触发，需要我们手动接管）
-        if (dock_->features() & QDockWidget::DockWidgetFloatable) {
-            dock_->setFloating(!dock_->isFloating());
+        // 停靠态双击 = 分离浮动；浮动态双击 = 最大化/还原（Windows 惯例）
+        if (dragState_ == DragState::None) {
+            if (dock_->isFloating()) {
+                if (dock_->isMaximized()) dock_->showNormal();
+                else dock_->showMaximized();
+            } else if (dock_->features() & QDockWidget::DockWidgetFloatable) {
+                dock_->setFloating(true);
+            }
         }
         QWidget::mouseDoubleClickEvent(e);
     }
 
+    void changeEvent(QEvent* e) override {
+        if (e->type() == QEvent::PaletteChange ||
+            e->type() == QEvent::ApplicationPaletteChange) {
+            refreshIcons();          // 主题切换 → 窗口按钮图标颜色随主题刷新
+        } else if (e->type() == QEvent::WindowStateChange) {
+            refreshMaxBtn();         // 浮动态最大化/还原切换 → 更新图标
+        }
+        QWidget::changeEvent(e);
+    }
+
 private:
+    QToolButton* makeDockBtn(const QString& objName) {
+        auto* btn = new QToolButton(this);
+        btn->setObjectName(objName);
+        btn->setFixedSize(20, 20);
+        btn->setIconSize(QSize(16, 16));
+        btn->setCursor(Qt::PointingHandCursor);
+        btn->setAutoRaise(true);
+        btn->setFocusPolicy(Qt::NoFocus);
+        return btn;
+    }
+
     void refreshByState() {
         const auto f = dock_->features();
-        floatBtn_->setVisible(f & QDockWidget::DockWidgetFloatable);
+        const bool floating = dock_->isFloating();
+        const bool floatable = f & QDockWidget::DockWidgetFloatable;
+        floatBtn_->setVisible(floatable);
         closeBtn_->setVisible(f & QDockWidget::DockWidgetClosable);
-        updateFloatIcon(dock_->isFloating());
+        minBtn_->setVisible(floating && floatable);  // 仅浮动态有"最小化"
+        maxBtn_->setVisible(floatable);
+        refreshIcons();
     }
     void updateFloatIcon(bool floating) {
-        // 浮动时按钮显示"恢复嵌入 ↩"；停靠时显示"分离 ⇅"
-        floatBtn_->setText(QString(floating ? QChar(0x21A9) : QChar(0x21C5)));
+        // 浮动时按钮图标=恢复嵌入（↩）；停靠时=分离（⇅）
+        const QPalette pal = dock_->palette();
+        floatBtn_->setIcon(makeWinBtnIcon(floating ? WinBtnKind::Undock
+                                                   : WinBtnKind::FloatDock, pal));
         floatBtn_->setToolTip(floating ? tr("恢复嵌入") : tr("分离为浮动窗口"));
     }
+    void refreshIcons() {
+        const QPalette pal = dock_->palette();
+        minBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Minimize, pal));
+        closeBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Close, pal));
+        updateFloatIcon(dock_->isFloating());
+        refreshMaxBtn();
+    }
+    void refreshMaxBtn() {
+        const bool max = dock_->isFloating() && dock_->isMaximized();
+        maxBtn_->setIcon(makeWinBtnIcon(max ? WinBtnKind::Restore : WinBtnKind::Maximize,
+                                        dock_->palette()));
+        maxBtn_->setToolTip(max ? tr("还原") : tr("最大化"));
+    }
     void onTopLevelChanged(bool topLevel) {
-        updateFloatIcon(topLevel);
         if (topLevel) {
-            // 浮动时把 QDockWidget 转成普通顶层窗口（默认是 Qt::Tool 工具窗）：
-            // - 系统标题栏出现"最小化/最大化/关闭"按钮（Tool 窗默认只有关闭）
-            // - 出现在任务栏，最小化后可从任务栏还原
-            // - 可自由拖动边缘调整大小
+            // 去系统标题栏（Frameless）：无边框/系统按钮，由本标题栏接管
+            // （拖动/双击最大化/按钮控制/右下角缩放），窗口保留任务栏项（Qt::Window）。
             if (dock_->windowFlags().testFlag(Qt::Tool)) {
-                dock_->setWindowFlags(Qt::Window | Qt::WindowTitleHint |
-                                     Qt::WindowSystemMenuHint |
-                                     Qt::WindowMinMaxButtonsHint |
-                                     Qt::WindowCloseButtonHint);
+                dock_->setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
                 dock_->show();  // setWindowFlags 会隐藏窗口，需重新显示
             }
         } else {
             // 嵌入主窗口：复位窗口状态，避免残留最大化/最小化
             dock_->setWindowState(Qt::WindowNoState);
         }
+        refreshByState();
     }
 
     QDockWidget*  dock_;
     QLabel*       titleLabel_;
+    QToolButton*  minBtn_;
+    QToolButton*  maxBtn_;
     QToolButton*  floatBtn_;
     QToolButton*  closeBtn_;
+
+    // 自定义拖拽状态（停靠=分割线高亮；浮动=窗口移动）
+    enum class DragState { None, Candidate, Dragging, FloatMove };
+    DragState dragState_ = DragState::None;
+    QPoint    pressGlobal_;
+    QPoint    winPos_;  // 浮动态拖动前的窗口位置
+
+    MainWindow* mainWindow() const {
+        return qobject_cast<MainWindow*>(dock_->window());
+    }
+};
+
+// ---- Dock focus rect 抑制（避免点击 dock 内容时 dock 出现蓝色 focus 边框）----
+// Qt Fusion 风格在 QDockWidget 获得键盘焦点时自动绘制 1-2px focus rect（QStyle::PE_FrameFocusRect），
+// 包裹整个 dock 外缘——视觉上像"dock 被高亮选中"，与设计语言不符。
+// 用代理样式仅对 QDockWidget 抑制该元素，不影响其他 widget 的 focus 反馈。
+class NoFocusRectDockStyle : public QProxyStyle {
+public:
+    using QProxyStyle::QProxyStyle;
+    void drawPrimitive(PrimitiveElement pe, const QStyleOption* opt,
+                       QPainter* p, const QWidget* w) const override {
+        if (pe == PE_FrameFocusRect) return;  // 跳过 dock focus 矩形
+        QProxyStyle::drawPrimitive(pe, opt, p, w);
+    }
+};
+static void applyNoFocusRectStyle(QDockWidget* dock) {
+    if (dock) dock->setStyle(new NoFocusRectDockStyle(dock->style()));
+}
+
+// ---- Dock 拖拽放置高亮（VSCode 风格分割线指示）----
+// 高亮覆盖层：全窗口鼠标穿透，绘制"目标区域半透明填充 + 分割线 3px 实线"。
+// 颜色来自主题 token dockDropHighlight（深色主题亮蓝系 / 浅色主题深蓝系 / 高对比青系，
+// 参考 VSCode sash.activeBorder 与 editor.dropBackground）。
+class DockDragOverlay : public QWidget {
+public:
+    explicit DockDragOverlay(QWidget* parent) : QWidget(parent) {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        hide();
+    }
+    void setHighlight(const QRect& fill, const QRect& line) {
+        // 只重绘新旧高亮区域（含描边余量），避免每次 move 全窗重绘导致拖拽卡顿
+        const QRect dirty =
+            (fillRect_ | lineRect_ | fill | line).adjusted(-2, -2, 2, 2);
+        fillRect_ = fill;
+        lineRect_ = line;
+        update(dirty);
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(this);
+        const QColor base = ThemeManager::current()->colors.dockDropHighlight;
+        if (!fillRect_.isEmpty()) {
+            QColor f = base;
+            // 深色背景 alpha 46 视觉提升只有 +25~32，几乎看不见；
+            // 提到 72（约 28%）后 fill 在深色面板上明显可见又不阻挡内容。
+            f.setAlpha(72);
+            p.fillRect(fillRect_, f);
+        }
+        if (!lineRect_.isEmpty()) {
+            // 4px 实线 + 1px 反相描边：在深/浅背景下都保证线条清晰锐利
+            // （仿 VSCode sash.activeBorder 在两种主题下的对比增强技巧）
+            QColor edge = base.lightness() > 128 ? QColor(0, 0, 0, 160)
+                                                 : QColor(255, 255, 255, 160);
+            p.fillRect(lineRect_.adjusted(-1, 0, 1, 0), edge);  // 左右各扩 1px 描边
+            p.fillRect(lineRect_, base);
+        }
+    }
+
+private:
+    QRect fillRect_;
+    QRect lineRect_;
+};
+
+// ---- 浮动窗口右下角调整大小手柄（去系统标题栏后失去边缘 resize，QSizeGrip 补位）----
+static QWidget* wrapWithSizeGrip(QWidget* content, QDockWidget* dock) {
+    auto* container = new QWidget(dock);
+    auto* grid = new QGridLayout(container);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setSpacing(0);
+    grid->addWidget(content, 0, 0);
+    auto* grip = new QSizeGrip(container);
+    grip->setObjectName(QStringLiteral("dockSizeGrip"));
+    grid->addWidget(grip, 1, 1);  // 贴右下角
+    grid->setRowStretch(0, 1);
+    grid->setColumnStretch(0, 1);
+    grip->setVisible(dock->isFloating());
+    QObject::connect(dock, &QDockWidget::topLevelChanged, grip,
+                     [grip](bool top) { grip->setVisible(top); });
+    return container;
+}
+
+// ---- 分界线高亮细条（VSCode sash.activeBorder：用主题文字色，与背景永远对比清晰）----
+class SashHighlight : public QWidget {
+public:
+    explicit SashHighlight(QWidget* parent) : QWidget(parent) {
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+        // 不透明 widget + paintEvent 画主题 WindowText 纯色：深色主题=白色亮条，
+        // 亮色主题=深色暗条，永远与背景形成强对比；不依赖 WA_TranslucentBackground 的合成。
+        setAutoFillBackground(false);
+        setPalette(parent ? parent->palette() : QPalette());
+        hide();
+    }
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(this);
+        p.fillRect(rect(), palette().color(QPalette::WindowText));
+    }
 };
 
 }  // namespace
@@ -174,10 +479,14 @@ private:
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent) {
     setWindowTitle(tr("Perception"));
+    // 无边框：舍弃系统标题栏，标题/窗口按钮与菜单栏同一行（createTitleBar 组装）
+    // 最大化时通过 WM_GETMINMAXINFO 限制到工作区，避免覆盖任务栏
+    setWindowFlags(Qt::FramelessWindowHint);
     resize(1360, 860);
 
     createActions();
     createMenus();
+    createTitleBar();  // 需在 createMenus 之后（组装 menuBar()）
     createToolbars();
     createDocks();
     createCentralArea();
@@ -190,20 +499,56 @@ MainWindow::MainWindow(QWidget* parent)
 
     setAcceptDrops(true);  // 拖放打开（ui-guidelines §6）
     updateEmptyHints();
+
 }
 
-// ---- 动作 ----
+// ---- 分界线（dock 边缘分隔条）resize 拖拽高亮 ----
+// 背景：QMainWindow 的分隔条不是独立 widget，而是 QMainWindowLayout 绘制在 QMainWindow
+// 上的 1px 边界线（qmainwindowlayout_p.h 的 windowEvent / paintSeparators），分隔条上的
+// 鼠标事件直接派发给 QMainWindow（该区域没有子 widget 覆盖）。
+// 方案：MainWindow::event() 在把事件转发给 QMainWindowLayout（windowEvent）之前检测分隔条
+// 命中——此时尚未拖拽、dock geometry 准确，天然区分左右/上下多条分隔条（不存在旧方案
+// "拖右亮左"的歧义）；高亮条 = 细条 overlay（只覆盖分隔条缝隙，局部重绘不卡顿），位置在
+// QMainWindowLayout 处理完 move 后同步 → 与真实分隔条完全重合。
+int MainWindow::sashHitTest(const QPoint& pos) const {
+    const int zone = 6;
+    // 垂直分隔条：左侧 fileDock 右缘
+    if (fileDock_ && fileDock_->isVisible() && !fileDock_->isFloating()) {
+        const QRect g = fileDock_->geometry();
+        const int x = g.right() + 1;
+        if (qAbs(pos.x() - x) <= zone && pos.y() >= g.top() - zone &&
+            pos.y() <= g.bottom() + zone)
+            return SashFileRight;
+    }
+    // 垂直分隔条：右侧 propertyDock 左缘
+    if (propertyDock_ && propertyDock_->isVisible() && !propertyDock_->isFloating()) {
+        const QRect g = propertyDock_->geometry();
+        const int x = g.left() - 1;
+        if (qAbs(pos.x() - x) <= zone && pos.y() >= g.top() - zone &&
+            pos.y() <= g.bottom() + zone)
+            return SashPropertyLeft;
+    }
+    // 水平分隔条：底部 pythonDock 上缘
+    if (pythonDock_ && pythonDock_->isVisible() && !pythonDock_->isFloating()) {
+        const QRect g = pythonDock_->geometry();
+        const int y = g.top() - 1;
+        if (qAbs(pos.y() - y) <= zone && pos.x() >= g.left() - zone &&
+            pos.x() <= g.right() + zone)
+            return SashPythonTop;
+    }
+    return SashMiss;
+}
 void MainWindow::createActions() {
     openAction_ = new QAction(tr("打开(&O)..."), this);
     openAction_->setShortcut(QKeySequence::Open);  // Ctrl+O
     openAction_->setStatusTip(tr("打开 .plt / .csv 数据文件"));
-    openAction_->setIcon(makeActionIcon("file-open"));  // 003：契约图标（下同）
+    setActionIcon(openAction_, "file-open");  // 003：契约图标（下同）
     connect(openAction_, &QAction::triggered, this, &MainWindow::openFile);
 
     exportAction_ = new QAction(tr("导出命令脚本(&E)..."), this);
     exportAction_->setShortcut(QKeySequence::SaveAs);  // Ctrl+Shift+S
     exportAction_->setEnabled(false);  // 契约 §1：禁用态保持（导出命令脚本未实现）
-    exportAction_->setIcon(makeActionIcon("file-export-data"));
+    setActionIcon(exportAction_, "file-export-data");
     connect(exportAction_, &QAction::triggered, this, [this] {
         statusBar()->showMessage(tr("导出命令脚本将在后续版本提供"), 3000);
     });
@@ -212,71 +557,71 @@ void MainWindow::createActions() {
     exportImageAction_ = new QAction(tr("导出主界面图片(&I)..."), this);
     exportImageAction_->setShortcut(QKeySequence("Ctrl+I"));
     exportImageAction_->setStatusTip(tr("将当前主窗口（含菜单/Dock/状态栏）保存为 PNG 图片"));
-    exportImageAction_->setIcon(makeActionIcon("file-export-screenshot"));
+    setActionIcon(exportImageAction_, "file-export-screenshot");
     connect(exportImageAction_, &QAction::triggered, this, &MainWindow::exportMainWindowImage);
 
     exitAction_ = new QAction(tr("退出(&X)"), this);
     exitAction_->setShortcut(QKeySequence::Quit);
-    exitAction_->setIcon(makeActionIcon("file-close"));
+    setActionIcon(exitAction_, "file-close");
     connect(exitAction_, &QAction::triggered, this, &QWidget::close);
 
     toggleFileDockAction_ = new QAction(tr("数据集面板"), this);
     toggleFileDockAction_->setCheckable(true);
     toggleFileDockAction_->setShortcut(QKeySequence("Ctrl+1"));
-    toggleFileDockAction_->setIcon(makeActionIcon("view-panel-toggle"));
+    setActionIcon(toggleFileDockAction_, "view-panel-data");
 
     togglePropertyDockAction_ = new QAction(tr("属性面板"), this);
     togglePropertyDockAction_->setCheckable(true);
     togglePropertyDockAction_->setShortcut(QKeySequence("Ctrl+2"));
-    togglePropertyDockAction_->setIcon(makeActionIcon("view-panel-toggle"));
+    setActionIcon(togglePropertyDockAction_, "view-panel-property");
 
     togglePythonConsoleAction_ = new QAction(tr("Python 控制台"), this);
     togglePythonConsoleAction_->setCheckable(true);
     togglePythonConsoleAction_->setShortcut(QKeySequence("Ctrl+`"));
-    togglePythonConsoleAction_->setIcon(makeActionIcon("view-panel-toggle"));
+    setActionIcon(togglePythonConsoleAction_, "view-panel-console");
 
     resetLayoutAction_ = new QAction(tr("重置布局"), this);
     resetLayoutAction_->setShortcut(QKeySequence("Ctrl+Shift+L"));
     resetLayoutAction_->setStatusTip(tr("恢复左侧数据集、右侧属性的默认布局"));
-    resetLayoutAction_->setIcon(makeActionIcon("view-reset-camera"));
+    setActionIcon(resetLayoutAction_, "view-reset-camera");
 
     // 003：未实现功能占位动作（FR-011：禁用态 + tooltip 明确提示，不连接功能槽）
     undoAction_ = new QAction(tr("撤销(&U)"), this);
     undoAction_->setShortcut(QKeySequence::Undo);
     undoAction_->setEnabled(false);
     undoAction_->setStatusTip(tr("撤销上一步操作（功能即将推出）"));
-    undoAction_->setIcon(makeActionIcon("edit-undo"));
+    setActionIcon(undoAction_, "edit-undo");
 
     redoAction_ = new QAction(tr("重做(&R)"), this);
     redoAction_->setShortcut(QKeySequence::Redo);
     redoAction_->setEnabled(false);
     redoAction_->setStatusTip(tr("重做被撤销的操作（功能即将推出）"));
-    redoAction_->setIcon(makeActionIcon("edit-redo"));
+    setActionIcon(redoAction_, "edit-redo");
 
     loadScriptAction_ = new QAction(tr("加载脚本(&L)..."), this);
     loadScriptAction_->setEnabled(false);
     loadScriptAction_->setStatusTip(tr("加载 Python 脚本（功能即将推出）"));
-    loadScriptAction_->setIcon(makeActionIcon("file-load-script"));
+    setActionIcon(loadScriptAction_, "file-load-script");
 
     recordScreenAction_ = new QAction(tr("主界面视频录制(&V)"), this);
     recordScreenAction_->setEnabled(false);
     recordScreenAction_->setStatusTip(tr("录制主界面为视频（功能即将推出）"));
-    recordScreenAction_->setIcon(makeActionIcon("file-record-screen"));
+    setActionIcon(recordScreenAction_, "file-record-screen");
 
     refreshAction_ = new QAction(tr("刷新(&F)"), this);
     refreshAction_->setEnabled(false);
     refreshAction_->setStatusTip(tr("刷新当前视图（功能即将推出）"));
-    refreshAction_->setIcon(makeActionIcon("view-refresh"));
+    setActionIcon(refreshAction_, "view-refresh");
 
     helpAction_ = new QAction(tr("帮助(&H)"), this);
     helpAction_->setStatusTip(tr("查看帮助文档"));
-    helpAction_->setIcon(makeActionIcon("tools-help"));
+    setActionIcon(helpAction_, "tools-help");
     connect(helpAction_, &QAction::triggered, this, [this] {
         QMessageBox::information(this, tr("帮助"), tr("帮助文档将在后续版本提供"));
     });
 
     aboutAction_ = new QAction(tr("关于(&A)..."), this);
-    aboutAction_->setIcon(makeActionIcon("tools-about"));
+    setActionIcon(aboutAction_, "tools-about");
     connect(aboutAction_, &QAction::triggered, this, &MainWindow::about);
 }
 
@@ -305,7 +650,7 @@ void MainWindow::createMenus() {
     viewMenu->addSeparator();
     viewMenu->addAction(resetLayoutAction_);
 
-    // 主题（15 套，按 family 分组；勾选当前项，点击即热切换）
+    // 主题（25 套，按 family 分组；勾选当前项，点击即热切换）
     QMenu* themeMenu = menuBar()->addMenu(tr("主题(&T)"));
     themeGroup_ = new QActionGroup(this);
     themeGroup_->setExclusive(true);
@@ -368,7 +713,7 @@ void MainWindow::createMenus() {
     vtkLogAction_ = settingsMenu->addAction(tr("VTK 日志拦截(&V)"));
     vtkLogAction_->setCheckable(true);
     vtkLogAction_->setChecked(true);  // 默认开启
-    vtkLogAction_->setIcon(makeActionIcon("tools-settings"));  // 003：契约图标
+    setActionIcon(vtkLogAction_, "tools-settings");  // 003：契约图标
     connect(vtkLogAction_, &QAction::toggled, this, [](bool checked) {
         QSettings settings;
         settings.setValue(QLatin1String(kLogVtkEnabled), checked);
@@ -382,23 +727,131 @@ void MainWindow::createMenus() {
     logPathAction_->setEnabled(false);  // 只读展示（可选中复制），路径由 main.cpp 注入后更新
     openLogDirAction_ = settingsMenu->addAction(tr("打开日志目录(&O)"));
     openLogDirAction_->setEnabled(false);  // 路径注入前不可用
-    openLogDirAction_->setIcon(makeActionIcon("tools-settings"));  // 003：契约图标
+    setActionIcon(openLogDirAction_, "tools-settings");  // 003：契约图标
     connect(openLogDirAction_, &QAction::triggered, this, &MainWindow::openLogDir);
 
     // 日志路径可配置（FR-016）：选择目录后迁移旧日志并持久化
     setLogPathAction_ = settingsMenu->addAction(tr("设置日志路径...(&P)"));
     setLogPathAction_->setEnabled(false);  // 路径注入前不可用
-    setLogPathAction_->setIcon(makeActionIcon("tools-settings"));  // 003：契约图标
+    setActionIcon(setLogPathAction_, "tools-settings");  // 003：契约图标
     connect(setLogPathAction_, &QAction::triggered, this, &MainWindow::setLogPath);
     // 清除历史日志（FR-017）：删除当前日志目录全部日志文件与归档
     clearLogAction_ = settingsMenu->addAction(tr("清除历史日志(&C)"));
     clearLogAction_->setEnabled(false);
-    clearLogAction_->setIcon(makeActionIcon("edit-delete-selection"));  // 003：契约图标
+    setActionIcon(clearLogAction_, "edit-delete-selection");  // 003：契约图标
     connect(clearLogAction_, &QAction::triggered, this, &MainWindow::clearLogHistory);
 
     QMenu* helpMenu = menuBar()->addMenu(tr("帮助(&H)"));
     helpMenu->addAction(helpAction_);
     helpMenu->addAction(aboutAction_);
+}
+
+// ---- 无边框自定义标题栏 ----
+// 背景：舍弃系统标题栏（Qt::FramelessWindowHint），将"应用图标+标题+拖拽区"、
+//       菜单栏、最小化/最大化/关闭按钮组装为一行（VSCode 式紧凑布局）。
+// 交互（Windows，nativeEvent 处理）：
+//   - 标题栏拖拽区 -> HTCAPTION（系统拖动窗口 + 双击最大化）
+//   - 窗口边缘 5px -> HTLEFT/HTTOP/...（边缘调整大小）
+//   - WM_GETMINMAXINFO -> 最大化限制到工作区（不遮任务栏）
+void MainWindow::createTitleBar() {
+    // 左：应用图标 + 标题（内容宽，不抢占空间）
+    titleBarWidget_ = new QWidget(this);
+    titleBarWidget_->setObjectName(QStringLiteral("titleBar"));
+    titleBarWidget_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+
+    auto* titleLayout = new QHBoxLayout(titleBarWidget_);
+    titleLayout->setContentsMargins(12, 0, 0, 0);
+    titleLayout->setSpacing(6);
+
+    auto* iconLabel = new QLabel(titleBarWidget_);
+    iconLabel->setObjectName(QStringLiteral("titleBarIcon"));
+    iconLabel->setPixmap(QPixmap(QStringLiteral(":/perception/icons/icons/png/app/app-icon-24.png")));
+    titleLayout->addWidget(iconLabel);
+
+    titleLabel_ = new QLabel(titleBarWidget_);
+    titleLabel_->setObjectName(QStringLiteral("titleBarTitle"));
+    titleLabel_->setText(windowTitle());
+    titleLayout->addWidget(titleLabel_);
+
+    // 右：窗口控制按钮（Windows 惯例：最小化 / 最大化/还原 / 关闭）
+    // 图标用 QPainter 统一 16px 矢量绘制（makeWinBtnIcon），颜色随主题 palette；
+    // 最大化/还原形状在 updateWindowButtonIcons 中切换。
+    constexpr int kBtnW = 40;
+    constexpr int kBtnH = 30;
+    auto makeWinBtn = [this, kBtnW, kBtnH](const char* name) {
+        auto* btn = new QToolButton(this);
+        btn->setObjectName(QLatin1String(name));
+        btn->setFixedSize(kBtnW, kBtnH);
+        btn->setCursor(Qt::PointingHandCursor);
+        btn->setAutoRaise(true);
+        btn->setFocusPolicy(Qt::NoFocus);
+        btn->setIconSize(QSize(16, 16));
+        return btn;
+    };
+    winMinBtn_ = makeWinBtn("winMinBtn");
+    winMaxBtn_ = makeWinBtn("winMaxBtn");
+    winCloseBtn_ = makeWinBtn("winCloseBtn");
+    winMinBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Minimize, palette()));
+    winCloseBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Close, palette()));
+    winCloseBtn_->setToolTip(tr("关闭"));
+
+    connect(winMinBtn_, &QToolButton::clicked, this, &QWidget::showMinimized);
+    connect(winMaxBtn_, &QToolButton::clicked, this, &MainWindow::toggleMaximize);
+    connect(winCloseBtn_, &QToolButton::clicked, this, &QWidget::close);
+
+    // 组装：标题 + 菜单栏 + 拖拽区 + 窗口按钮 = 同一行（menuWidget 接管顶部）
+    // 布局：[图标][标题][文件 编辑 ... 帮助][拖拽区(可拖)][—][□][✕]
+    // Windows 传统：菜单在左上角；拖拽区（菜单与按钮之间）支持拖动/双击最大化。
+    auto* row = new QWidget(this);
+    row->setObjectName(QStringLiteral("titleBarRow"));
+    auto* rowLayout = new QHBoxLayout(row);
+    rowLayout->setContentsMargins(0, 0, 0, 0);
+    rowLayout->setSpacing(0);
+    rowLayout->addWidget(titleBarWidget_);
+    rowLayout->addWidget(menuBar());  // 菜单栏按内容宽度（不抢拖拽区）
+
+    titleBarDragArea_ = new QWidget(this);
+    titleBarDragArea_->setObjectName(QStringLiteral("titleBarDragArea"));
+    titleBarDragArea_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    rowLayout->addWidget(titleBarDragArea_);
+
+    rowLayout->addWidget(winMinBtn_);
+    rowLayout->addWidget(winMaxBtn_);
+    rowLayout->addWidget(winCloseBtn_);
+    setMenuWidget(row);
+
+    updateWindowButtonIcons();
+}
+
+void MainWindow::toggleMaximize() {
+    if (isMaximized()) {
+        showNormal();
+    } else {
+        showMaximized();
+    }
+}
+
+// 003-install-icon-bars：动作图标注册。
+// QIcon 在创建时用当时主题的 textDisabled/accent 派生色固化，
+// 主题热切换后需按新色板重建，因此统一经 setActionIcon 登记。
+void MainWindow::setActionIcon(QAction* action, const QString& iconId) {
+    action->setIcon(makeActionIcon(iconId));
+    if (!iconItems_.contains({action, iconId})) {
+        iconItems_.append({action, iconId});
+    }
+}
+
+void MainWindow::refreshActionIcons() {
+    for (const auto& item : iconItems_) {
+        item.first->setIcon(makeActionIcon(item.second));
+    }
+}
+
+void MainWindow::updateWindowButtonIcons() {
+    const bool max = isMaximized();
+    winMaxBtn_->setIcon(makeWinBtnIcon(max ? WinBtnKind::Restore : WinBtnKind::Maximize,
+                                       palette()));
+    winMaxBtn_->setToolTip(max ? tr("还原") : tr("最大化"));
 }
 
 // ---- 功能栏（003：左侧通用 + 右侧领域，纵向 ToolButtonIconOnly）----
@@ -456,7 +909,7 @@ void MainWindow::createToolbars() {
         act->setObjectName(QStringLiteral("rightBar_") + spec->id);
         act->setEnabled(false);
         act->setToolTip(spec->tooltip);  // FR-006：中文悬停提示
-        act->setIcon(makeActionIcon(spec->iconId));
+        setActionIcon(act, spec->iconId);
         rightToolBar_->addAction(act);
     }
 }
@@ -706,6 +1159,8 @@ void MainWindow::applyTheme(const QString& themeId) {
     updateEmptyHints();
     // Python 控制台提示符/输出配色跟随主题
     if (pythonConsole_) pythonConsole_->refreshColors();
+    // 动作图标按新色板重建（QIcon 创建时固化主题色）
+    refreshActionIcons();
 
     statusBar()->showMessage(
         tr("已切换主题：%1").arg(QString::fromUtf8(t->name)), 3000);
@@ -729,7 +1184,7 @@ void MainWindow::createDocks() {
     fileTree_ = new QTreeWidget(fileDock_);
     fileTree_->setHeaderHidden(true);
     fileTree_->setIndentation(14);
-    fileDock_->setWidget(fileTree_);
+    fileDock_->setWidget(wrapWithSizeGrip(fileTree_, fileDock_));  // 浮动时右下角可调整大小
     fileDock_->setTitleBarWidget(new DockTitleBar(fileDock_));
     addDockWidget(Qt::LeftDockWidgetArea, fileDock_);
 
@@ -750,7 +1205,7 @@ void MainWindow::createDocks() {
     propertyTree_ = new QTreeWidget(propertyDock_);
     propertyTree_->setHeaderHidden(true);
     propertyTree_->setIndentation(14);
-    propertyDock_->setWidget(propertyTree_);
+    propertyDock_->setWidget(wrapWithSizeGrip(propertyTree_, propertyDock_));
     propertyDock_->setTitleBarWidget(new DockTitleBar(propertyDock_));
     addDockWidget(Qt::RightDockWidgetArea, propertyDock_);
 
@@ -807,10 +1262,14 @@ void MainWindow::createDocks() {
     sideLayout->addWidget(clearBtn);
     pythonLayout->addWidget(sideBar);
 
-    pythonDock_->setWidget(pythonContainer);
+    pythonDock_->setWidget(wrapWithSizeGrip(pythonContainer, pythonDock_));
     pythonDock_->setTitleBarWidget(new DockTitleBar(pythonDock_));
     addDockWidget(Qt::BottomDockWidgetArea, pythonDock_);
 
+    // 抑制 dock 获得键盘焦点时的 focus rect 边框（避免点击 dock 内容时出现一圈高亮）
+    applyNoFocusRectStyle(fileDock_);
+    applyNoFocusRectStyle(propertyDock_);
+    applyNoFocusRectStyle(pythonDock_);
     connect(togglePythonConsoleAction_, &QAction::triggered,
             this, [this](bool on) { pythonDock_->setVisible(on); });
     connect(pythonDock_, &QDockWidget::visibilityChanged, this, [this](bool visible) {
@@ -820,6 +1279,156 @@ void MainWindow::createDocks() {
 
     // 重置布局
     connect(resetLayoutAction_, &QAction::triggered, this, &MainWindow::resetLayout);
+}
+
+// ---- Dock 拖拽高亮（VSCode 风格：拖拽面板时目标分割线高亮）----
+// 由 DockTitleBar::eventFilter 驱动：press→Candidate→(超过阈值)→Dragging，
+// beginDockDrag 显示覆盖层，updateDockDrag 按鼠标位置更新高亮目标，
+// endDockDrag 执行放置（addDockWidget 移动 dock 到目标区域）。
+void MainWindow::beginDockDrag(QDockWidget* dock) {
+    dragDock_ = dock;
+    if (!dockDragOverlay_) {
+        dockDragOverlay_ = new DockDragOverlay(this);
+        dockDragOverlay_->setGeometry(rect());
+    }
+    dockDragOverlay_->raise();
+    dockDragOverlay_->show();
+}
+
+// ---- 分界线（dock 分隔条）resize 拖拽高亮 ----
+// 由 MainWindow::event 检测分隔条命中驱动（不吞事件，resize 仍由 QMainWindowLayout 完成）。
+// 高亮条 = SashHighlight 细条 widget（仅覆盖分隔条缝隙，亮色，局部重绘，拖动不卡顿）；
+// 位置在 QMainWindowLayout 处理完 move（布局更新）后同步 → 与真实分隔条完全重合。
+void MainWindow::beginSashDrag(int hit) {
+    sashDragging_ = true;
+    sashHit_ = hit;
+    if (!sashHighlight_) sashHighlight_ = new SashHighlight(this);
+    sashHighlight_->raise();
+    sashHighlight_->show();
+    updateSashDrag();  // 初始位置 = 当前分隔条（无拖拽，准确）
+}
+
+void MainWindow::updateSashDrag() {
+    if (!sashDragging_ || !sashHighlight_) return;
+    const QRect line = sashHighlightRect();  // 最新分隔条 rect（布局已更新）
+    if (line.isEmpty()) { sashHighlight_->hide(); return; }
+    // overlay 精确覆盖分隔条缝隙（4px 粗）：仅一个 widget 的局部重绘，代价极小
+    sashHighlight_->setGeometry(line);
+}
+
+void MainWindow::endSashDrag() {
+    if (!sashDragging_) return;
+    sashDragging_ = false;
+    sashHit_ = SashMiss;
+    if (sashHighlight_) sashHighlight_->hide();
+}
+
+// 分隔条矩形：由命中类型 + 最新 dock geometry 计算。长度 = 分隔条实际长度
+// （水平分隔条 = pythonDock 宽度；垂直分隔条 = 对应 dock 高度），与真实分隔条 100% 吻合。
+QRect MainWindow::sashHighlightRect() const {
+    switch (sashHit_) {
+    case SashFileRight:
+        if (fileDock_ && fileDock_->isVisible() && !fileDock_->isFloating()) {
+            const QRect g = fileDock_->geometry();
+            // 垂直分隔条在 fileDock 右缘 +1px 处；4px 条中心对齐
+            return QRect(g.right() - 1, g.top(), 4, g.height());
+        }
+        break;
+    case SashPropertyLeft:
+        if (propertyDock_ && propertyDock_->isVisible() && !propertyDock_->isFloating()) {
+            const QRect g = propertyDock_->geometry();
+            // 垂直分隔条在 propertyDock 左缘 -1px 处
+            return QRect(g.left() - 3, g.top(), 4, g.height());
+        }
+        break;
+    case SashPythonTop:
+        if (pythonDock_ && pythonDock_->isVisible() && !pythonDock_->isFloating()) {
+            const QRect g = pythonDock_->geometry();
+            // 水平分隔条在 pythonDock 上缘 -1px 处；4px 条覆盖其上
+            return QRect(g.left(), g.top() - 2, g.width(), 4);
+        }
+        break;
+    default:
+        break;
+    }
+    return QRect();
+}
+
+void MainWindow::updateDockDrag(const QPoint& globalPos) {
+    if (!dockDragOverlay_ || !dragDock_) return;
+    const QPoint pos = mapFromGlobal(globalPos);
+    const QRect r = rect();
+    const int zoneW = qRound(r.width() * 0.22);   // 左右放置带宽度（VSCode 式分带）
+    const int zoneH = qRound(r.height() * 0.22);  // 底部放置带高度
+
+    // 鼠标在哪个放置带？VSCode 行为：dock 标题栏被拖动时，分割线立即亮。
+    // 鼠标在 dock 内部（不在任何 zone）时，默认高亮 dock 当前所在侧的分割线——
+    // 这样用户拖动 fileDock 标题栏时 fileDock 右缘分割线立刻有高亮，
+    // 把鼠标移到右/底 zone 时高亮位置随之切换。
+    enum class Zone { Left, Right, Bottom };
+    auto pickZone = [&]() {
+        if (pos.x() < zoneW)        return Zone::Left;
+        if (pos.x() >= r.width() - zoneW) return Zone::Right;
+        if (pos.y() >= r.height() - zoneH) return Zone::Bottom;
+        // 鼠标在 dock 内部：保持 dock 当前所在区域
+        const auto a = dockWidgetArea(dragDock_);
+        if (a == Qt::RightDockWidgetArea)  return Zone::Right;
+        if (a == Qt::BottomDockWidgetArea) return Zone::Bottom;
+        return Zone::Left;  // 默认/左
+    };
+    const Zone zone = pickZone();
+
+    QRect fill;  // 目标区域半透明填充
+    QRect line;  // 分割线高亮条（3px）
+    if (zone == Zone::Left) {
+        const int x = (fileDock_ && fileDock_->isVisible())
+                          ? fileDock_->geometry().right()
+                          : qRound(r.width() * 0.22);
+        fill = QRect(0, 0, x, r.height());
+        line = QRect(x - 1, 0, 3, r.height());
+    } else if (zone == Zone::Right) {
+        const int x = (propertyDock_ && propertyDock_->isVisible())
+                          ? propertyDock_->geometry().left()
+                          : qRound(r.width() * 0.78);
+        fill = QRect(x, 0, r.width() - x, r.height());
+        line = QRect(x - 1, 0, 3, r.height());
+    } else {
+        const int y = (pythonDock_ && pythonDock_->isVisible())
+                          ? pythonDock_->geometry().top()
+                          : qRound(r.height() * 0.78);
+        fill = QRect(0, y, r.width(), r.height() - y);
+        line = QRect(0, y - 1, r.width(), 3);
+    }
+    static_cast<DockDragOverlay*>(dockDragOverlay_)->setHighlight(fill, line);
+}
+
+void MainWindow::endDockDrag(const QPoint& globalPos) {
+    dockDragOverlay_->hide();
+    if (!dragDock_) return;
+    const QPoint pos = mapFromGlobal(globalPos);
+    const int zoneW = qRound(width() * 0.22);
+    const int zoneH = qRound(height() * 0.22);
+
+    Qt::DockWidgetArea area = Qt::NoDockWidgetArea;
+    if (pos.x() < zoneW) {
+        area = Qt::LeftDockWidgetArea;
+    } else if (pos.x() >= width() - zoneW) {
+        area = Qt::RightDockWidgetArea;
+    } else if (pos.y() >= height() - zoneH) {
+        area = Qt::BottomDockWidgetArea;
+    }
+    // 目标区域允许停靠且与当前位置不同才移动（allowedAreas 限制：如左/右面板不可到底部）
+    if (area != Qt::NoDockWidgetArea
+        && (dragDock_->allowedAreas() & area)
+        && dockWidgetArea(dragDock_) != area) {
+        addDockWidget(area, dragDock_);
+    }
+    dragDock_ = nullptr;
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event) {
+    QMainWindow::resizeEvent(event);
+    if (dockDragOverlay_) dockDragOverlay_->setGeometry(rect());
 }
 
 // ---- 中央区域（空状态设计，ui-guidelines §5.1）----
@@ -927,9 +1536,126 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 void MainWindow::about() {
     QMessageBox::about(this, tr("关于 Perception"),
         tr("<h3>Perception %1</h3>"
-           "<p>TCAD 数据可视化桌面工具（对标 svisual / TecplotSV）。</p>"
+           "<p>数据可视化桌面工具（对标 ParaView / SVisual）。</p>"
            "<p>技术栈：C++17 / Qt / VTK / pybind11</p>")
             .arg(QApplication::applicationVersion()));
+}
+
+// ---- 无边框窗口状态同步 ----
+void MainWindow::changeEvent(QEvent* e) {
+    if (e->type() == QEvent::WindowStateChange) {
+        // 系统/外部触发最大化或还原（如任务栏右键菜单）时同步按钮图标
+        updateWindowButtonIcons();
+    }
+    QMainWindow::changeEvent(e);
+}
+
+bool MainWindow::event(QEvent* e) {
+    // 主题切换（ThemeManager 更新 palette）后，标题栏按钮图标颜色随之刷新
+    if ((e->type() == QEvent::PaletteChange || e->type() == QEvent::ApplicationPaletteChange) &&
+        winMinBtn_ != nullptr) {
+        winMinBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Minimize, palette()));
+        winCloseBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Close, palette()));
+        updateWindowButtonIcons();
+    }
+
+    // 分界线（dock 分隔条）resize 拖拽高亮：
+    // 1) press 在转发给 QMainWindowLayout 之前检测命中——此时无拖拽、dock geometry 准确，
+    //    天然区分左右/上下多条分隔条（无旧方案"拖右亮左"歧义）；命中后不吞事件，Qt 正常拖拽。
+    // 2) release 在转发前结束高亮。
+    // 3) move 在转发后同步高亮条——QMainWindowLayout 已处理 separatorMove、布局已更新，
+    //    高亮条位置与真实分隔条完全重合（跟手）。
+    if (e->type() == QEvent::MouseButtonPress) {
+        auto* me = static_cast<QMouseEvent*>(e);
+        if (me->button() == Qt::LeftButton) {
+            const int hit = sashHitTest(me->pos());
+            if (hit) beginSashDrag(hit);
+        }
+    } else if (e->type() == QEvent::MouseButtonRelease && sashDragging_) {
+        endSashDrag();
+    }
+
+    const bool handled = QMainWindow::event(e);
+
+    if (sashDragging_ && e->type() == QEvent::MouseMove) {
+        updateSashDrag();  // 转发后布局已更新 → 高亮条与真实分隔条同步
+    }
+    return handled;
+}
+
+// ---- 无边框窗口原生消息（Windows）----
+// 核心：无边框窗口失去系统标题栏后，拖拽/双击最大化/边缘 resize 全部由系统
+// 消息驱动。这里只做两件事：
+//   1. WM_NCHITTEST 自定义命中检测（标题栏拖拽区 -> HTCAPTION，边缘 -> HT*）
+//   2. WM_GETMINMAXINFO 限制最大化尺寸到工作区（不遮任务栏）
+// 菜单栏与窗口按钮区域返回 HTCLIENT，保证点击/弹出菜单正常工作。
+bool MainWindow::nativeEvent(const QByteArray& eventType, void* message, long* result) {
+#ifdef Q_OS_WIN
+    auto* msg = static_cast<MSG*>(message);
+    switch (msg->message) {
+    case WM_NCHITTEST: {
+        *result = 0;
+        const QPoint global(GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam));
+        const QPoint local = mapFromGlobal(global);
+        const int w = width();
+        const int h = height();
+        constexpr int kEdge = 5;  // 边缘 resize 热区宽度（px）
+
+        // 最大化/全屏时不提供边缘热区（窗口已铺满工作区）
+        if (!isMaximized() && !isFullScreen()) {
+            const bool left = local.x() < kEdge;
+            const bool right = local.x() >= w - kEdge;
+            const bool top = local.y() < kEdge;
+            const bool bottom = local.y() >= h - kEdge;
+            if (left && top) { *result = HTTOPLEFT; return true; }
+            if (right && top) { *result = HTTOPRIGHT; return true; }
+            if (left && bottom) { *result = HTBOTTOMLEFT; return true; }
+            if (right && bottom) { *result = HTBOTTOMRIGHT; return true; }
+            if (left) { *result = HTLEFT; return true; }
+            if (right) { *result = HTRIGHT; return true; }
+            if (top) { *result = HTTOP; return true; }
+            if (bottom) { *result = HTBOTTOM; return true; }
+        }
+
+        // 标题栏/拖拽区 -> HTCAPTION：系统接管拖动（含 Aero 吸附）与双击最大化
+        QWidget* hit = childAt(local);
+        for (QWidget* p = hit; p && p != this; p = p->parentWidget()) {
+            if (p == titleBarWidget_ || p == titleBarDragArea_) {
+                *result = HTCAPTION;
+                return true;
+            }
+        }
+        *result = HTCLIENT;  // 其余区域（菜单栏/按钮/Dock/中央）交还 Qt 处理
+        return true;
+    }
+    case WM_NCLBUTTONDBLCLK:
+        if (msg->wParam == HTCAPTION) {
+            toggleMaximize();  // 双击标题栏：最大化/还原
+            return true;
+        }
+        break;
+    case WM_GETMINMAXINFO: {
+        // 无边框最大化：限制到工作区，避免覆盖任务栏
+        auto* mmi = reinterpret_cast<MINMAXINFO*>(msg->lParam);
+        if (const QScreen* scr = screen()) {
+            const QRect avail = scr->availableGeometry();
+            mmi->ptMaxPosition.x = avail.x();
+            mmi->ptMaxPosition.y = avail.y();
+            mmi->ptMaxSize.x = avail.width();
+            mmi->ptMaxSize.y = avail.height();
+        }
+        *result = 0;
+        return true;
+    }
+    default:
+        break;
+    }
+#else
+    Q_UNUSED(eventType);
+    Q_UNUSED(message);
+    Q_UNUSED(result);
+#endif
+    return QMainWindow::nativeEvent(eventType, message, result);
 }
 
 }  // namespace ui
