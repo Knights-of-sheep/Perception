@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- tools-measure 测量 | 实心直尺+刻度，S-01/S-02 -->
+  <rect x="2.5" y="5" width="11" height="6" rx="1" fill="#D4D4D4"/>
+  <rect x="2.5" y="5" width="11" height="1.8" fill="#161616"/>
+  <path d="M4.5,5 L4.5,7.2 M6.5,5 L6.5,7.2 M8.5,5 L8.5,7.2 M10.5,5 L10.5,6 M12.5,5 L12.5,7.2" stroke="#161616" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

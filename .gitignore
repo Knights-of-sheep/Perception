@@ -1,31 +1,49 @@
-# ===== Build artifacts =====
+# ===== Build outputs =====
 build/
 out/
-cmake-build-*/
 bin/
-lib/
+obj/
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.manifest
+
+# ===== CMake =====
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+
+# ===== Qt =====
+.qmake.stash
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
 
 # ===== Third-party (vendored locally, out of VCS) =====
 third-party/
 
 # ===== Python =====
 __pycache__/
-*.py[cod]
+*.pyc
 .venv/
 venv/
 
-# ===== Tool logs =====
-aqtinstall.log
-build_log.txt
-
-# ===== Local clangd config (generated from .clangd.in by CMake configure) =====
-.clangd
-
-# ===== IDE =====
-.vscode/
+# ===== IDE / misc =====
+.vs/
 .idea/
+.vscode/
+.clangd
 *.user
-
-# ===== CMake =====
-CMakeCache.txt
-CMakeFiles/
+*.suo
+*.log
+Thumbs.db
+.DS_Store

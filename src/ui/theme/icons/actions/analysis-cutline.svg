@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-cutline 截线 | 实心立方体+红色截线，S-01/S-02 -->
+  <path d="M8,2.5 L13,5.5 L13,10.5 L8,13.5 L3,10.5 L3,5.5 Z" fill="#D4D4D4"/>
+  <path d="M8,2.5 L8,13.5 M3,5.5 L8,8.5 L13,5.5" stroke="#161616" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M3.5,10.5 L12.5,6.5" stroke="#F14C4C" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- animation-param-scan 参数扫描播放 | 实心三角+轨道+蓝色游标，S-01/S-02 -->
+  <path d="M5,3 L10,6.5 L5,10 Z" fill="#D4D4D4"/>
+  <path d="M2.5,13 L13.5,13" stroke="#D4D4D4" stroke-width="2" stroke-linecap="round"/>
+  <rect x="7.6" y="11.5" width="1.8" height="2.5" rx="0.4" fill="#0A84FF"/>
+</svg>

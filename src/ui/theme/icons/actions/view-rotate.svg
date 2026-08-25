@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- view-rotate 旋转视图 | 实心上三角+旋转弧，S-01/S-02 -->
+  <path d="M8,0.8 L9.8,2.6 L6.2,2.6 Z" fill="#D4D4D4"/>
+  <path d="M8,2.5 A5.5,5.5 0 1 1 2.5,8" fill="none" stroke="#D4D4D4" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

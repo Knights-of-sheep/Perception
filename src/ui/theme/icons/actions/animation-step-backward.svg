@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- animation-step-backward 步进后退 | 深色按钮托+实心竖条+三角，S-01/S-02 -->
+  <rect x="2" y="3" width="12" height="10" rx="2" fill="#3C3C3C"/>
+  <rect x="5.5" y="5.5" width="1.6" height="5" rx="0.4" fill="#D4D4D4"/>
+  <path d="M10.5,5.5 L7,8 L10.5,10.5 Z" fill="#D4D4D4"/>
+</svg>

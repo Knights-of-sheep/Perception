@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- tools-settings 设置 | 实心齿轮（圆+四齿+轴孔），S-01/S-02 -->
+  <circle cx="8" cy="8" r="4.5" fill="#D4D4D4"/>
+  <path d="M7,3 L9,3 L9,5 L7,5 Z M7,11 L9,11 L9,13 L7,13 Z M3,7 L5,7 L5,9 L3,9 Z M11,7 L13,7 L13,9 L11,9 Z" fill="#D4D4D4"/>
+  <circle cx="8" cy="8" r="2" fill="#161616"/>
+</svg>

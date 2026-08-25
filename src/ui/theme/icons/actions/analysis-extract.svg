@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-extract 数据提取 | 实心面板+向下提取箭头，S-01/S-02 -->
+  <rect x="3" y="2.5" width="10" height="6" rx="1" fill="#D4D4D4"/>
+  <rect x="3.5" y="3.5" width="9" height="1.2" fill="#161616"/>
+  <path d="M8,8 L8,12.5 L10.2,10.3 L9.4,10.3 L9.4,8.8 L6.6,8.8 L6.6,10.3 L5.8,10.3 Z" fill="#D4D4D4"/>
+</svg>

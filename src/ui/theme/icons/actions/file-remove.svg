@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- file-remove 移除文件 | 实心文档+红色减号，S-01/S-02 -->
+  <path d="M3,2.5 L8,2.5 L10.5,5 L10.5,13.5 L3,13.5 Z" fill="#D4D4D4"/>
+  <path d="M8,2.5 L8,5 L10.5,5 Z" fill="#161616"/>
+  <path d="M5.5,8.5 L9,8.5 L9,9.8 L5.5,9.8 Z" fill="#F14C4C"/>
+</svg>

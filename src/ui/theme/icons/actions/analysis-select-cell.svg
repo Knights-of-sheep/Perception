@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-select-cell 单元选择 | 网格+蓝色选中单元，S-01/S-02 -->
+  <path d="M3,3 L13,3 L13,13 L3,13 Z" fill="none" stroke="#D4D4D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M3,8 L13,8 M8,3 L8,13" stroke="#D4D4D4" stroke-width="2" stroke-linecap="round"/>
+  <rect x="3" y="3" width="5" height="5" fill="#0A84FF"/>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-select-region 区域选择 | 虚线框+实心角手柄，S-01/S-02 -->
+  <rect x="4" y="3.5" width="9" height="9" rx="0.5" fill="none" stroke="#D4D4D4" stroke-width="1.8" stroke-dasharray="2.5 1.5" stroke-linejoin="round"/>
+  <path d="M2.8,2.8 L5.4,2.8 L5.4,4.2 L4.2,4.2 L4.2,5.4 L2.8,5.4 Z" fill="#D4D4D4"/>
+</svg>
