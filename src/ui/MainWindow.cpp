@@ -7,9 +7,9 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDesktopServices>
+#include <QDialog>
 #include <QDir>
 #include <QDockWidget>
-#include <QProxyStyle>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QEvent>
@@ -26,6 +26,8 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
+#include <QProxyStyle>
+#include <QPushButton>
 #include <QScreen>
 #include <QScreen>
 #include <QSizeGrip>
@@ -152,6 +154,207 @@ QIcon makeWinBtnIcon(WinBtnKind kind, const QPalette& pal) {
         icon.addPixmap(act, QIcon::Active, QIcon::Off);   // hover / 按下
     }
     return icon;
+}
+
+// ---- 通用对话框标题栏工厂（FramelessDialog 与 ThemedFileDialog 共享） ----
+// 复用 QSS objectName (titleBarRow/titleBarTitle/titleBarIcon/winCloseBtn) 与
+// makeWinBtnIcon 图标，保证所有无边框窗口标题栏外观一致、随主题。
+// owner: 用于 parent 与 close 事件连接（QFileDialog/FramelessDialog 均为 QDialog 子类）。
+QWidget* buildDialogTitleBar(QDialog* owner, const QString& title) {
+    auto* bar = new QWidget(owner);
+    bar->setObjectName(QStringLiteral("titleBarRow"));
+    bar->setFixedHeight(30);
+    auto* layout = new QHBoxLayout(bar);
+    layout->setContentsMargins(12, 0, 4, 0);
+    layout->setSpacing(6);
+
+    auto* icon = new QLabel(bar);
+    icon->setObjectName(QStringLiteral("titleBarIcon"));
+    icon->setPixmap(QPixmap(QStringLiteral(":/perception/icons/icons/png/app/app-icon-24.png")));
+    layout->addWidget(icon);
+
+    auto* titleLabel = new QLabel(bar);
+    titleLabel->setObjectName(QStringLiteral("titleBarTitle"));
+    titleLabel->setText(title);
+    layout->addWidget(titleLabel);
+    layout->addStretch();
+
+    auto* closeBtn = new QToolButton(bar);
+    closeBtn->setObjectName(QStringLiteral("winCloseBtn"));
+    closeBtn->setFixedSize(40, 30);
+    closeBtn->setCursor(Qt::PointingHandCursor);
+    closeBtn->setAutoRaise(true);
+    closeBtn->setFocusPolicy(Qt::NoFocus);
+    closeBtn->setIconSize(QSize(16, 16));
+    closeBtn->setIcon(makeWinBtnIcon(WinBtnKind::Close, bar->palette()));
+    closeBtn->setToolTip(QObject::tr("关闭"));
+    QObject::connect(closeBtn, &QToolButton::clicked, owner, [owner] { owner->close(); });
+    layout->addWidget(closeBtn);
+
+    return bar;
+}
+
+// ---- 文件/目录对话框：无边框容器 + 自定义标题栏 + 内嵌 QFileDialog ----
+// 背景：QFileDialog::getOpenFileName 等静态接口即使 setOption(DontUseNativeDialog)
+//   也是系统标题栏，且 Qt 5.15 公开 API 无 setTitleBarWidget（仅 QDockWidget 有）。
+//   而 ui-guidelines §4.3 又要求禁原生对话框以贴合 Qt 风格。
+// 方案：Qt::FramelessWindowHint 的 QDialog 包裹 QFileDialog（Qt::Widget 化嵌入）：
+//   自定义标题栏走 buildDialogTitleBar；QFileDialog 的 OK/Cancel 信号映射到 accept/reject。
+enum class FileDialogMode { Open, Save, Directory };
+
+class ThemedFileDialog : public QDialog {
+public:
+    ThemedFileDialog(QWidget* parent, const QString& title,
+                     const QString& dir, const QString& filter,
+                     FileDialogMode mode)
+        : QDialog(parent, Qt::Dialog | Qt::FramelessWindowHint) {
+        setWindowTitle(title);
+        setWindowIcon(QApplication::windowIcon());
+
+        auto* root = new QVBoxLayout(this);
+        root->setContentsMargins(0, 0, 0, 0);
+        root->setSpacing(0);
+
+        // 标题栏：复用主界面 titleBarRow 样式
+        titleBar_ = buildDialogTitleBar(this, title);
+        root->addWidget(titleBar_);
+
+        // QFileDialog 作为普通 widget 嵌入（Qt::Widget 剥除其窗口属性）
+        fileDialog_ = new QFileDialog(this, title, dir, filter);
+        fileDialog_->setOption(QFileDialog::DontUseNativeDialog, true);
+        fileDialog_->setWindowFlags(Qt::Widget);
+        fileDialog_->setSizeGripEnabled(false);
+        if (mode == FileDialogMode::Directory) {
+            fileDialog_->setFileMode(QFileDialog::Directory);
+            fileDialog_->setOption(QFileDialog::ShowDirsOnly, true);
+            fileDialog_->setOption(QFileDialog::DontResolveSymlinks, true);
+        } else if (mode == FileDialogMode::Save) {
+            fileDialog_->setAcceptMode(QFileDialog::AcceptSave);
+            fileDialog_->setFileMode(QFileDialog::AnyFile);
+        } else {
+            fileDialog_->setAcceptMode(QFileDialog::AcceptOpen);
+            fileDialog_->setFileMode(QFileDialog::AnyFile);
+        }
+        connect(fileDialog_, &QFileDialog::accepted, this, &QDialog::accept);
+        connect(fileDialog_, &QFileDialog::rejected, this, &QDialog::reject);
+
+        root->addWidget(fileDialog_);
+
+        setMinimumSize(640, 480);
+        adjustSize();
+    }
+
+    QString selectedFile() const {
+        return fileDialog_->selectedFiles().value(0);
+    }
+
+protected:
+    // 标题栏拖拽移动
+    void mousePressEvent(QMouseEvent* e) override {
+        if (e->button() == Qt::LeftButton && e->pos().y() <= titleBar_->height()) {
+            dragOffset_ = e->globalPos() - frameGeometry().topLeft();
+        }
+        QDialog::mousePressEvent(e);
+    }
+    void mouseMoveEvent(QMouseEvent* e) override {
+        if ((e->buttons() & Qt::LeftButton) && !dragOffset_.isNull()) {
+            move(e->globalPos() - dragOffset_);
+        }
+        QDialog::mouseMoveEvent(e);
+    }
+    void mouseReleaseEvent(QMouseEvent* e) override {
+        dragOffset_ = QPoint();
+        QDialog::mouseReleaseEvent(e);
+    }
+
+private:
+    QWidget* titleBar_ = nullptr;
+    QFileDialog* fileDialog_ = nullptr;
+    QPoint dragOffset_;
+};
+
+// 文件/目录对话框统一入口（Open / Save / Directory）
+QString runThemedFileDialog(QWidget* parent, const QString& title,
+                            const QString& dir, const QString& filter,
+                            FileDialogMode mode) {
+    ThemedFileDialog dlg(parent, title, dir, filter, mode);
+    return (dlg.exec() == QDialog::Accepted) ? dlg.selectedFile() : QString();
+}
+
+// ---- 帮助/关于弹窗：无边框 + 自定义标题栏 ----
+// 背景：QMessageBox 是系统原生标题栏，与主界面/Dock 自定义标题栏风格割裂。
+// 方案：Qt::FramelessWindowHint 的 QDialog，标题栏复用 buildDialogTitleBar，
+//       正文富文本 + 确定按钮。
+class FramelessDialog : public QDialog {
+public:
+    FramelessDialog(QWidget* parent, const QString& title, const QString& html)
+        : QDialog(parent, Qt::Dialog | Qt::FramelessWindowHint) {
+        setAttribute(Qt::WA_DeleteOnClose);
+        setModal(true);
+        setWindowTitle(title);
+        setWindowIcon(QApplication::windowIcon());
+
+        auto* root = new QVBoxLayout(this);
+        root->setContentsMargins(0, 0, 0, 0);
+        root->setSpacing(0);
+
+        // 标题栏：复用主界面 titleBarRow 样式（@panelBg@ + 底部分隔线）
+        titleBar_ = buildDialogTitleBar(this, title);
+        root->addWidget(titleBar_);
+
+        // 内容区：富文本正文 + 确定按钮（QSS 默认态 → primary accent）
+        auto* body = new QVBoxLayout();
+        body->setContentsMargins(20, 18, 20, 16);
+        body->setSpacing(16);
+
+        auto* content = new QLabel(this);
+        content->setTextFormat(Qt::RichText);
+        content->setWordWrap(true);
+        content->setText(html);
+        body->addWidget(content);
+
+        auto* okRow = new QHBoxLayout();
+        okRow->addStretch();
+        auto* okBtn = new QPushButton(tr("确定"), this);
+        okBtn->setDefault(true);
+        connect(okBtn, &QPushButton::clicked, this, &QDialog::close);
+        okRow->addWidget(okBtn);
+        body->addLayout(okRow);
+
+        root->addLayout(body);
+
+        setMinimumWidth(400);
+        adjustSize();
+    }
+
+protected:
+    // 标题栏拖拽移动（去系统标题栏后自行处理）
+    void mousePressEvent(QMouseEvent* e) override {
+        if (e->button() == Qt::LeftButton && e->pos().y() <= titleBar_->height()) {
+            dragOffset_ = e->globalPos() - frameGeometry().topLeft();
+        }
+        QDialog::mousePressEvent(e);
+    }
+    void mouseMoveEvent(QMouseEvent* e) override {
+        if ((e->buttons() & Qt::LeftButton) && !dragOffset_.isNull()) {
+            move(e->globalPos() - dragOffset_);
+        }
+        QDialog::mouseMoveEvent(e);
+    }
+    void mouseReleaseEvent(QMouseEvent* e) override {
+        dragOffset_ = QPoint();
+        QDialog::mouseReleaseEvent(e);
+    }
+
+private:
+    QWidget* titleBar_ = nullptr;
+    QPoint dragOffset_;
+};
+
+// 帮助/关于统一入口：模态显示无边框对话框
+void showFramelessDialog(QWidget* parent, const QString& title, const QString& html) {
+    auto* dlg = new FramelessDialog(parent, title, html);
+    dlg->exec();
 }
 
 // ---- 自定义 Dock 标题栏 ----
@@ -617,7 +820,7 @@ void MainWindow::createActions() {
     helpAction_->setStatusTip(tr("查看帮助文档"));
     setActionIcon(helpAction_, "tools-help");
     connect(helpAction_, &QAction::triggered, this, [this] {
-        QMessageBox::information(this, tr("帮助"), tr("帮助文档将在后续版本提供"));
+        showFramelessDialog(this, tr("帮助"), tr("帮助文档将在后续版本提供"));
     });
 
     aboutAction_ = new QAction(tr("关于(&A)..."), this);
@@ -918,9 +1121,8 @@ void MainWindow::createToolbars() {
 void MainWindow::exportMainWindowImage() {
     // 默认目录跟随程序当前工作目录（= 启动程序时所在路径，FR-015）
     const QString defaultPath = QDir::current().filePath(QStringLiteral("perception.png"));
-    const QString path = QFileDialog::getSaveFileName(
-        this, tr("导出主界面图片"), defaultPath, tr("PNG 图片 (*.png)"),
-        nullptr, QFileDialog::DontUseNativeDialog);  // 禁原生对话框（ui-guidelines §4.3）
+    const QString path = runThemedFileDialog(this, tr("导出主界面图片"),
+        defaultPath, tr("PNG 图片 (*.png)"), FileDialogMode::Save);
     if (path.isEmpty()) return;
 
     const QPixmap pm = grab();  // 抓取整个主窗口当前渲染（含菜单/Dock/状态栏）
@@ -939,11 +1141,9 @@ void MainWindow::exportPythonCommands() {
         statusBar()->showMessage(tr("没有可导出的命令"), 3000);
         return;
     }
-    const QString path = QFileDialog::getSaveFileName(
-        this, tr("导出 Python 命令"),
+    const QString path = runThemedFileDialog(this, tr("导出 Python 命令"),
         QDir::current().filePath(QStringLiteral("console_commands.py")),
-        tr("Python 脚本 (*.py)"),
-        nullptr, QFileDialog::DontUseNativeDialog);  // 禁原生对话框（ui-guidelines §4.3）
+        tr("Python 脚本 (*.py)"), FileDialogMode::Save);
     if (path.isEmpty()) return;
 
     QFile f(path);
@@ -1077,9 +1277,8 @@ void MainWindow::openLogDir() {
 void MainWindow::setLogPath() {
     if (logFilePath_.isEmpty()) return;
     const QString curDir = QFileInfo(logFilePath_).absolutePath();
-    const QString dir = QFileDialog::getExistingDirectory(
-        this, tr("选择日志保存目录"), curDir,
-        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    const QString dir = runThemedFileDialog(this, tr("选择日志保存目录"),
+        curDir, QString(), FileDialogMode::Directory);
     if (dir.isEmpty()) return;
 
     const QString newPath = QDir(dir).filePath(QStringLiteral("app.log"));
@@ -1474,10 +1673,10 @@ void MainWindow::updateEmptyHints() {
 
 // ---- 打开文件 ----
 void MainWindow::openFile() {
-    const QString file = QFileDialog::getOpenFileName(
-        this, tr("打开数据文件"), QDir::currentPath(),
+    const QString file = runThemedFileDialog(this, tr("打开数据文件"),
+        QDir::currentPath(),
         tr("曲线数据 (*.plt *.csv);;所有文件 (*)"),
-        nullptr, QFileDialog::DontUseNativeDialog);  // 禁原生对话框（ui-guidelines §4.3）
+        FileDialogMode::Open);
     if (file.isEmpty()) return;
 
     addFileToTree(file);
@@ -1534,7 +1733,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
 // ---- 关于 ----
 void MainWindow::about() {
-    QMessageBox::about(this, tr("关于 Perception"),
+    showFramelessDialog(this, tr("关于 Perception"),
         tr("<h3>Perception %1</h3>"
            "<p>数据可视化桌面工具（对标 ParaView / SVisual）。</p>"
            "<p>技术栈：C++17 / Qt / VTK / pybind11</p>")
