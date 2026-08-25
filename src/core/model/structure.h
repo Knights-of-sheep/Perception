@@ -12,7 +12,7 @@ struct FieldData {
     std::vector<double> values;
 };
 
-// 结构数据抽象：网格 + 场集合（对标 TecplotSV .tdr）。
+// 结构数据抽象：网格 + 场集合（对标 ParaView 网格/结构数据查看）。
 // M2+ 细化网格（节点坐标 / 单元拓扑 / 连接表），骨架阶段仅定义场模型。
 class IStructure {
 public:

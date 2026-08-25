@@ -1,6 +1,6 @@
 # PRD：Perception
 
-对标 Synopsys svisual（Inspect .plt 曲线 + TecplotSV .tdr 结构）的 TCAD 数据可视化桌面工具。
+对标 ParaView、Synopsys svisual 的数据可视化桌面工具。
 
 > 顶层规划文档，由 M0 建立骨架，随各里程碑完善。
 
@@ -11,7 +11,7 @@
 
 ## 2. 目标用户
 
-- TCAD 仿真工程师（日常查看 .plt 曲线 / .tdr 结构）
+- 半导体仿真工程师（日常查看 .plt 曲线 / .tdr 结构）
 
 ## 3. 功能范围
 
@@ -19,7 +19,7 @@
 - .plt 曲线查看器（对标 svisual Inspect）：加载 .plt、多曲线渲染、缩放/平移、图例、色板
 
 ### 后续
-- .tdr 结构查看器（对标 TecplotSV）
+- .tdr 结构查看器（对标 ParaView）
 
 ## 4. 非目标
 
