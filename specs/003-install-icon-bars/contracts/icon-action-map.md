@@ -16,9 +16,9 @@
 | 文件 | 退出 | action.exit | `file-close` | |
 | 编辑 | 撤销 | action.undo | `edit-undo` | 新增，禁用态（FR-011） |
 | 编辑 | 重做 | action.redo | `edit-redo` | 新增，禁用态（FR-011） |
-| 视图 | 数据面板 | action.toggleFileDock | `view-panel-toggle` | checkable |
-| 视图 | 属性面板 | action.togglePropertyDock | `view-panel-toggle` | checkable |
-| 视图 | Python 控制台 | action.togglePythonConsole | `view-panel-toggle` | checkable |
+| 视图 | 数据面板 | action.toggleFileDock | `view-panel-data` | checkable |
+| 视图 | 属性面板 | action.togglePropertyDock | `view-panel-property` | checkable |
+| 视图 | Python 控制台 | action.togglePythonConsole | `view-panel-console` | checkable |
 | 视图 | 重置布局 | action.resetLayout | `view-reset-camera` | 语义「重置」，tooltip 区分 |
 | 主题 | （动态主题列表 15 项） | — | — | 状态列表，不配图标（research 决策 1） |
 | 设置 | 日志级别（5 项）/ 全部启用 / 全部禁用 | — | — | 状态列表，不配图标 |
@@ -40,9 +40,9 @@
 | 5 | 主界面截图 | action.exportImage | `file-export-screenshot` | enabled | 文件菜单同动作（FR-004） |
 | 6 | 主界面视频录制 | action.recordScreen | `file-record-screen` | disabled（FR-011） | 新增动作 |
 | 7 | 刷新 | action.refresh | `view-refresh` | disabled（FR-011） | 新增动作 |
-| 8 | 数据面板显隐 | action.toggleFileDock | `view-panel-toggle` | enabled, checkable | 视图菜单同动作；选中态=面板可见 |
-| 9 | 属性面板显隐 | action.togglePropertyDock | `view-panel-toggle` | enabled, checkable | 视图菜单同动作；选中态=面板可见 |
-| 10 | 命令窗口显隐 | action.togglePythonConsole | `view-panel-toggle` | enabled, checkable | 视图菜单同动作；选中态=面板可见 |
+| 8 | 数据面板显隐 | action.toggleFileDock | `view-panel-data` | enabled, checkable | 视图菜单同动作；选中态=面板可见 |
+| 9 | 属性面板显隐 | action.togglePropertyDock | `view-panel-property` | enabled, checkable | 视图菜单同动作；选中态=面板可见 |
+| 10 | 命令窗口显隐 | action.togglePythonConsole | `view-panel-console` | enabled, checkable | 视图菜单同动作；选中态=面板可见 |
 
 ## 3. 右侧功能栏（FR-005，顺序固定）
 
@@ -65,7 +65,10 @@
 | `file-load-script` | file | 加载脚本 | 左侧 #4 加载脚本 |
 | `file-record-screen` | file | 主界面视频录制 | 左侧 #6 视频录制 |
 | `view-refresh` | view | 刷新 | 左侧 #7 刷新 |
-| `view-panel-toggle` | view | 面板显隐（通用） | 左侧 #8/#9/#10 与视图菜单三开关 |
+| `view-panel-toggle` | view | 面板显隐（通用，备用） | 无动作引用 |
+| `view-panel-data` | view | 数据面板（数据集列表条目，被控面板语义） | 左侧 #8 与视图菜单数据面板开关 |
+| `view-panel-property` | view | 属性面板（属性行-标签+值色块，被控面板语义） | 左侧 #9 与视图菜单属性面板开关 |
+| `view-panel-console` | view | Python 控制台（终端窗口+命令提示符，被控面板语义） | 左侧 #10 与视图菜单控制台开关 |
 
 > 全部新增图标须通过 `scripts/check_icons.py`（icon-style-spec 全部条款）并登记入 `icon-map.yaml`（SC-006）。
 
@@ -73,11 +76,19 @@
 
 | 状态 | 图标呈现 | 容器（QSS） | 依据 |
 |---|---|---|---|
-| normal | 原始 PNG（FG_TEXT） | 透明 | T-01 |
-| hover | 原始 PNG | BG_CONTROL 圆角 4px 底 | T-02 |
+| normal | FG_TEXT_WEAK 派生（随主题热切换） | 透明 | T-01 |
+| hover | FG_TEXT_WEAK 派生 | BG_CONTROL 圆角 4px 底 | T-02 |
 | pressed | FG_TEXT_WEAK 派生 | BG_CONTROL 加深 | T-03 |
 | disabled | FG_TEXT_DISABLED 40% 派生 | 透明 | T-04 |
-| selected（checkable） | ACCENT 派生 | SELECTION_BG 圆角 4px 底 | T-05/T-06 |
+| selected（checkable） | FG_TEXT_ON_SELECTION 派生 | SELECTION_BG 圆角 4px 底 | T-05/T-06 |
+
+> 变更记录（2026-08-25）：
+> 1. normal/selected 由「原始 PNG（FG_TEXT）」改为主题色派生。原因：原图为
+>    固定灰阶（192/96/32 三层），深色主题下暗部不可见、浅色主题下亮部不可见。
+> 2. selected 由「FG_TEXT_WEAK 派生」改为「FG_TEXT_ON_SELECTION 派生」。原因：
+>    checked 按钮容器背景为 selectionBg，textWeak 在部分主题上对比不足
+>    （hc-white 黑底仅 ~1.3:1、one-dark 2.38、rose-pine-dawn 2.86），
+>    改用 textOnSelection 后全部主题 ≥4.5:1（见 _theme_check.py 校验清单）。
 
 - 派生变体由 `IconFactory`（src/ui/theme/）运行时生成（research 决策 3）；disabled/selected 必须双通道可辨（T-06）
 - 功能栏按钮为 `ToolButtonIconOnly`，iconSize 24；悬停显示 tooltip（FR-006）

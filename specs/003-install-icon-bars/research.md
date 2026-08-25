@@ -23,14 +23,17 @@
 | `file-load-script` | 加载脚本 | file |
 | `file-record-screen` | 主界面视频录制 | file |
 | `view-refresh` | 刷新 | view |
-| `view-panel-toggle` | 面板显隐（通用，三个面板开关复用） | view |
+| `view-panel-toggle` | 面板显隐（通用，备用） | view |
+| `view-panel-data` | 数据面板（数据集列表条目，被控面板语义） | view |
+| `view-panel-property` | 属性面板（属性行-标签+值色块，被控面板语义） | view |
+| `view-panel-console` | Python 控制台（终端窗口+命令提示符，被控面板语义） | view |
 
-三个面板开关（数据面板/属性面板/命令窗口）复用同一枚 `view-panel-toggle`，以 tooltip + checkable 选中态区分当前面板可见性。
+三个面板开关（数据面板/属性面板/命令窗口）均为「显隐切换」意图：图标直接表达被控面板本身的样子（数据集列表 / 属性行 / 终端窗口），让用户一眼看出"这个按钮控制显示/隐藏哪个面板"；`view-panel-toggle` 保留为通用面板显隐图标（备用，无动作引用）。
 
-**Rationale**: 最小新增集（4 枚）覆盖左侧功能栏全部缺口；面板显隐为同构操作，一枚通用图标即可，符合 N-02 语义唯一；图标风格遵循 icon-style-spec（S-01 实心填充 FG_TEXT、G-01 16 网格安全区 12×12）。
+**Rationale**: 从按钮意图（被控面板）出发，图标直接画出被控面板的样子；图标内部用紧凑形状（避免大块亮色面板框），让 checked 态下与 selectionBg 形成亮度对比时形状仍然清晰可辨（icon_factory.cpp T-06：选中态保留原图，不染色）；图标风格遵循 icon-style-spec（S-01 实心填充 FG_TEXT、G-01 16 网格安全区 12×12）。
 
 **Alternatives considered**:
-- 三个面板各自独立图标（view-panel-data / view-panel-property / view-panel-console）→ 否决：语义过细，图标间难区分，tooltip 已承担区分职责
+- 三开关继续复用 `view-panel-toggle`（初始方案）→ 否决：用户反馈三按钮图标相同且语义不明，难以区分
 - 复用既有 `view-layer-visibility`（图层可见性）→ 否决：语义为「图层可见」，与「面板显示/隐藏」不一致，违反 S-03 图形语义一致
 - 复用 `file-open` 表示加载脚本 → 否决：与加载文件语义冲突
 

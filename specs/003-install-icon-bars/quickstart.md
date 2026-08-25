@@ -10,18 +10,18 @@
 |---|---|
 | 构建环境 | Windows + MSVC + Qt 5.15.2（含 Qt5Svg）+ VTK 9.4；`scripts/build.ps1 -Gui` 可跑通 |
 | Python 环境 | Python 3 + PyQt5/Pillow（图标管线）+ pytest |
-| 图标资产 | 002 交付的 52 枚 SVG/PNG + `icon-map.yaml`；本次新增 4 枚 SVG 已放入 `src/ui/theme/icons/actions/` |
+| 图标资产 | 002 交付的 52 枚 SVG/PNG + `icon-map.yaml`；本次新增 7 枚 SVG 已放入 `src/ui/theme/icons/actions/` |
 
 ## 场景 1：图标管线（新增图标符合性 + 资源齐备，SC-006 / FR-008）
 
 ```powershell
 cd E:\spec-work\Perception
-python scripts/render_icons.py   # 渲染新增 4 枚 SVG → png/actions/*-{16,24,32}.png
+python scripts/render_icons.py   # 渲染新增 7 枚 SVG → png/actions/*-{16,24,32}.png
 python scripts/check_icons.py    # 符合性校验：风格/网格/色板/命名/映射 0 不符合
 python scripts/gen_qrc.py        # 重新生成 theme.qrc（含新增 PNG 条目）
 ```
 
-**通过条件**：check_icons 无告警；`png/actions/` 出现 `file-load-script-*`、`file-record-screen-*`、`view-refresh-*`、`view-panel-toggle-*` 各三档；`icon-map.yaml` 含 4 条新登记。
+**通过条件**：check_icons 无告警；`png/actions/` 出现 `file-load-script-*`、`file-record-screen-*`、`view-refresh-*`、`view-panel-toggle-*`、`view-panel-data-*`、`view-panel-property-*`、`view-panel-console-*` 各三档；`icon-map.yaml` 含 7 条新登记。
 
 ## 场景 2：构建 + 契约单测（SC-003 / SC-004）
 
@@ -49,6 +49,10 @@ scripts/build.ps1 -Gui -UnitTests
 - 全部菜单项显示语义图标（主题/日志级别状态列表除外，见契约 §1）
 - 左侧纵向功能栏 10 个按钮带图标、右侧纵向功能栏 9 个按钮带图标
 - 窗口标题栏/任务栏显示设计版应用图标（FR-001）
+
+**补充**：
+- `--theme <id>`：抓图前切换主题（如 `--theme nord`）
+- `--snapshot-drag <left|right|bottom>`：模拟 Dock 拖拽到目标区域，显示 VSCode 风格的放置高亮后抓图（验证分割线高亮颜色；需配合 `--snapshot <path>`）
 
 ## 场景 4：交互验证清单（手动，FR-003/004/006/009/011）
 
@@ -78,7 +82,7 @@ scripts/build.ps1 -Gui -Pytest
 
 | 验证 | 通过标准 | 状态 |
 |---|---|---|
-| 场景 1 | check_icons 0 不符合；4 枚新图标三档齐备 | ☐ |
+| 场景 1 | check_icons 0 不符合；7 枚新图标三档齐备 | ☐ |
 | 场景 2 | 构建通过；icon_action_map_test 全绿 | ☐ |
 | 场景 3 | 快照含菜单图标 + 左右功能栏 + 应用图标 | ☐ |
 | 场景 4 | 9 项交互全部符合预期 | ☐ |
