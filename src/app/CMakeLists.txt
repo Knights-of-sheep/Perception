@@ -4,7 +4,7 @@
 #  2) 双击启动 → 系统分配一个控制台窗口显示彩色日志（即"终端"）
 #  3) GUI 主窗口由 Qt 正常创建；main() 中 raise()+activateWindow() 防遮挡
 # 注意：不要改回 WIN32_EXECUTABLE，否则 stdout/stderr 失去终端载体、TerminalSink 失效。
-add_executable(perception main.cpp)
+add_executable(perception main.cpp app.rc)  # app.rc：exe 文件图标（US4）
 
 set_target_properties(perception PROPERTIES
   AUTOMOC ON

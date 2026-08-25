@@ -71,6 +71,35 @@ QToolButton:pressed { background: @selectionBg@; }
 QToolButton:checked { background: @selectionBg@; }
 QToolButton:disabled { color: @textDisabled@; }
 
+/* ===== 功能栏（左侧/右侧纵向，ToolButtonIconOnly，iconSize 24 由代码设置）===== */
+/* 五态容器（contracts/icon-action-map.md §5）：
+   normal 透明 / hover=BG_CONTROL 圆角 4px / pressed=加深 / checked=SELECTION_BG；
+   disabled 图标由 IconFactory 染色派生。 */
+QToolBar#leftToolBar, QToolBar#rightToolBar {
+    background-color: @panelBg@;   /* BG_PANEL */
+    border: none;
+    spacing: 4px;
+    padding: 6px 4px;
+}
+QToolBar#leftToolBar QToolButton, QToolBar#rightToolBar QToolButton {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 4px;
+}
+QToolBar#leftToolBar QToolButton:hover,
+QToolBar#rightToolBar QToolButton:hover {
+    background: @hoverBg@;          /* BG_CONTROL */
+}
+QToolBar#leftToolBar QToolButton:pressed,
+QToolBar#rightToolBar QToolButton:pressed {
+    background: @selectionBg@;      /* BG_CONTROL 加深 */
+}
+QToolBar#leftToolBar QToolButton:checked,
+QToolBar#rightToolBar QToolButton:checked {
+    background: @selectionBg@;      /* SELECTION_BG（selected 容器）*/
+}
+
 /* ===== 按钮 ===== */
 QPushButton {
     background-color: @controlBg@;   /* BG_CONTROL */

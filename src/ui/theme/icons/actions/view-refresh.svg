@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- view-refresh 刷新 | 实心弧线 + 方向箭头，S-01 -->
+  <path d="M8,3 A5,5 0 1 0 12.33,10.33" fill="none" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M11.6,9.6 L13.4,11.1 L12.7,8.6 Z" fill="#D4D4D4"/>
+</svg>

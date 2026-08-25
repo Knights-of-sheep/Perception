@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- view-panel-toggle 面板显隐 | 左侧栏 + 展开箭头，S-01 -->
+  <rect x="1.5" y="2.5" width="5" height="11" rx="1" fill="#D4D4D4"/>
+  <path d="M9.5,5.6 L12.3,8 L9.5,10.4 Z" fill="#D4D4D4"/>
+</svg>
