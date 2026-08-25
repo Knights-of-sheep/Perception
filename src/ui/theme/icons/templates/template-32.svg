@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Perception Icon Template 32px | 契约: icon-style-spec.md
+       G-02: 32 = 16x2 -> 安全区 24x24 (x=[4,28], y=[4,28])
+       G-03: 描边宽度 3px；S-02: round cap/join；S-01: fill="none"
+       默认色: FG_TEXT #D4D4D4 (P-02)
+       用法: 复制本文件，在安全区内绘制；交付前删除辅助线。 -->
+  <rect x="4" y="4" width="24" height="24" fill="none" stroke="#454545" stroke-width="0.5" stroke-dasharray="2 2"/>
+  <line x1="0" y1="16" x2="32" y2="16" stroke="#3F3F3F" stroke-width="0.25" stroke-dasharray="1.5 1.5"/>
+  <line x1="16" y1="0" x2="16" y2="32" stroke="#3F3F3F" stroke-width="0.25" stroke-dasharray="1.5 1.5"/>
+</svg>

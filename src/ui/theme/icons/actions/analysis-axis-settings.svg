@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-axis-settings 坐标轴设置 | 双轴+刻度，S-01/S-02 -->
+  <path d="M3,13 L13,13 M3,13 L3,3" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M6,13 L6,10.5 M9,13 L9,10.5" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M3,9.5 L5.5,9.5" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

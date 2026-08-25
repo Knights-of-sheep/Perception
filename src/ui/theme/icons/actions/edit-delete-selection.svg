@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- edit-delete-selection 删除所选 | 实心垃圾桶，S-01/S-02 -->
+  <path d="M6,3 L10,3 L10.2,4 L13,4 L13,5.2 L3,5.2 L3,4 L5.8,4 Z" fill="#D4D4D4"/>
+  <path d="M4,5.2 L12,5.2 L11,13 L5,13 Z" fill="#D4D4D4"/>
+  <path d="M6.2,7 L7.2,7 L7.2,11.5 L6.2,11.5 Z" fill="#161616"/>
+  <path d="M8.8,7 L9.8,7 L9.8,11.5 L8.8,11.5 Z" fill="#161616"/>
+</svg>

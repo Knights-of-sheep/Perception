@@ -61,10 +61,10 @@ cmake --build build --target Perception   # 预期：qrc 编译通过，链接�
 
 | 验证 | 通过标准 | 状态 |
 |---|---|---|
-| 场景 1 | 不符合项 0 | ☐ |
-| 场景 2 | 识别率 ≥90% | ☐ |
-| 场景 3 | 多尺寸交付 + 16px 可辨 | ☐ |
-| 场景 4 | 编译通过 + 窗口图标显示 | ☐ |
-| 场景 5 | mockups 评审无异议 | ☐ |
+| 场景 1 | 不符合项 0 | ☑ 实施核对 0 不符合（`mockups/005-icon-set/conformance-review.md`，待正式评审勾选） |
+| 场景 2 | 识别率 ≥90% | ☐ 待正式评审（`mockups/005-icon-set/blind-test.md`） |
+| 场景 3 | 多尺寸交付 + 16px 可辨 | ☑ 已交付（SVG + 7 档 PNG + 7 分辨率 ICO） |
+| 场景 4 | 编译通过 + 窗口图标显示 | ☑ 构建通过（RCC `qrc_theme.cpp` 编译 + `perception.exe` 生成）；窗口图标已挂接 main.cpp（运行目检由正式评审确认） |
+| 场景 5 | mockups 评审无异议 | ☐ 待正式评审（preview / icon-bar / main-window mockup 已生成） |
 
 全部通过后，本功能视为达成（对应 spec 全部成功标准 SC-001~SC-006）。

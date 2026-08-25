@@ -50,7 +50,7 @@
 - **Decision**: 图标以 **SVG 为源 + PNG 位图为运行格式**，经 **`.qrc` 资源系统**打包。目录：`src/ui/theme/icons/`（`actions/` 功能按钮、`app/` 应用图标），资源前缀 `/perception/icons/`。窗口图标：`main.cpp` 中 `mainWindow.setWindowIcon(QIcon(":/perception/icons/app/app-icon.ico"))`。
 - **Rationale**: ① Qt 5.15 内置 `svg` 模块可加载 SVG，但 `QIcon` 对 `.ico` 多尺寸支持更稳、`.ico` 为 Windows 窗口图标标准；② `.qrc` 编译进可执行文件，免安装路径依赖，与既有 `theme.qrc` 同机制；③ 小尺寸抗锯齿：PNG 由 SVG 渲染导出，避免 Qt SVG 运行时缩放模糊。
 - **Alternatives considered**: 运行时加载文件系统 SVG（依赖安装目录，部署脆弱，被否）；仅 SVG 不导出位图（16px 渲染质量不可控，被否）。**注意**：SVG 渲染器是否随 Qt 发布需在 tasks 阶段确认（`Qt5Svg` 依赖），否则全 PNG 方案兜底。
-- **风险登记**: Qt 安装可能不含 `Qt5Svg.dll`；若缺，功能图标全部改用预渲染 PNG（16/24/32 三档 × 五态），应用图标用 `.ico`。该取舍由 tasks 阶段按构建环境验证后定。
+- **风险登记**: ~~Qt 安装可能不含 `Qt5Svg.dll`；若缺，功能图标全部改用预渲染 PNG（16/24/32 三档 × 五态），应用图标用 `.ico`。该取舍由 tasks 阶段按构建环境验证后定。~~ **已验证（T002，2026-08-25）**：`D:/Qt/5.15.2/msvc2019_64` 下 `bin/Qt5Svg.dll` 与 `lib/cmake/Qt5Svg` 均存在 → **SVG 源 + PNG 运行格式**方案成立，无需全 PNG 兜底。
 
 ## 7. 命名与映射规则（决策 7）
 
@@ -70,6 +70,6 @@
 
 | 项 | 说明 | 移交 |
 |---|---|---|
-| SVG 渲染依赖（Qt5Svg）可用性 | 构建环境是否含 Qt5Svg 决定 SVG vs 全 PNG 方案 | tasks/实现阶段验证 |
+| ~~SVG 渲染依赖（Qt5Svg）可用性~~ | **已决（T002，2026-08-25）**：Qt5Svg.dll 与 CMake 包存在，SVG→PNG 渲染方案确认，无兜底路径 | —— |
 | 应用图标具体图形语义 | 品牌图形方向（视窗/曲线/十字准星）在规范契约中给出 1 个推荐方案，允许设计评审调整 | 设计执行阶段 |
 | ActionRegistry 落地 | 图标挂接依赖 §7.2 动作集中管理（后续需求），本功能仅交付资源 + 挂接接口位 | 后续「按钮布局」需求 |

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- file-open 打开文件 | 实心文件夹（亮背板+深前盖），S-01/S-02 -->
+  <path d="M2,4.5 L7.5,4.5 L9.5,6.5 L14,6.5 L14,12.5 L2,12.5 Z" fill="#D4D4D4"/>
+  <path d="M2,6.5 L11.5,6.5 L10,12.5 L2,12.5 Z" fill="#3C3C3C"/>
+</svg>

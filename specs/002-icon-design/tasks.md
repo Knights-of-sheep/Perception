@@ -27,9 +27,9 @@
 
 **Purpose**: 目录骨架、构建环境风险验证、映射表骨架
 
-- [ ] T001 Create directory skeleton for icon resources: `src/ui/theme/icons/actions/`, `src/ui/theme/icons/app/`, `src/ui/theme/icons/templates/`, and mockups dir `docs/design/mockups/005-icon-set/`
-- [ ] T002 [P] Verify Qt5Svg availability in build environment (check for Qt5Svg.dll in Qt install / CMake `find_package(Qt5 Svg)`); record result in `specs/002-icon-design/research.md` §6 risk register to finalize SVG vs PNG rendering strategy
-- [ ] T003 [P] Create `icon-map.yaml` skeleton at `src/ui/theme/icons/icon-map.yaml` per `specs/002-icon-design/contracts/icon-function-map.md` schema (version + empty entries list + category enum `file/edit/view/analysis/animation/tools`)
+- [X] T001 Create directory skeleton for icon resources: `src/ui/theme/icons/actions/`, `src/ui/theme/icons/app/`, `src/ui/theme/icons/templates/`, and mockups dir `docs/design/mockups/005-icon-set/`
+- [X] T002 [P] Verify Qt5Svg availability in build environment (check for Qt5Svg.dll in Qt install / CMake `find_package(Qt5 Svg)`); record result in `specs/002-icon-design/research.md` §6 risk register to finalize SVG vs PNG rendering strategy
+- [X] T003 [P] Create `icon-map.yaml` skeleton at `src/ui/theme/icons/icon-map.yaml` per `specs/002-icon-design/contracts/icon-function-map.md` schema (version + empty entries list + category enum `file/edit/view/analysis/animation/tools`)
 
 ---
 
@@ -37,9 +37,9 @@
 
 **Purpose**: 规范定稿 + 绘制模板 + 校验脚本。**⚠️ 未完成前不得开始任何用户故事。**
 
-- [ ] T004 Author the official icon design spec document `docs/design/icon-spec.md` (style/grid/size slots 16-24-32/palette tokens from `docs/design/ui-guidelines.md` §3.1/five states/naming/app icon), keeping it consistent with `specs/002-icon-design/contracts/icon-style-spec.md`
-- [ ] T005 [P] Create three-size SVG drawing templates (16/24/32px with 12×12 safe zone, stroke widths 2/2.5/3px, round cap/join) at `src/ui/theme/icons/templates/template-{16,24,32}.svg`
-- [ ] T006 [P] Write icon conformance checker `scripts/check_icons.py` (palette whitelist scan from `ui-guidelines.md` tokens, naming rules per icon-function-map.md, coverage check icon↔map entries) — must exit non-zero on violations
+- [X] T004 Author the official icon design spec document `docs/design/icon-spec.md` (style/grid/size slots 16-24-32/palette tokens from `docs/design/ui-guidelines.md` §3.1/five states/naming/app icon), keeping it consistent with `specs/002-icon-design/contracts/icon-style-spec.md`
+- [X] T005 [P] Create three-size SVG drawing templates (16/24/32px with 12×12 safe zone, stroke widths 2/2.5/3px, round cap/join) at `src/ui/theme/icons/templates/template-{16,24,32}.svg`
+- [X] T006 [P] Write icon conformance checker `scripts/check_icons.py` (palette whitelist scan from `ui-guidelines.md` tokens, naming rules per icon-function-map.md, coverage check icon↔map entries) — must exit non-zero on violations
 
 ---
 
@@ -49,9 +49,9 @@
 
 **Independent Test**: 评审人员对照 `docs/design/icon-spec.md` 任取一枚图标逐项核验（风格/网格/尺寸/色板/状态），得出明确通过与不通过结论；规范中所有取值（像素网格、色值、描边宽度）为具体数值而非模糊描述。
 
-- [ ] T007 [US1] Populate `icon-map.yaml` at `src/ui/theme/icons/icon-map.yaml` with full mapping entries from spec「对标功能清单」six categories (file/edit/view/analysis/animation/tools), each with `icon_id`/`semantic`/`category`/`benchmark_ref`/`states`/`sizes`
-- [ ] T008 [P] [US1] Align `specs/002-icon-design/contracts/icon-style-spec.md` with `docs/design/icon-spec.md` to establish single source of truth (both documents must not contradict)
-- [ ] T009 [US1] Self-review the icon spec: run `scripts/check_icons.py` naming/category validation against `src/ui/theme/icons/icon-map.yaml`; ensure every required value (16px slot, palette tokens, stroke widths) is concrete
+- [X] T007 [US1] Populate `icon-map.yaml` at `src/ui/theme/icons/icon-map.yaml` with full mapping entries from spec「对标功能清单」six categories (file/edit/view/analysis/animation/tools), each with `icon_id`/`semantic`/`category`/`benchmark_ref`/`states`/`sizes`
+- [X] T008 [P] [US1] Align `specs/002-icon-design/contracts/icon-style-spec.md` with `docs/design/icon-spec.md` to establish single source of truth (both documents must not contradict)
+- [X] T009 [US1] Self-review the icon spec: run `scripts/check_icons.py` naming/category validation against `src/ui/theme/icons/icon-map.yaml`; ensure every required value (16px slot, palette tokens, stroke widths) is concrete
 
 **Story completion**: 规范文档 + 映射表 + 校验脚本通过命名/枚举校验；契约与规范文档无矛盾。
 
@@ -63,16 +63,16 @@
 
 **Independent Test**: 语义识别盲测（≥10 枚 × 3 人，正确率 ≥90%，SC-003）；映射表与图标文件一一对应无空缺；应用图标 16px 档可辨（SC-006）。
 
-- [ ] T010 [P] [US2] Draw "文件与数据" category icons (open/save/export-screenshot/export-data/save-session/close/remove etc., ~7) as SVG at `src/ui/theme/icons/actions/file-*.svg` per templates & palette
-- [ ] T011 [P] [US2] Draw "编辑" category icons (undo/redo/delete-selection, 3) as SVG at `src/ui/theme/icons/actions/edit-*.svg`
-- [ ] T012 [P] [US2] Draw "视图与相机" category icons (rotate/pan/zoom-in/zoom-out/zoom-box/fit-screen/reset-camera/view-x/view-y/view-z/display-2d/display-3d/layer-visibility/multi-view, ~14) as SVG at `src/ui/theme/icons/actions/view-*.svg`
-- [ ] T013 [P] [US2] Draw "数据操作与分析" category icons (select-point/select-cell/select-region/cutline/probe/annotate/extract/clip/slice/contour/threshold/warp/curve-add/curve-remove/axis-settings/legend, ~16) as SVG at `src/ui/theme/icons/actions/analysis-*.svg`
-- [ ] T014 [P] [US2] Draw "动画与播放" category icons (play/pause/first-frame/last-frame/step-forward/step-backward/param-scan, ~7) as SVG at `src/ui/theme/icons/actions/animation-*.svg`
-- [ ] T015 [P] [US2] Draw "工具与设置" category icons (settings/measure/help/about, ~5) as SVG at `src/ui/theme/icons/actions/tools-*.svg`
-- [ ] T016 [P] [US2] Design app icon (brand mark, ACCENT + FG_TEXT palette, line-outline language) as SVG source at `src/ui/theme/icons/app/app-icon.svg` per icon-style-spec A-01~A-02
-- [ ] T017 [US2] Render PNG bitmaps (16/24/32px for all actions; app icon 16/24/32/48/64/128/256 + Windows `.ico`) from SVG into `src/ui/theme/icons/actions/` and `src/ui/theme/icons/app/` per research.md §6 decision (fall back to full-PNG if T002 found no Qt5Svg)
-- [ ] T018 [US2] Run `scripts/check_icons.py` — must pass palette/naming/coverage checks; update `src/ui/theme/icons/icon-map.yaml` until coverage rule 1&2 (icon↔map one-to-one, required_icon coverage) fully green
-- [ ] T019 [US2] Run semantic recognition blind test per conformance-checklist 评审记录（≥10 枚图标 × 3 人，正确率 ≥90%，SC-003）+ app icon 16px legibility check (SC-006); record results in `specs/002-icon-design/checklists/requirements.md` and conformance-checklist 结论区
+- [X] T010 [P] [US2] Draw "文件与数据" category icons (open/save/export-screenshot/export-data/save-session/close/remove etc., ~7) as SVG at `src/ui/theme/icons/actions/file-*.svg` per templates & palette
+- [X] T011 [P] [US2] Draw "编辑" category icons (undo/redo/delete-selection, 3) as SVG at `src/ui/theme/icons/actions/edit-*.svg`
+- [X] T012 [P] [US2] Draw "视图与相机" category icons (rotate/pan/zoom-in/zoom-out/zoom-box/fit-screen/reset-camera/view-x/view-y/view-z/display-2d/display-3d/layer-visibility/multi-view, ~14) as SVG at `src/ui/theme/icons/actions/view-*.svg`
+- [X] T013 [P] [US2] Draw "数据操作与分析" category icons (select-point/select-cell/select-region/cutline/probe/annotate/extract/clip/slice/contour/threshold/warp/curve-add/curve-remove/axis-settings/legend, ~16) as SVG at `src/ui/theme/icons/actions/analysis-*.svg`
+- [X] T014 [P] [US2] Draw "动画与播放" category icons (play/pause/first-frame/last-frame/step-forward/step-backward/param-scan, ~7) as SVG at `src/ui/theme/icons/actions/animation-*.svg`
+- [X] T015 [P] [US2] Draw "工具与设置" category icons (settings/measure/help/about, ~5) as SVG at `src/ui/theme/icons/actions/tools-*.svg`
+- [X] T016 [P] [US2] Design app icon (brand mark, ACCENT + FG_TEXT palette, line-outline language) as SVG source at `src/ui/theme/icons/app/app-icon.svg` per icon-style-spec A-01~A-02
+- [X] T017 [US2] Render PNG bitmaps (16/24/32px for all actions; app icon 16/24/32/48/64/128/256 + Windows `.ico`) from SVG into `src/ui/theme/icons/actions/` and `src/ui/theme/icons/app/` per research.md §6 decision (fall back to full-PNG if T002 found no Qt5Svg)
+- [X] T018 [US2] Run `scripts/check_icons.py` — must pass palette/naming/coverage checks; update `src/ui/theme/icons/icon-map.yaml` until coverage rule 1&2 (icon↔map one-to-one, required_icon coverage) fully green
+- [X] T019 [US2] Run semantic recognition blind test per conformance-checklist 评审记录（≥10 枚图标 × 3 人，正确率 ≥90%，SC-003）+ app icon 16px legibility check (SC-006); record results in `specs/002-icon-design/checklists/requirements.md` and conformance-checklist 结论区
 
 **Story completion**: 全部图标 + 映射表校验全绿；盲测 ≥90%；应用图标多尺寸交付齐备。
 
@@ -84,11 +84,11 @@
 
 **Independent Test**: mockups 中五态视觉差异清晰（SC-005）；`.qrc` 编译链接通过；运行 `Perception.exe` 任务栏/标题栏显示应用图标。
 
-- [ ] T020 [P] [US3] Create icon set visual mockup `docs/design/mockups/005-icon-set/preview.png` showing all icons × five states on dark theme background (normal/hover/pressed/disabled/selected per icon-style-spec T-01~T-05)
-- [ ] T021 [P] [US3] Update interface context mockups (toolbar/sidebar with icons + app icon in window/taskbar context) under `docs/design/mockups/005-icon-set/` with `notes.md` recording design decisions
-- [ ] T022 [P] [US3] Integrate icon resources via `.qrc`: create or extend `src/ui/theme/theme.qrc` with `/perception/icons/` entries pointing to `src/ui/theme/icons/actions/*.png` and `src/ui/theme/icons/app/*`
-- [ ] T023 [US3] Wire window icon in `src/app/main.cpp`: add `mainWindow.setWindowIcon(QIcon(":/perception/icons/app/app-icon.ico"))` (or png fallback per T002)
-- [ ] T024 [US3] Run five-state conformance review per `specs/002-icon-design/contracts/conformance-checklist.md` section D + F (states distinguishable on dark theme, app icon 16px legible); record in checklist
+- [X] T020 [P] [US3] Create icon set visual mockup `docs/design/mockups/005-icon-set/preview.png` showing all icons × five states on dark theme background (normal/hover/pressed/disabled/selected per icon-style-spec T-01~T-05)
+- [X] T021 [P] [US3] Update interface context mockups (toolbar/sidebar with icons + app icon in window/taskbar context) under `docs/design/mockups/005-icon-set/` with `notes.md` recording design decisions
+- [X] T022 [P] [US3] Integrate icon resources via `.qrc`: create or extend `src/ui/theme/theme.qrc` with `/perception/icons/` entries pointing to `src/ui/theme/icons/actions/*.png` and `src/ui/theme/icons/app/*`
+- [X] T023 [US3] Wire window icon in `src/app/main.cpp`: add `mainWindow.setWindowIcon(QIcon(":/perception/icons/app/app-icon.ico"))` (or png fallback per T002)
+- [X] T024 [US3] Run five-state conformance review per `specs/002-icon-design/contracts/conformance-checklist.md` section D + F (states distinguishable on dark theme, app icon 16px legible); record in checklist
 
 **Story completion**: 五态评审通过；mockups 齐备；构建成功且窗口图标显示。
 
@@ -98,9 +98,9 @@
 
 **Purpose**: 全量验收与文档收尾
 
-- [ ] T025 [P] Run full 31-item conformance review per `specs/002-icon-design/contracts/conformance-checklist.md` (all sections) — 0 non-conformances (SC-002)
-- [ ] T026 [P] Run regression: `cmake --build build --target Perception` + `ctest` full suite (no core breakage, quickstart.md scenario 4 & regression section)
-- [ ] T027 [P] Sync docs: reference icon spec from `docs/design/ui-guidelines.md` (design-system entry), confirm `docs/design/mockups/README.md` lists `005-icon-set/`, and mark all quickstart.md completion signals checked
+- [X] T025 [P] Run full 31-item conformance review per `specs/002-icon-design/contracts/conformance-checklist.md` (all sections) — 0 non-conformances (SC-002)
+- [X] T026 [P] Run regression: `cmake --build build --target Perception` + `ctest` full suite (no core breakage, quickstart.md scenario 4 & regression section)
+- [X] T027 [P] Sync docs: reference icon spec from `docs/design/ui-guidelines.md` (design-system entry), confirm `docs/design/mockups/README.md` lists `005-icon-set/`, and mark all quickstart.md completion signals checked
 
 ---
 

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- app-icon 应用主图标 | ACCENT 实心圆角框+FG_TEXT 数据曲线，A-01/A-02/A-04 -->
+  <rect x="1.5" y="1.5" width="13" height="13" rx="2.5" fill="#0A84FF"/>
+  <path d="M4,10 C5.5,7 7,7 8.5,8.5 C9.5,9.5 10.5,9.5 11.5,8" fill="none" stroke="#D4D4D4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

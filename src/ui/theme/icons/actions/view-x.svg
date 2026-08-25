@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- view-x 沿 X 轴正视 | 水平轴+圆底X字母，S-01/S-02 -->
+  <path d="M2.5,11 L10,11" stroke="#D4D4D4" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="12.5" cy="11" r="1.8" fill="#D4D4D4"/>
+  <path d="M11.2,9.8 L13.8,12.2 M13.8,9.8 L11.2,12.2" stroke="#161616" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

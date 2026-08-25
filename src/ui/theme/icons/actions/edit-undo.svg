@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- edit-undo 撤销 | 实心左三角+回卷弧，S-01/S-02 -->
+  <path d="M6,4 L3,8 L6,12 Z" fill="#D4D4D4"/>
+  <path d="M6,8 L10.5,8" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M10.5,8 A2.8,2.8 0 0 1 7.7,10.8" fill="none" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
