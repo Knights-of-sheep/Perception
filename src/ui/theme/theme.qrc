@@ -141,6 +141,15 @@
         <file>icons/png/actions/view-pan-16.png</file>
         <file>icons/png/actions/view-pan-24.png</file>
         <file>icons/png/actions/view-pan-32.png</file>
+        <file>icons/png/actions/view-panel-console-16.png</file>
+        <file>icons/png/actions/view-panel-console-24.png</file>
+        <file>icons/png/actions/view-panel-console-32.png</file>
+        <file>icons/png/actions/view-panel-data-16.png</file>
+        <file>icons/png/actions/view-panel-data-24.png</file>
+        <file>icons/png/actions/view-panel-data-32.png</file>
+        <file>icons/png/actions/view-panel-property-16.png</file>
+        <file>icons/png/actions/view-panel-property-24.png</file>
+        <file>icons/png/actions/view-panel-property-32.png</file>
         <file>icons/png/actions/view-panel-toggle-16.png</file>
         <file>icons/png/actions/view-panel-toggle-24.png</file>
         <file>icons/png/actions/view-panel-toggle-32.png</file>

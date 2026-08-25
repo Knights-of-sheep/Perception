@@ -1,18 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <!-- app-icon: Radar 扇形扫（动态感知）。契约 P-04: ACCENT 主 + FG_TEXT 辅 -->
-  <rect width="256" height="256" rx="56" fill="#0A84FF"/>
-  <path d="M 128 128 L 188.8 67.2 A 86 86 0 0 1 128 42 Z" fill="#D4D4D4" opacity="0.22"/>
-  <g fill="none" stroke="#D4D4D4" stroke-width="8" opacity="0.6">
-    <circle cx="128" cy="128" r="86"/>
-    <circle cx="128" cy="128" r="60"/>
-    <circle cx="128" cy="128" r="34"/>
+  <!-- app-icon v2.4: 黄金对数螺旋感知
+       设计语言：近白→柔和太阳色渐变底（晨光更轻盈）+ 渐变描边（与螺旋同源）
+       + 8 向刻度（仪器罗盘）+ 严格黄金对数螺旋（每 90° 精确缩放 φ 倍，数学极致）
+       + 中心光点（感知核心）。
+       配色：暖白→奶油橙渐变底 + 青→青绿渐变（螺旋/边框）+ 焦糖色刻度 + 白芯青晕光点。 -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFC04D"/>
+    </linearGradient>
+    <linearGradient id="spiralGrad" x1="1" y1="0" x2="0.15" y2="0.75">
+      <stop offset="0" stop-color="#33B1FF"/>
+      <stop offset="1" stop-color="#4EC9B0"/>
+    </linearGradient>
+    <radialGradient id="glowGrad" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#0B6EB8" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#0B6EB8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 近白→柔和太阳色渐变圆角底（轻盈晨光） -->
+  <rect width="256" height="256" rx="56" fill="url(#bgGrad)"/>
+
+  <!-- 青→青绿渐变描边（与螺旋同源，仪器徽章感） -->
+  <rect x="12" y="12" width="232" height="232" rx="44" fill="none"
+        stroke="url(#spiralGrad)" stroke-width="4" opacity="0.9"/>
+
+  <!-- 同心圆刻度（仪器/坐标感，焦糖色适配暖底） -->
+  <g fill="none" stroke="#8A4B0F" stroke-width="3" opacity="0.25">
+    <circle cx="128" cy="128" r="84"/>
+    <circle cx="128" cy="128" r="58"/>
+    <circle cx="128" cy="128" r="32"/>
   </g>
-  <g stroke="#D4D4D4" stroke-width="6" stroke-linecap="round" opacity="0.75">
-    <line x1="128" y1="34" x2="128" y2="22"/>
-    <line x1="222" y1="128" x2="234" y2="128"/>
-    <line x1="128" y1="222" x2="128" y2="234"/>
-    <line x1="34" y1="128" x2="22" y2="128"/>
+
+  <!-- 8 向刻度短线（罗盘：N/S/E/W + 45°） -->
+  <g stroke="#8A4B0F" stroke-width="4" stroke-linecap="round" opacity="0.45">
+    <line x1="128" y1="44" x2="128" y2="36"/><line x1="128" y1="212" x2="128" y2="220"/><line x1="212" y1="128" x2="220" y2="128"/><line x1="44" y1="128" x2="36" y2="128"/><line x1="187.4" y1="68.6" x2="193.1" y2="62.9"/><line x1="68.6" y1="68.6" x2="62.9" y2="62.9"/><line x1="68.6" y1="187.4" x2="62.9" y2="193.1"/><line x1="187.4" y1="187.4" x2="193.1" y2="193.1"/>
   </g>
-  <circle cx="128" cy="128" r="16" fill="#D4D4D4"/>
-  <circle cx="128" cy="128" r="6" fill="#0A84FF"/>
+
+  <!-- 严格黄金对数螺旋（青→青绿渐变，每 90° 精确缩放 φ 倍） -->
+  <path d="M 206.9 156.7 L 207.0 148.9 L 206.4 141.4 L 205.1 134.1 L 203.2 127.2 L 200.8 120.6 L 197.9 114.5 L 194.5 108.8 L 190.8 103.6 L 186.7 98.9 L 182.3 94.6 L 177.7 90.9 L 172.9 87.7 L 168.0 85.0 L 163.0 82.9 L 158.0 81.2 L 153.0 80.1 L 148.0 79.4 L 143.1 79.1 L 138.4 79.3 L 133.8 80.0 L 129.4 80.9 L 125.3 82.3 L 121.3 83.9 L 117.7 85.9 L 114.3 88.1 L 111.3 90.5 L 108.5 93.2 L 106.1 96.0 L 104.0 98.9 L 102.2 101.9 L 100.7 105.0 L 99.5 108.1 L 98.7 111.2 L 98.1 114.3 L 97.8 117.3 L 97.8 120.3 L 98.1 123.1 L 98.6 125.9 L 99.3 128.5 L 100.3 131.0 L 101.4 133.4 L 102.7 135.5 L 104.2 137.5 L 105.7 139.3 L 107.4 140.9 L 109.2 142.3 L 111.0 143.5 L 112.9 144.5 L 114.8 145.3 L 116.7 145.9 L 118.6 146.3 L 120.5 146.6 L 122.4 146.7 L 124.2 146.6 L 125.9 146.3 L 127.6 145.9 L 129.2 145.4 L 130.7 144.8 L 132.1 144.0 L 133.3 143.2 L 134.5 142.2 L 135.5 141.2 L 136.5 140.1 L 137.2 139.0 L 137.9 137.9 L 138.5 136.7 L 138.9 135.5 L 139.2 134.3 L 139.4 133.1 L 139.5 132.0 L 139.5 130.9 L 139.4 129.8 L 139.2 128.7 L 138.9 127.7 L 138.6 126.8 L 138.1 125.9 L 137.6 125.1 L 137.1 124.3 L 136.5 123.6 L 135.8 123.0 L 135.1 122.5 L 134.4 122.0 L 133.7 121.7 L 133.0 121.4 L 132.2 121.1 L 131.5 121.0 L 130.8 120.9 L 130.1 120.9 L 129.4 120.9 L 128.7 121.0 L 128.1 121.2 L 127.5 121.4 L 126.9 121.6 L 126.4 121.9 L 125.9 122.2 L 125.5 122.6" fill="none" stroke="url(#spiralGrad)" stroke-width="11" stroke-linecap="round"/>
+
+  <!-- 感知核心：青色光晕 + 白芯（青细环增强浅底可读性） -->
+  <circle cx="128" cy="128" r="34" fill="url(#glowGrad)"/>
+  <circle cx="128" cy="128" r="11" fill="#FFFFFF"/>
+  <circle cx="128" cy="128" r="11" fill="none" stroke="#0B6EB8" stroke-width="2.5"/>
 </svg>

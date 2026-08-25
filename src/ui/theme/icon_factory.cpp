@@ -8,6 +8,8 @@ namespace ui {
 namespace theme {
 
 QIcon IconFactory::actionIcon(const QString& iconId,
+                              const QColor& textWeak,
+                              const QColor& textOnSelection,
                               const QColor& textDisabled,
                               const QColor& accent) {
     QIcon icon;
@@ -22,10 +24,19 @@ QIcon IconFactory::actionIcon(const QString& iconId,
                      qUtf8Printable(path), qUtf8Printable(iconId), s);
             continue;
         }
-        icon.addPixmap(base);                                  // Normal / Off（原始 PNG）
+        // 普通态染成主题弱文字色：原始 PNG 为固定灰阶（192/96/32），
+        // 深色主题暗部不可见、浅色主题亮部不可见；textWeak 随主题热切换且对比度
+        // 已由 _theme_check.py 校验（≥3:1 on 各背景），保证所有主题下图标清晰。
+        const QPixmap themed = derive(base, textWeak, 255);
+        // 选中/checked 态：容器背景为 selectionBg，图标须用 textOnSelection
+        // （高对比主题下 textWeak 在 selectionBg 上对比仅 ~1.3:1，曾回归）。
+        const QPixmap selected = derive(base, textOnSelection, 255);
+        icon.addPixmap(themed);                                  // Normal / Off
         icon.addPixmap(derive(base, textDisabled, 102), QIcon::Disabled, QIcon::Off);  // T-04：40% 透明
-        icon.addPixmap(derive(base, accent, 255), QIcon::Selected, QIcon::On);         // T-06：ACCENT
-        icon.addPixmap(derive(base, accent, 255), QIcon::Normal, QIcon::On);           // checkable 选中
+        // T-06：选中态由容器背景 selectionBg 表达；图标用 textOnSelection，
+        // 与 selectionBg 的对比经校验（textOnSelection on selectionBg ≥4.5:1）。
+        icon.addPixmap(selected, QIcon::Selected, QIcon::On);                            // 选中
+        icon.addPixmap(selected, QIcon::Normal, QIcon::On);                              // checkable 选中
     }
     return icon;
 }
