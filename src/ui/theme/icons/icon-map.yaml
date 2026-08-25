@@ -12,6 +12,8 @@ entries:
   - { icon_id: file-save-session,    semantic: 保存会话,             category: file,      benchmark_ref: { source: paraview,  function: save-session },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   - { icon_id: file-close,           semantic: 关闭文件,             category: file,      benchmark_ref: { source: both,      function: close },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   - { icon_id: file-remove,          semantic: 移除文件,             category: file,      benchmark_ref: { source: both,      function: remove },             states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-load-script,     semantic: 加载脚本,             category: file,      benchmark_ref: { source: custom,    function: script-load },        states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-record-screen,   semantic: 视频录制,             category: file,      benchmark_ref: { source: custom,    function: record-screen },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   # ===== 编辑 (edit) =====
   - { icon_id: edit-undo,            semantic: 撤销,                 category: edit,      benchmark_ref: { source: both,      function: undo },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   - { icon_id: edit-redo,            semantic: 重做,                 category: edit,      benchmark_ref: { source: both,      function: redo },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
@@ -31,6 +33,11 @@ entries:
   - { icon_id: view-display-3d,      semantic: 三维显示,             category: view,      benchmark_ref: { source: paraview,  function: display-3d },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   - { icon_id: view-layer-visibility, semantic: 图层可见性,          category: view,      benchmark_ref: { source: paraview,  function: layer-visibility },    states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   - { icon_id: view-multi-view,      semantic: 多视图,               category: view,      benchmark_ref: { source: paraview,  function: multi-view },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-refresh,         semantic: 刷新,                 category: view,      benchmark_ref: { source: custom,    function: refresh },             states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-panel-toggle,    semantic: 面板显隐,             category: view,      benchmark_ref: { source: custom,    function: panel-toggle },        states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-panel-data,      semantic: 数据面板,             category: view,      benchmark_ref: { source: custom,    function: panel-data },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-panel-property,  semantic: 属性面板,             category: view,      benchmark_ref: { source: custom,    function: panel-property },      states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-panel-console,   semantic: Python 控制台,        category: view,      benchmark_ref: { source: custom,    function: panel-console },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   # ===== 数据操作与分析 (analysis) =====
   - { icon_id: analysis-select-point,   semantic: 点选,              category: analysis,  benchmark_ref: { source: paraview,  function: select-point },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
   - { icon_id: analysis-select-cell,    semantic: 单元选择,          category: analysis,  benchmark_ref: { source: paraview,  function: select-cell },        states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }

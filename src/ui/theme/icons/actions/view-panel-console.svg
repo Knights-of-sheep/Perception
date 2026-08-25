@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- view-panel-console Python 控制台 | 终端窗口：单色挖洞风格（与 view-panel-data/property 一致），
+       派生（SourceIn → 单一主题色）后保留外壳轮廓与屏幕内符号镂空；S-01 -->
+  <!-- 终端窗口外壳（fill-rule=evenodd 挖空屏幕区域，外壳呈空心矩形） -->
+  <path d="M2.75,3 h10.5 a0.75,0.75 0 0 1 0.75,0.75 v8.5 a0.75,0.75 0 0 1 -0.75,0.75 h-10.5 a0.75,0.75 0 0 1 -0.75,-0.75 v-8.5 a0.75,0.75 0 0 1 0.75,-0.75 z M4,5 v6 h8 v-6 z"
+        fill="#D4D4D4" fill-rule="evenodd"/>
+  <!-- 屏幕内提示符 > -->
+  <path d="M5.2,7 L6.8,8.4 L5.2,9.8 Z" fill="#D4D4D4"/>
+  <!-- 屏幕内短横线 _ -->
+  <rect x="7.6" y="9.2" width="2.8" height="0.9" rx="0.3" fill="#D4D4D4"/>
+</svg>

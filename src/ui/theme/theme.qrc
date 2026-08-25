@@ -90,9 +90,15 @@
         <file>icons/png/actions/file-export-screenshot-16.png</file>
         <file>icons/png/actions/file-export-screenshot-24.png</file>
         <file>icons/png/actions/file-export-screenshot-32.png</file>
+        <file>icons/png/actions/file-load-script-16.png</file>
+        <file>icons/png/actions/file-load-script-24.png</file>
+        <file>icons/png/actions/file-load-script-32.png</file>
         <file>icons/png/actions/file-open-16.png</file>
         <file>icons/png/actions/file-open-24.png</file>
         <file>icons/png/actions/file-open-32.png</file>
+        <file>icons/png/actions/file-record-screen-16.png</file>
+        <file>icons/png/actions/file-record-screen-24.png</file>
+        <file>icons/png/actions/file-record-screen-32.png</file>
         <file>icons/png/actions/file-remove-16.png</file>
         <file>icons/png/actions/file-remove-24.png</file>
         <file>icons/png/actions/file-remove-32.png</file>
@@ -135,6 +141,21 @@
         <file>icons/png/actions/view-pan-16.png</file>
         <file>icons/png/actions/view-pan-24.png</file>
         <file>icons/png/actions/view-pan-32.png</file>
+        <file>icons/png/actions/view-panel-console-16.png</file>
+        <file>icons/png/actions/view-panel-console-24.png</file>
+        <file>icons/png/actions/view-panel-console-32.png</file>
+        <file>icons/png/actions/view-panel-data-16.png</file>
+        <file>icons/png/actions/view-panel-data-24.png</file>
+        <file>icons/png/actions/view-panel-data-32.png</file>
+        <file>icons/png/actions/view-panel-property-16.png</file>
+        <file>icons/png/actions/view-panel-property-24.png</file>
+        <file>icons/png/actions/view-panel-property-32.png</file>
+        <file>icons/png/actions/view-panel-toggle-16.png</file>
+        <file>icons/png/actions/view-panel-toggle-24.png</file>
+        <file>icons/png/actions/view-panel-toggle-32.png</file>
+        <file>icons/png/actions/view-refresh-16.png</file>
+        <file>icons/png/actions/view-refresh-24.png</file>
+        <file>icons/png/actions/view-refresh-32.png</file>
         <file>icons/png/actions/view-reset-camera-16.png</file>
         <file>icons/png/actions/view-reset-camera-24.png</file>
         <file>icons/png/actions/view-reset-camera-32.png</file>

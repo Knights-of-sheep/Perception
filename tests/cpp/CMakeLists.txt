@@ -25,3 +25,9 @@ add_test(NAME event_bus_test COMMAND event_bus_test)
 add_executable(logger_test logger_test.cpp)
 target_link_libraries(logger_test PRIVATE perception_core)
 add_test(NAME logger_test COMMAND logger_test)
+
+# 003-install-icon-bars：动作-图标映射契约单测（contracts/icon-action-map.md，V-1~V-8）。
+# 例外：链接 perception_ui（含 theme.qrc 资源），用于 V-5 资源存在性断言。
+add_executable(icon_action_map_test icon_action_map_test.cpp)
+target_link_libraries(icon_action_map_test PRIVATE perception_ui)
+add_test(NAME icon_action_map_test COMMAND icon_action_map_test)

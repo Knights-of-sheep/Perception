@@ -1,12 +1,15 @@
 # Perception
 
-对标 Synopsys svisual（Inspect .plt 曲线 / TecplotSV .tdr 结构）的 TCAD 数据可视化桌面工具（重构版）。
+对标 ParaView、Synopsys svisual 的数据可视化桌面工具（重构版）。
 
 ## 当前方向（2026-08-23）
 
 **界面优先**：先搭建可运行的 UI 主界面框架（主窗口 + Dock + 深色主题），
 运行 `perception.exe` 启动后首先展示主界面；数据层（.plt 解析、命令层）随后并行接入。
 UI 界面事实源为 `docs/design/mockups/`（当前为本地设计稿）。
+
+已实现：深色主题（25 套可切换）、Dock 面板（数据/属性/Python 控制台）拖拽重组与
+窗口控制（无边框浮动、最小化/最大化/恢复嵌入/关闭、右下角缩放）、命令面板预留。
 
 ## 技术栈
 
