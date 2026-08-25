@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-probe 探针取点 | 实心放大镜+红色采样点，S-01/S-02 -->
+  <circle cx="7" cy="7" r="3.8" fill="#D4D4D4"/>
+  <circle cx="7" cy="7" r="2.2" fill="#161616"/>
+  <path d="M10,10 L12.6,12.6" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="7" cy="7" r="0.9" fill="#F14C4C"/>
+</svg>

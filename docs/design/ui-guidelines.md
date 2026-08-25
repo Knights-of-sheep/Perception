@@ -308,5 +308,6 @@ void registerView(ViewFactory f);   // 各视图模块启动时自注册
 ## 9. 与既有文档的关系
 
 - `docs/design.md`：设计规范入口，引用本文件。
+- `docs/design/icon-spec.md`：图标设计规范（002-icon-design 唯一规范），Token 色板引自本文件 §3.1；契约见 `specs/002-icon-design/contracts/icon-style-spec.md`。
 - `docs/design/mockups/`：视觉稿事实源（PNG + notes.md），本规范是其"规则层"。
 - `src/ui/`：实现层，必须同时满足本规范与对应 mockup。

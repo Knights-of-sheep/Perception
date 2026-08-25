@@ -1,0 +1,64 @@
+# 图标-功能映射表（唯一来源：specs/002-icon-design/contracts/icon-function-map.md）
+# Schema 与 icon-style-spec 版本联动；category 枚举：file / edit / view / analysis / animation / tools
+# source 枚举：paraview / svisual / both / custom
+version: 1.0.0
+generated: 2026-08-25
+entries:
+  # ===== 文件与数据 (file) =====
+  - { icon_id: file-open,            semantic: 打开文件,             category: file,      benchmark_ref: { source: both,      function: open },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-save,            semantic: 保存文件,             category: file,      benchmark_ref: { source: both,      function: save },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-export-screenshot, semantic: 导出截图,           category: file,      benchmark_ref: { source: both,      function: export-screenshot },  states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-export-data,     semantic: 导出数据,             category: file,      benchmark_ref: { source: both,      function: export-data },        states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-save-session,    semantic: 保存会话,             category: file,      benchmark_ref: { source: paraview,  function: save-session },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-close,           semantic: 关闭文件,             category: file,      benchmark_ref: { source: both,      function: close },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: file-remove,          semantic: 移除文件,             category: file,      benchmark_ref: { source: both,      function: remove },             states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  # ===== 编辑 (edit) =====
+  - { icon_id: edit-undo,            semantic: 撤销,                 category: edit,      benchmark_ref: { source: both,      function: undo },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: edit-redo,            semantic: 重做,                 category: edit,      benchmark_ref: { source: both,      function: redo },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: edit-delete-selection, semantic: 删除所选,            category: edit,      benchmark_ref: { source: both,      function: delete-selection },   states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  # ===== 视图与相机 (view) =====
+  - { icon_id: view-rotate,          semantic: 旋转视图,             category: view,      benchmark_ref: { source: both,      function: rotate },             states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-pan,             semantic: 平移视图,             category: view,      benchmark_ref: { source: both,      function: pan },                states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-zoom-in,         semantic: 放大,                 category: view,      benchmark_ref: { source: both,      function: zoom-in },            states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-zoom-out,        semantic: 缩小,                 category: view,      benchmark_ref: { source: both,      function: zoom-out },           states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-zoom-box,        semantic: 框选缩放,             category: view,      benchmark_ref: { source: paraview,  function: zoom-box },           states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-fit-screen,      semantic: 自适应显示全部,       category: view,      benchmark_ref: { source: paraview,  function: fit-screen },         states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-reset-camera,    semantic: 重置视图,             category: view,      benchmark_ref: { source: paraview,  function: reset-camera },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-x,               semantic: 沿 X 轴正视,          category: view,      benchmark_ref: { source: paraview,  function: view-x },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-y,               semantic: 沿 Y 轴正视,          category: view,      benchmark_ref: { source: paraview,  function: view-y },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-z,               semantic: 沿 Z 轴正视,          category: view,      benchmark_ref: { source: paraview,  function: view-z },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-display-2d,      semantic: 二维显示,             category: view,      benchmark_ref: { source: paraview,  function: display-2d },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-display-3d,      semantic: 三维显示,             category: view,      benchmark_ref: { source: paraview,  function: display-3d },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-layer-visibility, semantic: 图层可见性,          category: view,      benchmark_ref: { source: paraview,  function: layer-visibility },    states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: view-multi-view,      semantic: 多视图,               category: view,      benchmark_ref: { source: paraview,  function: multi-view },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  # ===== 数据操作与分析 (analysis) =====
+  - { icon_id: analysis-select-point,   semantic: 点选,              category: analysis,  benchmark_ref: { source: paraview,  function: select-point },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-select-cell,    semantic: 单元选择,          category: analysis,  benchmark_ref: { source: paraview,  function: select-cell },        states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-select-region,  semantic: 区域选择,          category: analysis,  benchmark_ref: { source: paraview,  function: select-region },      states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-cutline,        semantic: 截线,              category: analysis,  benchmark_ref: { source: paraview,  function: cutline },            states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-probe,          semantic: 探针取点,          category: analysis,  benchmark_ref: { source: paraview,  function: probe },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-annotate,       semantic: 标注,              category: analysis,  benchmark_ref: { source: paraview,  function: annotate },           states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-extract,        semantic: 数据提取,          category: analysis,  benchmark_ref: { source: svisual,   function: extract },            states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-clip,           semantic: 裁剪,              category: analysis,  benchmark_ref: { source: paraview,  function: clip },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-slice,          semantic: 切片,              category: analysis,  benchmark_ref: { source: paraview,  function: slice },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-contour,        semantic: 等值线,            category: analysis,  benchmark_ref: { source: paraview,  function: contour },            states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-threshold,      semantic: 阈值,              category: analysis,  benchmark_ref: { source: paraview,  function: threshold },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-warp,           semantic: 变形,              category: analysis,  benchmark_ref: { source: paraview,  function: warp },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-curve-add,      semantic: 添加曲线,          category: analysis,  benchmark_ref: { source: svisual,   function: curve-add },          states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-curve-remove,   semantic: 移除曲线,          category: analysis,  benchmark_ref: { source: svisual,   function: curve-remove },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-axis-settings,  semantic: 坐标轴设置,        category: analysis,  benchmark_ref: { source: svisual,   function: axis-settings },      states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: analysis-legend,         semantic: 图例,              category: analysis,  benchmark_ref: { source: svisual,   function: legend },             states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  # ===== 动画与播放 (animation) =====
+  - { icon_id: animation-play,          semantic: 播放,              category: animation, benchmark_ref: { source: svisual,   function: play },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: animation-pause,         semantic: 暂停,              category: animation, benchmark_ref: { source: svisual,   function: pause },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: animation-first-frame,   semantic: 首帧,              category: animation, benchmark_ref: { source: svisual,   function: first-frame },        states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: animation-last-frame,    semantic: 末帧,              category: animation, benchmark_ref: { source: svisual,   function: last-frame },         states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: animation-step-forward,  semantic: 步进前进,          category: animation, benchmark_ref: { source: svisual,   function: step-forward },       states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: animation-step-backward, semantic: 步进后退,          category: animation, benchmark_ref: { source: svisual,   function: step-backward },      states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: animation-param-scan,    semantic: 参数扫描播放,      category: animation, benchmark_ref: { source: svisual,   function: param-scan },         states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  # ===== 工具与设置 (tools) =====
+  - { icon_id: tools-settings,          semantic: 设置,              category: tools,     benchmark_ref: { source: both,      function: settings },           states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: tools-colormap,          semantic: 配色方案,          category: tools,     benchmark_ref: { source: paraview,  function: colormap },           states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: tools-measure,           semantic: 测量,              category: tools,     benchmark_ref: { source: paraview,  function: measure },            states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: tools-help,              semantic: 帮助,              category: tools,     benchmark_ref: { source: both,      function: help },               states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }
+  - { icon_id: tools-about,             semantic: 关于,              category: tools,     benchmark_ref: { source: both,      function: about },              states: [normal, hover, pressed, disabled, selected], sizes: [16, 24, 32] }

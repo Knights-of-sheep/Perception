@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- concept-a-radar v2: 扇形扫雷达（动态感知，扇形取代单线） -->
+  <rect width="256" height="256" rx="56" fill="#0A84FF"/>
+  <path d="M 128 128 L 188.8 67.2 A 86 86 0 0 1 128 42 Z" fill="#D4D4D4" opacity="0.22"/>
+  <g fill="none" stroke="#D4D4D4" stroke-width="8" opacity="0.6">
+    <circle cx="128" cy="128" r="86"/>
+    <circle cx="128" cy="128" r="60"/>
+    <circle cx="128" cy="128" r="34"/>
+  </g>
+  <g stroke="#D4D4D4" stroke-width="6" stroke-linecap="round" opacity="0.75">
+    <line x1="128" y1="34" x2="128" y2="22"/>
+    <line x1="222" y1="128" x2="234" y2="128"/>
+    <line x1="128" y1="222" x2="128" y2="234"/>
+    <line x1="34" y1="128" x2="22" y2="128"/>
+  </g>
+  <circle cx="128" cy="128" r="16" fill="#D4D4D4"/>
+  <circle cx="128" cy="128" r="6" fill="#0A84FF"/>
+</svg>

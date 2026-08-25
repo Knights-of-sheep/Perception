@@ -2,6 +2,7 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QFont>
+#include <QIcon>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTimer>
@@ -45,6 +46,10 @@ int main(int argc, char* argv[])
     perception::ui::ThemeManager::apply(app);
 
     perception::ui::MainWindow window;
+    // 应用/窗口图标（图标设计规范 002-icon-design，A-03 交付物）：
+    // app-icon.ico 注册于 theme.qrc /perception/icons，含 16..256 多分辨率（SC-006）。
+    app.setWindowIcon(QIcon(QStringLiteral(":/perception/icons/icons/app/app-icon.ico")));
+    window.setWindowIcon(app.windowIcon());
     window.show();
     // CONSOLE 子系统（终端显示日志）下，确保 GUI 主窗口不被终端窗口遮挡/抢占焦点
     window.raise();

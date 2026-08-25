@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- analysis-legend 图例 | 三色图例条，S-01/S-02 -->
+  <rect x="3.5" y="3" width="2.8" height="10" fill="#D4D4D4"/>
+  <rect x="7.1" y="3" width="2.8" height="10" fill="#3C3C3C"/>
+  <rect x="10.7" y="3" width="2.8" height="10" fill="#0A84FF"/>
+</svg>

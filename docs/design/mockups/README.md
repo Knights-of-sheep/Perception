@@ -35,6 +35,7 @@ docs/design/mockups/
 | 002-curve-view（曲线视图） | 待制作 | 2D 曲线渲染区 |
 | 003-dock（侧边栏） | 待制作 | 文件/图层/属性面板 |
 | 004-color-palette（色板） | 待制作 | 深色主题色板 |
+| 005-icon-set（图标集） | 已制作 | 全量预览 + 侧边栏/主窗口 mockup + 盲测/五态/conformance 记录 |
 
 ## 读取约定（CodeBuddy 遵守）
 

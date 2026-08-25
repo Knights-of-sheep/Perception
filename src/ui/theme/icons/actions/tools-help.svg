@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- tools-help 帮助 | 实心圆+问号负形，S-01/S-02 -->
+  <circle cx="8" cy="8" r="5" fill="#D4D4D4"/>
+  <path d="M5.8,6 C5.8,4.6 6.9,3.8 8,3.8 C9.2,3.8 10.2,4.6 10.2,5.8 C10.2,7.4 8.3,7.6 8.3,9.2" fill="none" stroke="#161616" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="8.1" cy="10.8" r="0.8" fill="#161616"/>
+</svg>
