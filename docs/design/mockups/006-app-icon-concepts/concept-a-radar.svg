@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <!-- app-icon: Radar 扇形扫（动态感知）。契约 P-04: ACCENT 主 + FG_TEXT 辅 -->
+  <!-- concept-a-radar v2: 扇形扫雷达（动态感知，扇形取代单线） -->
   <rect width="256" height="256" rx="56" fill="#0A84FF"/>
   <path d="M 128 128 L 188.8 67.2 A 86 86 0 0 1 128 42 Z" fill="#D4D4D4" opacity="0.22"/>
   <g fill="none" stroke="#D4D4D4" stroke-width="8" opacity="0.6">

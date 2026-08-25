@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- concept-c-wave v2: 居中节点辐射（信号节点，重心居中） -->
+  <rect width="256" height="256" rx="56" fill="#0A84FF"/>
+  <circle cx="128" cy="128" r="20" fill="#D4D4D4"/>
+  <g stroke="#D4D4D4" stroke-width="14" stroke-linecap="round">
+    <line x1="128" y1="108" x2="128" y2="48"/>
+    <line x1="128" y1="148" x2="128" y2="208"/>
+    <line x1="108" y1="128" x2="48" y2="128"/>
+    <line x1="148" y1="128" x2="208" y2="128"/>
+  </g>
+  <g fill="#D4D4D4">
+    <circle cx="128" cy="48" r="10"/>
+    <circle cx="128" cy="208" r="10"/>
+    <circle cx="48" cy="128" r="10"/>
+    <circle cx="208" cy="128" r="10"/>
+  </g>
+</svg>
