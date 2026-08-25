@@ -2,8 +2,10 @@
 # 规范：docs/design/ui-guidelines.md；视觉稿：docs/design/mockups/。
 add_library(perception_ui STATIC
   MainWindow.cpp
+  action_icon_map.cpp
   console/PythonConsole.cpp
   log/qt_message_bridge.cpp
+  theme/icon_factory.cpp
   theme/theme_manager.cpp
   theme/theme.qrc
 )

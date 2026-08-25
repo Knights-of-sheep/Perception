@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- view-panel-property 属性面板 | 属性行（标签+值双段色块，被控面板语义），S-01 -->
+  <rect x="2" y="3" width="2.5" height="2.5" rx="0.5" fill="#D4D4D4"/>
+  <rect x="5.5" y="3" width="8.5" height="2.5" rx="0.5" fill="#D4D4D4"/>
+  <rect x="2" y="6.75" width="2.5" height="2.5" rx="0.5" fill="#D4D4D4"/>
+  <rect x="5.5" y="6.75" width="6.5" height="2.5" rx="0.5" fill="#D4D4D4"/>
+  <rect x="2" y="10.5" width="2.5" height="2.5" rx="0.5" fill="#D4D4D4"/>
+  <rect x="5.5" y="10.5" width="8" height="2.5" rx="0.5" fill="#D4D4D4"/>
+</svg>
