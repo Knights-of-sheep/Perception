@@ -38,6 +38,43 @@ QMenuBar::item {
 QMenuBar::item:selected { background: @hoverBg@; }   /* BG_CONTROL */
 QMenuBar::item:pressed  { background: @selectionBg@; }   /* SELECTION_BG */
 
+/* ===== 无边框自定义标题栏（标题 + 窗口按钮，与菜单栏同一行）===== */
+QWidget#titleBarRow {
+    background-color: @panelBg@;   /* 与菜单栏同底色 */
+    border-bottom: 1px solid @border@;  /* 整行底部分隔线 */
+}
+QWidget#titleBarRow QMenuBar {
+    background: transparent;   /* 底色交给 titleBarRow */
+    border-bottom: none;       /* 避免双重分隔线 */
+}
+QWidget#titleBar {
+    background: transparent;
+}
+QWidget#titleBarDragArea {
+    background: transparent;   /* 拖拽区：无视觉元素，仅承接鼠标 */
+}
+QLabel#titleBarIcon {
+    background: transparent;
+}
+QLabel#titleBarTitle {
+    background: transparent;
+    color: @text@;             /* TEXT_PRIMARY */
+    font-weight: 600;
+}
+QToolButton#winMinBtn, QToolButton#winMaxBtn, QToolButton#winCloseBtn {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    /* 图标为 QPainter 统一 16px 矢量（makeWinBtnIcon），颜色随主题 palette，
+       不再用字符，故无需 font/color 属性 */
+}
+QToolButton#winMinBtn:hover, QToolButton#winMaxBtn:hover {
+    background: @hoverBg@;     /* BG_CONTROL */
+}
+QToolButton#winCloseBtn:hover {
+    background: @dangerHoverBg@;   /* 关闭悬停红（Windows 惯例），图标 hover 取白色 */
+}
+
 /* ===== 菜单（弹出层）===== */
 QMenu {
     background-color: @controlBg@;   /* BG_CONTROL */
@@ -67,8 +104,9 @@ QToolButton {
     padding: 4px 6px;
 }
 QToolButton:hover   { background: @hoverBg@; }
-QToolButton:pressed { background: @selectionBg@; }
-QToolButton:checked { background: @selectionBg@; }
+/* pressed/checked 文字随选中底色（如 hc-white 黑字深蓝底需换白字） */
+QToolButton:pressed { background: @selectionBg@; color: @textOnSelection@; }
+QToolButton:checked { background: @selectionBg@; color: @textOnSelection@; }
 QToolButton:disabled { color: @textDisabled@; }
 
 /* ===== 功能栏（左侧/右侧纵向，ToolButtonIconOnly，iconSize 24 由代码设置）===== */
@@ -80,6 +118,16 @@ QToolBar#leftToolBar, QToolBar#rightToolBar {
     border: none;
     spacing: 4px;
     padding: 6px 4px;
+}
+/* 功能栏与内部组件（dock/中央）之间的 1px 边界线：垂直栏方向是 border-right/left，
+   复用 BORDER 分隔线 token（ui-guidelines §3），与 QSplitter/dock 边框体系一致。 */
+QToolBar#leftToolBar {
+    border: none;
+    border-right: 1px solid @border@;
+}
+QToolBar#rightToolBar {
+    border: none;
+    border-left: 1px solid @border@;
 }
 QToolBar#leftToolBar QToolButton, QToolBar#rightToolBar QToolButton {
     background: transparent;
@@ -94,10 +142,12 @@ QToolBar#rightToolBar QToolButton:hover {
 QToolBar#leftToolBar QToolButton:pressed,
 QToolBar#rightToolBar QToolButton:pressed {
     background: @selectionBg@;      /* BG_CONTROL 加深 */
+    color: @textOnSelection@;
 }
 QToolBar#leftToolBar QToolButton:checked,
 QToolBar#rightToolBar QToolButton:checked {
     background: @selectionBg@;      /* SELECTION_BG（selected 容器）*/
+    color: @textOnSelection@;
 }
 
 /* ===== 按钮 ===== */
@@ -165,24 +215,25 @@ QLabel#dockTitleLabel {
     font-weight: 600;
     background: transparent;
 }
+QToolButton#dockMinBtn, QToolButton#dockMaxBtn,
 QToolButton#dockFloatBtn, QToolButton#dockCloseBtn {
     background: transparent;
     border: none;
     border-radius: 3px;
-    color: @text@;
-    font-size: 13px;
-    font-weight: bold;
     padding: 0;
 }
+QToolButton#dockMinBtn:hover, QToolButton#dockMaxBtn:hover,
 QToolButton#dockFloatBtn:hover, QToolButton#dockCloseBtn:hover {
     background: @hoverBg@;
 }
-QToolButton#dockCloseBtn {
-    color: @dangerText@;
-}
 QToolButton#dockCloseBtn:hover {
     background: @dangerHoverBg@;
-    color: @white@;
+}
+/* 浮动面板右下角调整大小手柄（去系统标题栏后唯一的 resize 入口，停靠时隐藏） */
+QSizeGrip#dockSizeGrip {
+    background: transparent;
+    width: 12px;
+    height: 12px;
 }
 
 /* ===== 树 / 列表 / 表 ===== */
@@ -306,7 +357,10 @@ QPlainTextEdit#pythonConsole {
     font-family: "Consolas", "Courier New", monospace;
     font-size: 10pt;
 }
-QPlainTextEdit#pythonConsole:focus { border-color: @accent@; }
+QPlainTextEdit#pythonConsole:focus { /* 去掉 focus 时 border-color: @accent@：
+                                  pythonConsole 是 dock 内主控件并占满内容区，
+                                  边框亮起会被误读为 dock 边框——与 fileDock/propertyDock 的
+                                  QTreeWidget 风格一致（不画 focus 边框） */ }
 /* 右侧操作栏：垂直排列"导出命令 / 清空控制台" */
 QWidget#pythonSideBar {
     background-color: @panelBg@;

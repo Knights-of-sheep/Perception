@@ -1,5 +1,5 @@
 // ===== ThemeManager：主题应用与热切换 =====
-// 架构：theme_template.qss（@token@ 占位符）+ theme_catalog.h（15 套色板）
+// 架构：theme_template.qss（@token@ 占位符）+ theme_catalog.h（25 套色板）
 //       -> 运行时渲染出最终 QSS；QPalette 兜底（ui-guidelines §4.2/§4.5/§7.5）。
 #pragma once
 
@@ -22,7 +22,7 @@ public:
     static void applyTheme(const QString& themeId, QApplication& app);
 
     // 目录访问
-    static const theme::ThemeDescriptor* themes();   // 主题数组（15）
+    static const theme::ThemeDescriptor* themes();   // 主题数组（25）
     static int themeCount();
     static const theme::ThemeDescriptor* find(const QString& id);  // 无效 id 兜底默认
     static const theme::ThemeDescriptor* current();                // 按 QSettings 取当前
