@@ -1,5 +1,8 @@
 #include "core/event/event_bus.h"
 
+#include <algorithm>
+#include <mutex>
+
 namespace perception::core::event {
 
 Token EventBus::subscribe(EventType type, EventCallback cb)
@@ -14,10 +17,9 @@ void EventBus::unsubscribe(Token token)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto& [type, entries] : subscribers_) {
-        auto& vec = entries;
-        vec.erase(std::remove_if(vec.begin(), vec.end(),
-                                 [token](const Entry& e) { return e.token == token; }),
-                  vec.end());
+        entries.erase(std::remove_if(entries.begin(), entries.end(),
+                                     [token](const Entry& e) { return e.token == token; }),
+                      entries.end());
     }
 }
 

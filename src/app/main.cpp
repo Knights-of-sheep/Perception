@@ -21,8 +21,7 @@
 #define PERCEPTION_APP_VERSION "0.1.0"
 #endif
 
-// Perception 桌面程序入口。
-// 启动流程：高 DPI -> 应用元信息 -> 字体 -> 主题(QPalette+QSS) -> 主窗口。
+// Perception 桌面程序入口：高 DPI -> 元信息 -> 字体 -> 主题(QPalette+QSS) -> 主窗口。
 int main(int argc, char* argv[])
 {
     // 高 DPI 支持：须在 QApplication 构造前设置（Qt5 默认关闭）
@@ -174,13 +173,12 @@ int main(int argc, char* argv[])
                     window.findChild<QDockWidget*>(QStringLiteral("pythonConsoleDock"))) {
                 const int sepY = sashDock->geometry().top();  // 水平分隔条（主窗口坐标）
                 if (sepY > 0 && sepY < window.height()) {
-                    const QPoint g1 = window.mapToGlobal(QPoint(window.width() / 2, sepY));
-                    const QPoint g2 = window.mapToGlobal(QPoint(window.width() / 2, sepY));
-                    QMouseEvent sashPress(QEvent::MouseButtonPress, window.mapFromGlobal(g1),
-                                          g1, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                    const QPoint g = window.mapToGlobal(QPoint(window.width() / 2, sepY));
+                    QMouseEvent sashPress(QEvent::MouseButtonPress, window.mapFromGlobal(g),
+                                          g, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                     QApplication::sendEvent(&window, &sashPress);
                     QApplication::processEvents();
-                    QMouseEvent sashMv(QEvent::MouseMove, window.mapFromGlobal(g2), g2,
+                    QMouseEvent sashMv(QEvent::MouseMove, window.mapFromGlobal(g), g,
                                        Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
                     QApplication::sendEvent(&window, &sashMv);
                     QApplication::processEvents();

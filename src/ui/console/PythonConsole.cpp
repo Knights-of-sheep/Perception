@@ -292,11 +292,13 @@ void PythonConsole::shutdown() {
 void PythonConsole::appendOutput(const QString& text, const QColor& color) {
     QTextCursor cur = textCursor();
     cur.movePosition(QTextCursor::End);
-    cur.insertText(text, color.isValid() ? [&] {
+    if (color.isValid()) {
         QTextCharFormat f;
         f.setForeground(color);
-        return f;
-    }() : d_->outputFormat);
+        cur.insertText(text, f);
+    } else {
+        cur.insertText(text, d_->outputFormat);
+    }
     setTextCursor(cur);
     ensureCursorVisible();
 }
@@ -646,10 +648,6 @@ void PythonConsole::runBlock(const QString& full) {
     PyGILState_Release(gil);
     executing_ = false;
     showPrompt();
-}
-
-void PythonConsole::printResult() {
-    // 占位（统一走 runCommand 内联的 repr 展示）
 }
 
 void PythonConsole::printError() {

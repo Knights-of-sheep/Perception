@@ -30,8 +30,9 @@ bool LogLevelMatrix::isEnabled(LogLevel level) const noexcept
 
 void LogLevelMatrix::setAll(bool enabled)
 {
-    bits_.set();
-    if (!enabled)
+    if (enabled)
+        bits_.set();
+    else
         bits_.reset();
 }
 
