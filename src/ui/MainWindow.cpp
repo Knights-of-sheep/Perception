@@ -858,20 +858,20 @@ void MainWindow::createMenus() {
     themeGroup_ = new QActionGroup(this);
     themeGroup_->setExclusive(true);
     QString currentFamily;
-    const auto themes = ThemeManager::themes();
+    const auto* themes = ThemeManager::themes();
     for (int i = 0; i < ThemeManager::themeCount(); ++i) {
-        const auto* t = themes + i;
-        const QString family = QString::fromUtf8(t->family);
+        const auto& t = themes[i];
+        const QString family = QString::fromUtf8(t.family);
         if (i > 0 && family != currentFamily) {
             themeMenu->addSeparator();  // 深色 / 浅色 / 高对比 分组
         }
         currentFamily = family;
 
-        QAction* act = themeMenu->addAction(QString::fromUtf8(t->name));
+        QAction* act = themeMenu->addAction(QString::fromUtf8(t.name));
         act->setCheckable(true);
-        act->setData(QString::fromLatin1(t->id));
+        act->setData(QString::fromLatin1(t.id));
         act->setStatusTip(tr("Switch to theme: %1 (%2)")
-                              .arg(QString::fromUtf8(t->name), family));
+                              .arg(QString::fromUtf8(t.name), family));
         themeGroup_->addAction(act);
         themeActions_.append(act);
         // triggered(bool) 与槽 applyTheme(QString) 参数不匹配，用 lambda 转发
@@ -886,16 +886,14 @@ void MainWindow::createMenus() {
     }
 
     // ---- 设置 → 日志级别（FR-002/012/013 修订）----
-    // 全局单一矩阵：同一组级别同时作用于 终端(控制台) / 日志面板 / 文件 全部 sink，
-    // 不再区分"控制台/文件"（用户反馈：级别设置应全局一致，FR-012 修订）。
+    // 全局单一矩阵：级别同时作用于全部 sink（终端/文件），不再区分控制台/文件（FR-012 修订）。
     QMenu* settingsMenu = menuBar()->addMenu(tr("&Settings"));
     QMenu* logLevelMenu = settingsMenu->addMenu(tr("Log Level(&L)"));
     logLevelMenu->setToolTipsVisible(true);
 
     const char* const kLevelNames[] = {"DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
 
-    // 批量开关：解决"单级别勾选状态不一致/用户找不到入口"的痛点。
-    // 置于级别列表顶部，与具体级别分隔，语义直观。
+    // 批量开关（置于级别列表顶部，解决单级别勾选状态不一致/找不到入口）
     logLevelMenu->addSeparator();
     allLevelsAction_ = logLevelMenu->addAction(tr("Enable All"));
     noneLevelsAction_ = logLevelMenu->addAction(tr("Disable All"));
@@ -905,8 +903,7 @@ void MainWindow::createMenus() {
     for (int i = 0; i < 5; ++i) {
         QAction* c = logLevelMenu->addAction(QString::fromLatin1(kLevelNames[i]));
         c->setCheckable(true);
-        c->setChecked(true);  // 默认矩阵：DEBUG 关、其余开
-        if (i == 0) c->setChecked(false);
+        c->setChecked(i != 0);  // 默认矩阵：DEBUG 关、其余开
         c->setData(i);  // LogLevel 索引
         connect(c, &QAction::toggled, this, &MainWindow::onLevelToggled);
         levelActions_.append(c);
@@ -1226,9 +1223,8 @@ void MainWindow::onAllLevels(bool enabled) {
     }
 }
 
-// 启动恢复：main.cpp 在 Logger::configure + addSink 后调用（FR-013）。
-// 读取全局矩阵（log/level/<LEVEL>）；未设置时回退到旧版 log/console/<LEVEL>
-//（FR-013 迁移：保证既有用户设置不丢），最后回退默认（DEBUG 关、其余开）。
+// 启动恢复（main.cpp 在 configure + addSink 后调用，FR-013）：
+// 读全局矩阵 log/level/<LEVEL>；未设置时回退旧版 log/console/<LEVEL>（迁移保设置），再回退默认（DEBUG 关、其余开）。
 void MainWindow::restoreLogSettings() {
     QSettings settings;
     for (int i = 0; i < levelActions_.size() && i < 5; ++i) {
@@ -1465,7 +1461,7 @@ void MainWindow::createDocks() {
     pythonDock_->setTitleBarWidget(new DockTitleBar(pythonDock_));
     addDockWidget(Qt::BottomDockWidgetArea, pythonDock_);
 
-    // 抑制 dock 获得键盘焦点时的 focus rect 边框（避免点击 dock 内容时出现一圈高亮）
+    // 抑制 dock 键盘焦点 focus rect（说明见 NoFocusRectDockStyle）
     applyNoFocusRectStyle(fileDock_);
     applyNoFocusRectStyle(propertyDock_);
     applyNoFocusRectStyle(pythonDock_);

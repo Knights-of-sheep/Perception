@@ -22,7 +22,7 @@ public:
     struct Config {
         std::string filePath;          // 空 = 不写文件；默认 ""
         LogLevelMatrix levelMatrix;    // 默认矩阵：DEBUG 关、其余开；作为 FileSink 初始矩阵与 UI 初始态（FR-002）
-        bool vtkLoggingEnabled = true; // VTK 日志纳入开关（FR-011）；VTK 未引入，仅配置占位，桥接随后续落地
+        bool vtkLoggingEnabled = true; // VTK 日志纳入开关（FR-011）；当前仅占位，VTK 落地后启用
         std::uint64_t maxFileSize = 5 * 1024 * 1024;  // 5MB
         int maxBackups = 3;            // 归档份数
     };
@@ -48,10 +48,8 @@ public:
     void fatalAt(const char* file, int line, const std::string& msg);
 
     // ---- 级别控制（FR-002）----
-    // 无全局 setLevel：过滤由广播路径按各 sink 的 LogLevelMatrix 执行。
-    // 运行时切换级别：持有 sink 指针（TerminalSink/FileSink）后调
-    // sink->setLevelEnabled(...)。FR-002 全局矩阵：UI 遍历 sinks() 同步设置全部 sink。
-    // 注：GUI 内不内置日志面板（2026-08-25 用户反馈移除），输出目标=终端+文件。
+    // 无全局 setLevel：按各 sink 的 LogLevelMatrix 过滤；运行时持 sink 指针调 setLevelEnabled。
+    // FR-002 全局矩阵：UI 遍历 sinks() 同步全部 sink。GUI 输出目标=终端+文件（无内置日志面板）。
     const LogLevelMatrix& defaultMatrix() const noexcept;
 
     // ---- sink 管理（扩展点）----

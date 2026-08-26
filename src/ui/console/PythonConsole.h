@@ -57,7 +57,6 @@ private:
     void runCommand(const QString& src);     // 判定完整性 -> 执行 -> 结果/异常展示
     void runBlock(const QString& full);      // 执行完整命令块（含续行块提交）
     void runPastedText(const QString& text); // 多行粘贴：整块执行
-    void printResult();                      // 非 None 结果 repr 展示
     void printError();                       // traceback 格式化展示
     void showPrompt(bool pending = false);   // 追加 ">>> " / "... "
     QString currentInput() const;            // 末行提示符后文本
