@@ -198,7 +198,7 @@ PythonConsole::PythonConsole(QWidget* parent)
     initColors();
     initPython();
     appendOutput(QString::fromUtf8(Py_GetVersion()));
-    appendOutput(tr(" — Perception 内嵌控制台（Ctrl+O 打开数据文件，多行粘贴即执行）\n"));
+    appendOutput(tr(" — Perception embedded console (Ctrl+O: open data files; paste multiple lines to execute)\n"));
     showPrompt();
 }
 
@@ -216,7 +216,7 @@ void PythonConsole::clearConsole() {
     clear();  // 清空全部显示（含输入区）
     d_->pending.clear();
     appendOutput(QString::fromUtf8(Py_GetVersion()));
-    appendOutput(tr(" — Perception 内嵌控制台（Ctrl+O 打开数据文件，多行粘贴即执行）\n"));
+    appendOutput(tr(" — Perception embedded console (Ctrl+O: open data files; paste multiple lines to execute)\n"));
     showPrompt();
 }
 
@@ -237,7 +237,7 @@ void PythonConsole::initColors() {
 void PythonConsole::initPython() {
     Py_Initialize();
     if (!Py_IsInitialized()) {
-        appendOutput(tr("Python 解释器初始化失败。\n"), d_->errorColor);
+        appendOutput(tr("Failed to initialize the Python interpreter.\n"), d_->errorColor);
         showPrompt();
         return;
     }

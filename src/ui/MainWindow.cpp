@@ -69,8 +69,8 @@ constexpr const char* kPropertyDockObjectName = "propertyDock";
 constexpr const char* kPythonDockObjectName   = "pythonConsoleDock";  // 布局记忆用
 constexpr const char* kSettingsLayoutKey      = "mainWindow/layout";
 constexpr const char* kSettingsGeometryKey    = "mainWindow/geometry";
-constexpr const char* kEmptyTreeText          = "(尚未加载文件)";
-constexpr const char* kEmptyPropertyText      = "(选择对象查看属性)";
+constexpr const char* kEmptyTreeText          = "(no files loaded)";
+constexpr const char* kEmptyPropertyText      = "(select an object to view properties)";
 
 // 日志级别持久化 key（FR-013）：全局单一矩阵（FR-012 修订，不再区分控制台/文件）。
 // 兼容：旧版本曾分别持久化 log/console/<LEVEL> 与 log/file/<LEVEL>；升级后优先读新
@@ -187,7 +187,7 @@ QWidget* buildDialogTitleBar(QDialog* owner, const QString& title) {
     closeBtn->setFocusPolicy(Qt::NoFocus);
     closeBtn->setIconSize(QSize(16, 16));
     closeBtn->setIcon(makeWinBtnIcon(WinBtnKind::Close, bar->palette()));
-    closeBtn->setToolTip(QObject::tr("关闭"));
+    closeBtn->setToolTip(QObject::tr("Close"));
     QObject::connect(closeBtn, &QToolButton::clicked, owner, [owner] { owner->close(); });
     layout->addWidget(closeBtn);
 
@@ -315,7 +315,7 @@ public:
 
         auto* okRow = new QHBoxLayout();
         okRow->addStretch();
-        auto* okBtn = new QPushButton(tr("确定"), this);
+        auto* okBtn = new QPushButton(tr("OK"), this);
         okBtn->setDefault(true);
         connect(okBtn, &QPushButton::clicked, this, &QDialog::close);
         okRow->addWidget(okBtn);
@@ -379,7 +379,7 @@ public:
         titleLabel_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
         minBtn_ = makeDockBtn(QStringLiteral("dockMinBtn"));
-        minBtn_->setToolTip(tr("最小化"));
+        minBtn_->setToolTip(tr("Minimize"));
         maxBtn_ = makeDockBtn(QStringLiteral("dockMaxBtn"));
         floatBtn_ = makeDockBtn(QStringLiteral("dockFloatBtn"));
         closeBtn_ = makeDockBtn(QStringLiteral("dockCloseBtn"));
@@ -531,7 +531,7 @@ private:
         const QPalette pal = dock_->palette();
         floatBtn_->setIcon(makeWinBtnIcon(floating ? WinBtnKind::Undock
                                                    : WinBtnKind::FloatDock, pal));
-        floatBtn_->setToolTip(floating ? tr("恢复嵌入") : tr("分离为浮动窗口"));
+        floatBtn_->setToolTip(floating ? tr("Re-dock") : tr("Undock"));
     }
     void refreshIcons() {
         const QPalette pal = dock_->palette();
@@ -544,7 +544,7 @@ private:
         const bool max = dock_->isFloating() && dock_->isMaximized();
         maxBtn_->setIcon(makeWinBtnIcon(max ? WinBtnKind::Restore : WinBtnKind::Maximize,
                                         dock_->palette()));
-        maxBtn_->setToolTip(max ? tr("还原") : tr("最大化"));
+        maxBtn_->setToolTip(max ? tr("Restore") : tr("Maximize"));
     }
     void onTopLevelChanged(bool topLevel) {
         if (topLevel) {
@@ -742,88 +742,88 @@ int MainWindow::sashHitTest(const QPoint& pos) const {
     return SashMiss;
 }
 void MainWindow::createActions() {
-    openAction_ = new QAction(tr("打开(&O)..."), this);
+    openAction_ = new QAction(tr("&Open..."), this);
     openAction_->setShortcut(QKeySequence::Open);  // Ctrl+O
-    openAction_->setStatusTip(tr("打开 .plt / .csv 数据文件"));
+    openAction_->setStatusTip(tr("Open VTK / SVisual / HDF5 data files"));
     setActionIcon(openAction_, "file-open");  // 003：契约图标（下同）
     connect(openAction_, &QAction::triggered, this, &MainWindow::openFile);
 
-    exportAction_ = new QAction(tr("导出命令脚本(&E)..."), this);
+    exportAction_ = new QAction(tr("Export Command Script(&E)..."), this);
     exportAction_->setShortcut(QKeySequence::SaveAs);  // Ctrl+Shift+S
     exportAction_->setEnabled(false);  // 契约 §1：禁用态保持（导出命令脚本未实现）
     setActionIcon(exportAction_, "file-export-data");
     connect(exportAction_, &QAction::triggered, this, [this] {
-        statusBar()->showMessage(tr("导出命令脚本将在后续版本提供"), 3000);
+        statusBar()->showMessage(tr("Export command script will be available in a future release"), 3000);
     });
 
     // 导出主界面图片（与"打开"同级，文件菜单；M3a 截图调试验证用）
-    exportImageAction_ = new QAction(tr("导出主界面图片(&I)..."), this);
+    exportImageAction_ = new QAction(tr("Export Main Window Image(&I)..."), this);
     exportImageAction_->setShortcut(QKeySequence("Ctrl+I"));
-    exportImageAction_->setStatusTip(tr("将当前主窗口（含菜单/Dock/状态栏）保存为 PNG 图片"));
+    exportImageAction_->setStatusTip(tr("Save the current main window (menus/docks/status bar) as a PNG image"));
     setActionIcon(exportImageAction_, "file-export-screenshot");
     connect(exportImageAction_, &QAction::triggered, this, &MainWindow::exportMainWindowImage);
 
-    exitAction_ = new QAction(tr("退出(&X)"), this);
+    exitAction_ = new QAction(tr("E&xit"), this);
     exitAction_->setShortcut(QKeySequence::Quit);
     setActionIcon(exitAction_, "file-close");
     connect(exitAction_, &QAction::triggered, this, &QWidget::close);
 
-    toggleFileDockAction_ = new QAction(tr("数据集面板"), this);
+    toggleFileDockAction_ = new QAction(tr("Data Panel"), this);
     toggleFileDockAction_->setCheckable(true);
     toggleFileDockAction_->setShortcut(QKeySequence("Ctrl+1"));
     setActionIcon(toggleFileDockAction_, "view-panel-data");
 
-    togglePropertyDockAction_ = new QAction(tr("属性面板"), this);
+    togglePropertyDockAction_ = new QAction(tr("Properties Panel"), this);
     togglePropertyDockAction_->setCheckable(true);
     togglePropertyDockAction_->setShortcut(QKeySequence("Ctrl+2"));
     setActionIcon(togglePropertyDockAction_, "view-panel-property");
 
-    togglePythonConsoleAction_ = new QAction(tr("Python 控制台"), this);
+    togglePythonConsoleAction_ = new QAction(tr("Python Console"), this);
     togglePythonConsoleAction_->setCheckable(true);
     togglePythonConsoleAction_->setShortcut(QKeySequence("Ctrl+`"));
     setActionIcon(togglePythonConsoleAction_, "view-panel-console");
 
-    resetLayoutAction_ = new QAction(tr("重置布局"), this);
+    resetLayoutAction_ = new QAction(tr("Reset Layout"), this);
     resetLayoutAction_->setShortcut(QKeySequence("Ctrl+Shift+L"));
-    resetLayoutAction_->setStatusTip(tr("恢复左侧数据集、右侧属性的默认布局"));
+    resetLayoutAction_->setStatusTip(tr("Restore the default layout (data left, properties right)"));
     setActionIcon(resetLayoutAction_, "view-reset-camera");
 
     // 003：未实现功能占位动作（FR-011：禁用态 + tooltip 明确提示，不连接功能槽）
-    undoAction_ = new QAction(tr("撤销(&U)"), this);
+    undoAction_ = new QAction(tr("&Undo"), this);
     undoAction_->setShortcut(QKeySequence::Undo);
     undoAction_->setEnabled(false);
-    undoAction_->setStatusTip(tr("撤销上一步操作（功能即将推出）"));
+    undoAction_->setStatusTip(tr("Undo the last action (coming soon)"));
     setActionIcon(undoAction_, "edit-undo");
 
-    redoAction_ = new QAction(tr("重做(&R)"), this);
+    redoAction_ = new QAction(tr("&Redo"), this);
     redoAction_->setShortcut(QKeySequence::Redo);
     redoAction_->setEnabled(false);
-    redoAction_->setStatusTip(tr("重做被撤销的操作（功能即将推出）"));
+    redoAction_->setStatusTip(tr("Redo the undone action (coming soon)"));
     setActionIcon(redoAction_, "edit-redo");
 
-    loadScriptAction_ = new QAction(tr("加载脚本(&L)..."), this);
+    loadScriptAction_ = new QAction(tr("Load Script(&L)..."), this);
     loadScriptAction_->setEnabled(false);
-    loadScriptAction_->setStatusTip(tr("加载 Python 脚本（功能即将推出）"));
+    loadScriptAction_->setStatusTip(tr("Load a Python script (coming soon)"));
     setActionIcon(loadScriptAction_, "file-load-script");
 
-    recordScreenAction_ = new QAction(tr("主界面视频录制(&V)"), this);
+    recordScreenAction_ = new QAction(tr("Record Main Window Video(&V)"), this);
     recordScreenAction_->setEnabled(false);
-    recordScreenAction_->setStatusTip(tr("录制主界面为视频（功能即将推出）"));
+    recordScreenAction_->setStatusTip(tr("Record the main window as a video (coming soon)"));
     setActionIcon(recordScreenAction_, "file-record-screen");
 
-    refreshAction_ = new QAction(tr("刷新(&F)"), this);
+    refreshAction_ = new QAction(tr("Refresh(&F)"), this);
     refreshAction_->setEnabled(false);
-    refreshAction_->setStatusTip(tr("刷新当前视图（功能即将推出）"));
+    refreshAction_->setStatusTip(tr("Refresh the current view (coming soon)"));
     setActionIcon(refreshAction_, "view-refresh");
 
-    helpAction_ = new QAction(tr("帮助(&H)"), this);
-    helpAction_->setStatusTip(tr("查看帮助文档"));
+    helpAction_ = new QAction(tr("&Help"), this);
+    helpAction_->setStatusTip(tr("View help documentation"));
     setActionIcon(helpAction_, "tools-help");
     connect(helpAction_, &QAction::triggered, this, [this] {
-        showFramelessDialog(this, tr("帮助"), tr("帮助文档将在后续版本提供"));
+        showFramelessDialog(this, tr("Help"), tr("Help documentation will be available in a future release"));
     });
 
-    aboutAction_ = new QAction(tr("关于(&A)..."), this);
+    aboutAction_ = new QAction(tr("&About..."), this);
     setActionIcon(aboutAction_, "tools-about");
     connect(aboutAction_, &QAction::triggered, this, &MainWindow::about);
 }
@@ -834,7 +834,7 @@ void MainWindow::createMenus() {
     // 与深色主题割裂，窗口顶部会呈现"两层"的观感。
     menuBar()->setNativeMenuBar(false);
 
-    QMenu* fileMenu = menuBar()->addMenu(tr("文件(&F)"));
+    QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(openAction_);
     fileMenu->addAction(exportAction_);  // 导出命令脚本（禁用态保持，契约 §1）
     fileMenu->addAction(exportImageAction_);  // 导出主界面图片（与"打开"同级，调试快照）
@@ -842,11 +842,11 @@ void MainWindow::createMenus() {
     fileMenu->addAction(exitAction_);
 
     // 编辑（003：撤销/重做占位，FR-011 禁用态）
-    QMenu* editMenu = menuBar()->addMenu(tr("编辑(&E)"));
+    QMenu* editMenu = menuBar()->addMenu(tr("&Edit"));
     editMenu->addAction(undoAction_);
     editMenu->addAction(redoAction_);
 
-    QMenu* viewMenu = menuBar()->addMenu(tr("视图(&V)"));
+    QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
     viewMenu->addAction(toggleFileDockAction_);
     viewMenu->addAction(togglePropertyDockAction_);
     viewMenu->addAction(togglePythonConsoleAction_);
@@ -854,7 +854,7 @@ void MainWindow::createMenus() {
     viewMenu->addAction(resetLayoutAction_);
 
     // 主题（25 套，按 family 分组；勾选当前项，点击即热切换）
-    QMenu* themeMenu = menuBar()->addMenu(tr("主题(&T)"));
+    QMenu* themeMenu = menuBar()->addMenu(tr("&Theme"));
     themeGroup_ = new QActionGroup(this);
     themeGroup_->setExclusive(true);
     QString currentFamily;
@@ -870,7 +870,7 @@ void MainWindow::createMenus() {
         QAction* act = themeMenu->addAction(QString::fromUtf8(t->name));
         act->setCheckable(true);
         act->setData(QString::fromLatin1(t->id));
-        act->setStatusTip(tr("切换主题：%1（%2）")
+        act->setStatusTip(tr("Switch to theme: %1 (%2)")
                               .arg(QString::fromUtf8(t->name), family));
         themeGroup_->addAction(act);
         themeActions_.append(act);
@@ -888,8 +888,8 @@ void MainWindow::createMenus() {
     // ---- 设置 → 日志级别（FR-002/012/013 修订）----
     // 全局单一矩阵：同一组级别同时作用于 终端(控制台) / 日志面板 / 文件 全部 sink，
     // 不再区分"控制台/文件"（用户反馈：级别设置应全局一致，FR-012 修订）。
-    QMenu* settingsMenu = menuBar()->addMenu(tr("设置(&S)"));
-    QMenu* logLevelMenu = settingsMenu->addMenu(tr("日志级别(&L)"));
+    QMenu* settingsMenu = menuBar()->addMenu(tr("&Settings"));
+    QMenu* logLevelMenu = settingsMenu->addMenu(tr("Log Level(&L)"));
     logLevelMenu->setToolTipsVisible(true);
 
     const char* const kLevelNames[] = {"DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
@@ -897,8 +897,8 @@ void MainWindow::createMenus() {
     // 批量开关：解决"单级别勾选状态不一致/用户找不到入口"的痛点。
     // 置于级别列表顶部，与具体级别分隔，语义直观。
     logLevelMenu->addSeparator();
-    allLevelsAction_ = logLevelMenu->addAction(tr("全部启用"));
-    noneLevelsAction_ = logLevelMenu->addAction(tr("全部禁用"));
+    allLevelsAction_ = logLevelMenu->addAction(tr("Enable All"));
+    noneLevelsAction_ = logLevelMenu->addAction(tr("Disable All"));
     connect(allLevelsAction_, &QAction::triggered, this, [this] { onAllLevels(true); });
     connect(noneLevelsAction_, &QAction::triggered, this, [this] { onAllLevels(false); });
 
@@ -913,7 +913,7 @@ void MainWindow::createMenus() {
     }
 
     // VTK 日志拦截开关（FR-011；VTK 未引入，仅配置项）
-    vtkLogAction_ = settingsMenu->addAction(tr("VTK 日志拦截(&V)"));
+    vtkLogAction_ = settingsMenu->addAction(tr("VTK Log Interception(&V)"));
     vtkLogAction_->setCheckable(true);
     vtkLogAction_->setChecked(true);  // 默认开启
     setActionIcon(vtkLogAction_, "tools-settings");  // 003：契约图标
@@ -926,25 +926,25 @@ void MainWindow::createMenus() {
     // 日志写入 %APPDATA%\Perception\logs（隐藏目录），用户无从查找，
     // 故在设置菜单直接展示完整路径并给出"打开日志目录"直达入口。
     settingsMenu->addSeparator();
-    logPathAction_ = settingsMenu->addAction(tr("日志文件：未配置"));
+    logPathAction_ = settingsMenu->addAction(tr("Log file: not configured"));
     logPathAction_->setEnabled(false);  // 只读展示（可选中复制），路径由 main.cpp 注入后更新
-    openLogDirAction_ = settingsMenu->addAction(tr("打开日志目录(&O)"));
+    openLogDirAction_ = settingsMenu->addAction(tr("Open Log Directory(&O)"));
     openLogDirAction_->setEnabled(false);  // 路径注入前不可用
     setActionIcon(openLogDirAction_, "tools-settings");  // 003：契约图标
     connect(openLogDirAction_, &QAction::triggered, this, &MainWindow::openLogDir);
 
     // 日志路径可配置（FR-016）：选择目录后迁移旧日志并持久化
-    setLogPathAction_ = settingsMenu->addAction(tr("设置日志路径...(&P)"));
+    setLogPathAction_ = settingsMenu->addAction(tr("Set Log Path...(&P)"));
     setLogPathAction_->setEnabled(false);  // 路径注入前不可用
     setActionIcon(setLogPathAction_, "tools-settings");  // 003：契约图标
     connect(setLogPathAction_, &QAction::triggered, this, &MainWindow::setLogPath);
     // 清除历史日志（FR-017）：删除当前日志目录全部日志文件与归档
-    clearLogAction_ = settingsMenu->addAction(tr("清除历史日志(&C)"));
+    clearLogAction_ = settingsMenu->addAction(tr("Clear Log History(&C)"));
     clearLogAction_->setEnabled(false);
     setActionIcon(clearLogAction_, "edit-delete-selection");  // 003：契约图标
     connect(clearLogAction_, &QAction::triggered, this, &MainWindow::clearLogHistory);
 
-    QMenu* helpMenu = menuBar()->addMenu(tr("帮助(&H)"));
+    QMenu* helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(helpAction_);
     helpMenu->addAction(aboutAction_);
 }
@@ -996,7 +996,7 @@ void MainWindow::createTitleBar() {
     winCloseBtn_ = makeWinBtn("winCloseBtn");
     winMinBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Minimize, palette()));
     winCloseBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Close, palette()));
-    winCloseBtn_->setToolTip(tr("关闭"));
+    winCloseBtn_->setToolTip(tr("Close"));
 
     connect(winMinBtn_, &QToolButton::clicked, this, &QWidget::showMinimized);
     connect(winMaxBtn_, &QToolButton::clicked, this, &MainWindow::toggleMaximize);
@@ -1054,13 +1054,13 @@ void MainWindow::updateWindowButtonIcons() {
     const bool max = isMaximized();
     winMaxBtn_->setIcon(makeWinBtnIcon(max ? WinBtnKind::Restore : WinBtnKind::Maximize,
                                        palette()));
-    winMaxBtn_->setToolTip(max ? tr("还原") : tr("最大化"));
+    winMaxBtn_->setToolTip(max ? tr("Restore") : tr("Maximize"));
 }
 
 // ---- 功能栏（003：左侧通用 + 右侧领域，纵向 ToolButtonIconOnly）----
 void MainWindow::createToolbars() {
     // 左：通用功能栏（FR-003：10 按钮 = 5 可用复用菜单动作 + 5 禁用占位，顺序契约 §2）
-    leftToolBar_ = new QToolBar(tr("左侧功能栏"), this);
+    leftToolBar_ = new QToolBar(tr("Left Toolbar"), this);
     leftToolBar_->setObjectName(QStringLiteral("leftToolBar"));
     leftToolBar_->setOrientation(Qt::Vertical);
     leftToolBar_->setMovable(false);
@@ -1087,13 +1087,13 @@ void MainWindow::createToolbars() {
         else if (spec->id == QLatin1String("action.recordScreen"))       act = recordScreenAction_;
         else if (spec->id == QLatin1String("action.refresh"))            act = refreshAction_;
         if (act) {
-            act->setToolTip(spec->tooltip);  // FR-006：中文悬停提示
+            act->setToolTip(spec->tooltip);  // FR-006：悬停提示
             leftToolBar_->addAction(act);
         }
     }
 
     // 右：领域功能栏（FR-005：9 按钮，全部禁用态占位，顺序契约 §3）
-    rightToolBar_ = new QToolBar(tr("右侧功能栏"), this);
+    rightToolBar_ = new QToolBar(tr("Right Toolbar"), this);
     rightToolBar_->setObjectName(QStringLiteral("rightToolBar"));
     rightToolBar_->setOrientation(Qt::Vertical);
     rightToolBar_->setMovable(false);
@@ -1111,7 +1111,7 @@ void MainWindow::createToolbars() {
         QAction* act = new QAction(spec->text, this);
         act->setObjectName(QStringLiteral("rightBar_") + spec->id);
         act->setEnabled(false);
-        act->setToolTip(spec->tooltip);  // FR-006：中文悬停提示
+        act->setToolTip(spec->tooltip);  // FR-006：悬停提示
         setActionIcon(act, spec->iconId);
         rightToolBar_->addAction(act);
     }
@@ -1121,35 +1121,35 @@ void MainWindow::createToolbars() {
 void MainWindow::exportMainWindowImage() {
     // 默认目录跟随程序当前工作目录（= 启动程序时所在路径，FR-015）
     const QString defaultPath = QDir::current().filePath(QStringLiteral("perception.png"));
-    const QString path = runThemedFileDialog(this, tr("导出主界面图片"),
-        defaultPath, tr("PNG 图片 (*.png)"), FileDialogMode::Save);
+    const QString path = runThemedFileDialog(this, tr("Export Main Window Image"),
+        defaultPath, tr("PNG Image (*.png)"), FileDialogMode::Save);
     if (path.isEmpty()) return;
 
     const QPixmap pm = grab();  // 抓取整个主窗口当前渲染（含菜单/Dock/状态栏）
     if (!pm.save(path, "PNG")) {
-        QMessageBox::warning(this, tr("导出失败"),
-                             tr("无法写入：\n%1").arg(path));
+        QMessageBox::warning(this, tr("Export Failed"),
+                             tr("Unable to write:\n%1").arg(path));
         return;
     }
-    statusBar()->showMessage(tr("已导出主界面图片：%1").arg(QFileInfo(path).fileName()), 5000);
+    statusBar()->showMessage(tr("Exported main window image: %1").arg(QFileInfo(path).fileName()), 5000);
 }
 
 // ---- 导出控制台命令为 .py 脚本 ----
 void MainWindow::exportPythonCommands() {
     const QStringList cmds = pythonConsole_->history();
     if (cmds.isEmpty()) {
-        statusBar()->showMessage(tr("没有可导出的命令"), 3000);
+        statusBar()->showMessage(tr("No commands to export"), 3000);
         return;
     }
-    const QString path = runThemedFileDialog(this, tr("导出 Python 命令"),
+    const QString path = runThemedFileDialog(this, tr("Export Python Commands"),
         QDir::current().filePath(QStringLiteral("console_commands.py")),
-        tr("Python 脚本 (*.py)"), FileDialogMode::Save);
+        tr("Python Script (*.py)"), FileDialogMode::Save);
     if (path.isEmpty()) return;
 
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("导出失败"),
-                             tr("无法写入：\n%1").arg(path));
+        QMessageBox::warning(this, tr("Export Failed"),
+                             tr("Unable to write:\n%1").arg(path));
         return;
     }
     QTextStream out(&f);
@@ -1159,7 +1159,7 @@ void MainWindow::exportPythonCommands() {
     }
     f.close();
     statusBar()->showMessage(
-        tr("已导出 %1 条命令：%2").arg(cmds.size()).arg(QFileInfo(path).fileName()), 5000);
+        tr("Exported %1 command(s): %2").arg(cmds.size()).arg(QFileInfo(path).fileName()), 5000);
 }
 
 // ---- 日志级别（FR-002/012/013 修订）：全局单一矩阵，应用到全部 sink ----
@@ -1255,7 +1255,7 @@ void MainWindow::restoreLogSettings() {
 void MainWindow::setLogFilePath(const QString& path) {
     logFilePath_ = path;
     if (logPathAction_)
-        logPathAction_->setText(tr("日志文件：%1").arg(path));
+        logPathAction_->setText(tr("Log file: %1").arg(path));
     if (openLogDirAction_)
         openLogDirAction_->setEnabled(!path.isEmpty());
     if (setLogPathAction_)
@@ -1268,8 +1268,8 @@ void MainWindow::openLogDir() {
     if (logFilePath_.isEmpty()) return;
     const QString dir = QFileInfo(logFilePath_).absolutePath();
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(dir))) {
-        QMessageBox::warning(this, tr("无法打开日志目录"),
-                             tr("无法打开目录：%1").arg(dir));
+        QMessageBox::warning(this, tr("Cannot Open Log Directory"),
+                             tr("Cannot open directory: %1").arg(dir));
     }
 }
 
@@ -1277,7 +1277,7 @@ void MainWindow::openLogDir() {
 void MainWindow::setLogPath() {
     if (logFilePath_.isEmpty()) return;
     const QString curDir = QFileInfo(logFilePath_).absolutePath();
-    const QString dir = runThemedFileDialog(this, tr("选择日志保存目录"),
+    const QString dir = runThemedFileDialog(this, tr("Select Log Directory"),
         curDir, QString(), FileDialogMode::Directory);
     if (dir.isEmpty()) return;
 
@@ -1292,8 +1292,8 @@ void MainWindow::setLogPath() {
 
     PERCEPTION_LOG_I(std::string("log path changed to ") + newPath.toStdString());
     statusBar()->showMessage(
-        ok ? tr("日志路径已切换并迁移历史日志：%1").arg(newPath)
-           : tr("日志路径已设置（旧日志迁移失败）：%1").arg(newPath), 6000);
+        ok ? tr("Log path changed and history migrated: %1").arg(newPath)
+           : tr("Log path set (failed to migrate old logs): %1").arg(newPath), 6000);
 }
 
 // ---- 清除历史日志（FR-017）：删除当前日志目录全部日志文件与归档 ----
@@ -1301,18 +1301,18 @@ void MainWindow::clearLogHistory() {
     if (logFilePath_.isEmpty()) return;
     const QString dir = QFileInfo(logFilePath_).absolutePath();
     const auto ret = QMessageBox::question(
-        this, tr("清除历史日志"),
-        tr("将删除日志目录中的全部日志文件（含归档）。\n\n目录：%1\n\n确定继续吗？").arg(dir),
+        this, tr("Clear Log History"),
+        tr("This will delete all log files (including archives) in the log directory.\n\nDirectory: %1\n\nContinue?").arg(dir),
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (ret != QMessageBox::Yes) return;
 
     const bool ok = perception::core::log::Logger::instance().clearLogFiles();
     if (ok) {
         PERCEPTION_LOG_I("log history cleared");
-        statusBar()->showMessage(tr("已清除历史日志：%1").arg(dir), 5000);
+        statusBar()->showMessage(tr("Cleared log history: %1").arg(dir), 5000);
     } else {
-        QMessageBox::warning(this, tr("清除失败"),
-                             tr("无法清除日志文件，请检查目录权限或磁盘状态。"));
+        QMessageBox::warning(this, tr("Clear Failed"),
+                             tr("Unable to clear log files. Check directory permissions or disk status."));
     }
 }
 
@@ -1337,7 +1337,7 @@ void MainWindow::resetLayout() {
     resizeDocks({fileDock_}, {240}, Qt::Horizontal);
     resizeDocks({propertyDock_}, {280}, Qt::Horizontal);
     resizeDocks({pythonDock_}, {200}, Qt::Vertical);
-    statusBar()->showMessage(tr("布局已重置"), 3000);
+    statusBar()->showMessage(tr("Layout reset"), 3000);
 }
 
 // ---- 主题热切换（菜单触发；--snapshot 截图前切主题再抓图）----
@@ -1362,7 +1362,7 @@ void MainWindow::applyTheme(const QString& themeId) {
     refreshActionIcons();
 
     statusBar()->showMessage(
-        tr("已切换主题：%1").arg(QString::fromUtf8(t->name)), 3000);
+        tr("Theme switched to: %1").arg(QString::fromUtf8(t->name)), 3000);
 }
 
 // ---- Python 运行时释放（main 退出前调用）----
@@ -1373,7 +1373,7 @@ void MainWindow::shutdownPython() {
 // ---- Dock 面板 ----
 void MainWindow::createDocks() {
     // 左：文件/数据集树（ParaView Pipeline 式，ui-guidelines §5）
-    fileDock_ = new QDockWidget(tr("数据集"), this);
+    fileDock_ = new QDockWidget(tr("Data"), this);
     fileDock_->setObjectName(kFileDockObjectName);
     fileDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     // 可分离可恢复：关闭 / 拖动停靠 / 浮动分离（双击标题栏亦可分离与还原）
@@ -1395,7 +1395,7 @@ void MainWindow::createDocks() {
     toggleFileDockAction_->setChecked(true);
 
     // 右：属性面板
-    propertyDock_ = new QDockWidget(tr("属性"), this);
+    propertyDock_ = new QDockWidget(tr("Properties"), this);
     propertyDock_->setObjectName(kPropertyDockObjectName);
     propertyDock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     propertyDock_->setFeatures(QDockWidget::DockWidgetClosable |
@@ -1416,7 +1416,7 @@ void MainWindow::createDocks() {
     togglePropertyDockAction_->setChecked(true);
 
     // 底：Python 控制台（内嵌 CPython REPL，M5 命令层的前身）
-    pythonDock_ = new QDockWidget(tr("Python 控制台"), this);
+    pythonDock_ = new QDockWidget(tr("Python Console"), this);
     pythonDock_->setObjectName(kPythonDockObjectName);
     pythonDock_->setAllowedAreas(Qt::TopDockWidgetArea | Qt::BottomDockWidgetArea);
     pythonDock_->setFeatures(QDockWidget::DockWidgetClosable |
@@ -1440,8 +1440,8 @@ void MainWindow::createDocks() {
 
     auto* exportBtn = new QToolButton(sideBar);
     exportBtn->setObjectName(QStringLiteral("pythonExportBtn"));
-    exportBtn->setText(tr("导出命令"));
-    exportBtn->setToolTip(tr("将已执行的 Python 命令导出为 .py 脚本"));
+    exportBtn->setText(tr("Export"));
+    exportBtn->setToolTip(tr("Export executed commands to a .py script"));
     exportBtn->setCursor(Qt::PointingHandCursor);
     exportBtn->setFixedSize(64, 28);
     connect(exportBtn, &QToolButton::clicked,
@@ -1449,8 +1449,8 @@ void MainWindow::createDocks() {
 
     auto* clearBtn = new QToolButton(sideBar);
     clearBtn->setObjectName(QStringLiteral("pythonClearBtn"));
-    clearBtn->setText(tr("清空控制台"));
-    clearBtn->setToolTip(tr("清空控制台显示内容（保留已定义变量）"));
+    clearBtn->setText(tr("Clear"));
+    clearBtn->setToolTip(tr("Clear console output (keeps defined variables)"));
     clearBtn->setCursor(Qt::PointingHandCursor);
     clearBtn->setFixedSize(64, 28);
     connect(clearBtn, &QToolButton::clicked,
@@ -1639,7 +1639,7 @@ void MainWindow::createCentralArea() {
     centralPlaceholder_ = new QLabel(central);
     centralPlaceholder_->setObjectName("centralPlaceholder");
     centralPlaceholder_->setAlignment(Qt::AlignCenter);
-    centralPlaceholder_->setText(tr("拖放 .plt / .csv 文件到此处\n或按 Ctrl+O 打开数据文件"));
+    centralPlaceholder_->setText(tr("Drop VTK / SVisual / HDF5 data files here\nor press Ctrl+O to open"));
     layout->addWidget(centralPlaceholder_);
 
     setCentralWidget(central);
@@ -1648,7 +1648,7 @@ void MainWindow::createCentralArea() {
 // ---- 状态栏 ----
 void MainWindow::createStatusBar() {
     QStatusBar* sb = statusBar();
-    sb->showMessage(tr("就绪"));
+    sb->showMessage(tr("Ready"));
 
     versionLabel_ = new QLabel(tr("v%1").arg(QApplication::applicationVersion()), sb);
     const QColor weak = ThemeManager::current()->colors.textWeak;
@@ -1673,14 +1673,18 @@ void MainWindow::updateEmptyHints() {
 
 // ---- 打开文件 ----
 void MainWindow::openFile() {
-    const QString file = runThemedFileDialog(this, tr("打开数据文件"),
+    const QString file = runThemedFileDialog(this, tr("Open Data File"),
         QDir::currentPath(),
-        tr("曲线数据 (*.plt *.csv);;所有文件 (*)"),
+        tr("VTK Files (*.vtk *.vti *.vtp *.vtu *.vts *.vtr);;"
+           "SVisual Files (*.plt *.tdr);;"
+           "HDF5 Files (*.h5 *.hdf5);;"
+           "Curve Data (*.csv *.dat);;"
+           "All Files (*)"),
         FileDialogMode::Open);
     if (file.isEmpty()) return;
 
     addFileToTree(file);
-    statusBar()->showMessage(tr("已加载：%1").arg(QFileInfo(file).fileName()), 5000);
+    statusBar()->showMessage(tr("Loaded: %1").arg(QFileInfo(file).fileName()), 5000);
 }
 
 // ---- 加入文件树（占位：M2 数据层接入后替换为真实加载）----
@@ -1718,7 +1722,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
         }
     }
     if (added > 0) {
-        statusBar()->showMessage(tr("已加载 %1 个文件").arg(added), 5000);
+        statusBar()->showMessage(tr("Loaded %1 file(s)").arg(added), 5000);
     }
     event->acceptProposedAction();
 }
@@ -1733,10 +1737,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
 // ---- 关于 ----
 void MainWindow::about() {
-    showFramelessDialog(this, tr("关于 Perception"),
+    showFramelessDialog(this, tr("About Perception"),
         tr("<h3>Perception %1</h3>"
-           "<p>数据可视化桌面工具（对标 ParaView / SVisual）。</p>"
-           "<p>技术栈：C++17 / Qt / VTK / pybind11</p>")
+           "<p>Desktop data visualization tool (inspired by ParaView / SVisual).</p>"
+           "<p>Stack: C++17 / Qt / VTK / pybind11</p>")
             .arg(QApplication::applicationVersion()));
 }
 
