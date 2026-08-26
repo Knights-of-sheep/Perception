@@ -40,7 +40,15 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **Spec-First**：`specs/[###-feature-name]/spec.md` 已批准（宪法 I）
+- [ ] **Test-First**：先有测试用例（`tests/cpp` 或 `tests/python`）；合并前 `ctest` + `pytest` 全绿（宪法 II）
+- [ ] **Layered Core**：改动落入 `src/core` 的 model/io/process/event 对应层，无跨层直接数据操作（宪法 III）
+- [ ] **Command-Driven**：数据处理经命令层 / `perception`·`extract` Python 包，UI 未绕过（宪法 IV）
+- [ ] **Local Design Source**：UI 改动已对照 `docs/design/mockups/`，未引入 figma 依赖（宪法 V）
+- [ ] **Scope**：涉及格式在 VTK / SVisual(.plt/.tdr) / HDF5(.h5/.hdf5) / 曲线(.csv/.dat) 生态内（宪法 VI）
+- [ ] **Technology Stack**：依赖与版本符合技术栈约束（C++17 / Qt 5.15.2 / VTK 9.4.1 / CPython 3.13 / pybind11 / CMake+Ninja；VTK 仅限 `src/render/`）（宪法「技术栈约束」）
+
+> 任一检查不通过：先修订方案并注明处置，或如实填入下方 Complexity Tracking。
 
 ## Project Structure
 
