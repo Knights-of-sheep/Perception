@@ -1,60 +1,125 @@
 # Perception
 
-对标 ParaView、Synopsys svisual 的数据可视化桌面工具（重构版）。
+桌面可视化工具，对标 **ParaView** 与 **Synopsys svisual**（Inspect / Visual）。
+当前聚焦于**界面层**——主窗口、Dock 重组、主题系统、内嵌 Python 控制台；
+数据层（VTK 渲染、文件解析）随后接入。
 
-## 当前方向（2026-08-23）
+![Main Window](docs/screenshots/main.png)
 
-**界面优先**：先搭建可运行的 UI 主界面框架（主窗口 + Dock + 深色主题），
-运行 `perception.exe` 启动后首先展示主界面；数据层（.plt 解析、命令层）随后并行接入。
-UI 界面事实源为 `docs/design/mockups/`（当前为本地设计稿）。
+*默认 Dark Classic 主题：左侧 Data 面板、右侧 Properties 面板、底部 Python Console
+（内嵌 CPython 3.13 REPL，支持多行粘贴即执行）。*
 
-已实现：深色主题（25 套可切换）、Dock 面板（数据/属性/Python 控制台）拖拽重组与
-窗口控制（无边框浮动、最小化/最大化/恢复嵌入/关闭、右下角缩放）、命令面板预留。
+## Screenshots
 
-## 技术栈
+### Python console
 
-- C++17 / Qt 5.12.12 / VTK 9.4.1 / pybind11
+![Python Console](docs/screenshots/python-console.png)
 
-## 目录结构
+`import sys` → `sys.version` 自动求值显示完整 Python 版本字符串。
+
+### Dock floating / restored
+
+| Floating | Restored |
+|---|---|
+| ![dock-floating](docs/screenshots/dock-floating.png) | ![dock-restored](docs/screenshots/dock-restored.png) |
+
+Frameless floating window (`– □ ↗ ×`) and double-click title bar to restore.
+
+### Theme gallery (25 themes)
+
+> Dark → Light → High Contrast, same order as the Theme menu.
+
+| Dark | | | |
+|---|---|---|---|
+| ![dark-classic](docs/screenshots/themes/dark-classic.png) | ![nord](docs/screenshots/themes/nord.png) | ![tokyo-night](docs/screenshots/themes/tokyo-night.png) | ![rose-pine](docs/screenshots/themes/rose-pine.png) |
+| **Dark Classic** (default) | Nord | Tokyo Night | Rosé Pine |
+| ![catppuccin-mocha](docs/screenshots/themes/catppuccin-mocha.png) | ![one-dark](docs/screenshots/themes/one-dark.png) | ![dracula](docs/screenshots/themes/dracula.png) | ![monokai](docs/screenshots/themes/monokai.png) |
+| Catppuccin Mocha | One Dark | Dracula | Monokai |
+
+| Light | | | |
+|---|---|---|---|
+| ![light-classic](docs/screenshots/themes/light-classic.png) | ![solarized-light](docs/screenshots/themes/solarized-light.png) | ![github-light](docs/screenshots/themes/github-light.png) | ![catppuccin-latte](docs/screenshots/themes/catppuccin-latte.png) |
+| **Light Classic** | Solarized Light | GitHub Light | Catppuccin Latte |
+
+| High Contrast | | |
+|---|---|---|
+| ![hc-black](docs/screenshots/themes/hc-black.png) | ![hc-white](docs/screenshots/themes/hc-white.png) | ![hc-blue](docs/screenshots/themes/hc-blue.png) |
+| HC Black | HC White | HC Blue |
+
+All 25 themes (dark-classic / dark-blue / nord / one-dark / dracula / monokai /
+gruvbox-dark / solarized-dark / tokyo-night / rose-pine / catppuccin-mocha /
+everforest-dark / kanagawa / night-owl / ayu-dark / light-classic / light-blue /
+material-light / solarized-light / rose-pine-dawn / catppuccin-latte / github-light /
+hc-black / hc-white / hc-blue) live in `docs/screenshots/themes/`.
+
+## Features
+
+**Shipped (M3a UI framework)**
+
+- **Main window**: menu bar (File / Edit / View / Theme / Settings / Help) + toolbar + status bar
+- **3 docks**: Data (left), Properties (right), Python Console (bottom) — drag to rearrange
+- **Frameless floating windows**: minimize / maximize / restore-embed / close + bottom-right resize handle
+- **25 themes**: 15 Dark + 7 Light + 3 High Contrast; hot-swap, persisted to QSettings
+- **Embedded Python REPL**: CPython 3.13 via pybind11; expression auto-eval, multi-line
+  continuation prompts, syntax / runtime tracebacks; multi-line paste = execute; Export / Clear
+- **Logging**: colored terminal sink + Qt message redirection (`qDebug/qWarning` into unified stream)
+- **Open file dialog filter**: VTK (`*.vtk *.vti *.vtp *.vtu *.vts *.vtr`) /
+  SVisual (`*.plt *.tdr`) / HDF5 (`*.h5 *.hdf5`) / Curve Data (`*.csv *.dat`)
+
+**Roadmap (M3b+ data layer)**
+
+- File readers: pluggable via `core/io/reader.h`; `.plt` / `.csv` registered today;
+  new formats (full VTK / HDF5 / extended SVisual) = new reader
+- VTK Charts 2D curve rendering (`src/render/`)
+- pybind command layer (`src/python/`): `load_plt / transform / query / export`
+
+## Tech stack
+
+- C++17 / Qt 5.15.2 / VTK 9.4.1 / pybind11 / CPython 3.13
+
+## Layout
 
 ```
 src/
-├─ core/               数据核心（无 UI 依赖，可单测）
-│  ├─ model/           格式无关数据模型：曲线（IDataSet/Curve）+ 结构（IStructure/FieldData）
-│  ├─ io/              格式读取器 + 注册表（.plt/.csv 曲线；.tdr 结构；新格式=新 reader）
-│  ├─ process/         数据处理：变换管道（unit_scale 等）
-│  └─ event/           事件总线（发布-订阅，数据变更驱动渲染/UI 更新）
-├─ render/             渲染层：VTK Charts 2D 曲线（M3 接入，主界面之后）
-├─ ui/                 界面层：Qt5 Widgets + Dock + QSS 深色主题（M3a 优先搭建）
-├─ app/                入口：main.cpp（M0 占位，M3a 替换为真实主窗口）
-└─ python/             pybind 命令驱动层：load_plt/transform/query/export（M5 接入）
+├─ core/               Data core (no UI deps, unit-testable)
+│  ├─ model/           Format-agnostic data model: curves (IDataSet/Curve) + structures (IStructure/FieldData)
+│  ├─ io/              File readers + registry (.plt/.csv curves; .tdr structures; new format = new reader)
+│  ├─ process/         Data processing: transform pipeline (unit_scale, etc.)
+│  └─ event/           Event bus (pub-sub)
+├─ render/             Render layer: VTK Charts 2D curves (M3b)
+├─ ui/                 UI layer: Qt5 Widgets + Dock + QSS theme system
+│  ├─ theme/           25 themes (QSS + QPalette + menu groups)
+│  ├─ console/         PythonConsole: REPL, continuation, tracebacks, Export
+│  ├─ design/          Floating window / dock decorator
+│  └─ icon/            action_icon_map (icon → toolbar / menu / file type)
+├─ app/                Entry: main.cpp + snapshot debug flags
+└─ python/             pybind command layer (M5)
 tests/
-├─ cpp/                C++ 单元测试（CTest，core 层，无 UI 依赖）
-└─ python/             pytest（命令层测试，M5 起依赖 perception_py）
-docs/                  顶层文档 + 设计稿（docs/design/mockups/）
+├─ cpp/                C++ unit tests (CTest, core layer, no UI deps)
+└─ python/             pytest (command layer tests, M5+ depends on perception_py)
+docs/
+├─ design/             Design (mockups / icon-spec / ui-guidelines)
+└─ screenshots/        Screenshots (regenerated by scripts/update_screenshots.ps1)
 ```
 
-## 里程碑
+## Milestones
 
-| 里程碑 | 内容 | 状态 |
+| Milestone | Content | Status |
 |---|---|---|
-| M0 | 仓库清理 + 骨架 | 完成 |
-| M3a | **UI 主界面框架**：主窗口 + Dock + QSS 深色主题，运行即见主界面 | **下一步（优先）** |
-| M1 | src/core/io：.plt 解析器 + 单测 | 待办（与 M3a 并行） |
-| M2 | 设计稿（本地 mockup）+ 结构数据模型 | 待办 |
-| M3 | src/render：VTK 曲线渲染 | 待办（M3a 之后） |
-| M4 | src/ui：端到端 MVP | 待办 |
-| M5 | src/python：pybind 命令层 | 待办 |
-| M6 | 打包 + 文档 | 待办 |
+| M0 | Repo cleanup + skeleton | Done |
+| M1 | `src/core/io`: .plt parser + unit tests | Todo (parallel with M3a) |
+| M2 | Design (local mockup) + structure data model | Todo |
+| M3a | **UI framework**: main window + docks + 25 themes + Python console + float/restore | Done |
+| M3b | End-to-end MVP: UI + reader + curve render | Next |
+| M4 | `src/render`: VTK curve render (merged into M3b) | — |
+| M5 | `src/python`: pybind command layer | Todo |
+| M6 | Packaging + docs | Todo |
 
-## 构建
+## Build
 
-> 依赖：CMake ≥ 3.16、支持 C++17 的编译器（Windows 用 VS2022 + Ninja）。
-> 在 VS2022 开发者 PowerShell 中执行，或调用 VS 自带 CMake 全路径。
+> Requires CMake ≥ 3.16, VS2022 + Ninja, Qt 5.15.2 (msvc2019_64), VTK 9.4.1 (Qt5 prebuilt).
 
-### 骨架模式（默认，M1 core 层 + 单测）
-
-无需 Qt/VTK，克隆即构建：
+### Skeleton mode (no Qt/VTK; M0 + M1 + core tests only)
 
 ```powershell
 cmake -B build -G Ninja
@@ -62,52 +127,51 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-### GUI 模式（界面优先，M3a 起）
-
-编译打开 Qt5/VTK 界面层，构建后运行程序即可看到主界面：
+### GUI mode (M3a and beyond)
 
 ```powershell
-.\scripts\build.ps1 -Gui -Qt5Dir "<Qt5 安装>/lib/cmake/Qt5" -VtkDir "<VTK 9.4 安装>/lib/cmake/vtk-9.4"
-.\scripts\build.ps1 -Gui -Qt5Dir "<Qt5 安装>/lib/cmake/Qt5" -VtkDir "<VTK 9.4 安装>/lib/cmake/vtk-9.4" -Pytest
+.\scripts\build.ps1 -Gui
 ```
 
-或直接使用 CMake：
+Optional `-Qt5Dir "<...>"` / `-VtkDir "<...>"` / `-Pytest` to override paths and run Python tests.
+
+Output: `bin\Release\perception.exe` (multi-config generator auto-adds `<Config>` subdir).
+
+### Run
 
 ```powershell
-cmake -B build -DPERCEPTION_BUILD_GUI=ON `
-  -DQt5_DIR="<Qt5 安装>/lib/cmake/Qt5" `
-  -DVTK_DIR="<VTK 9.4 安装>/lib/cmake/vtk-9.4"
-cmake --build build --config Release
-```
-
-依赖（当前开发机状态）：
-
-- **Qt 5.12.12（msvc2019_64）**：⚠️ 尚未安装，需先用 Qt 官方在线安装器安装
-  `Qt 5.12.12 → MSVC 2019 64-bit` 组件，目标路径如 `C:\Qt\Qt5.12.12\...`
-- **VTK 9.4.1（预建 Qt5 版）**：✅ 已就绪 `D:\vtk-941-qt\bak\lib\cmake\vtk-9.4`
-
-### 运行
-
-```powershell
-# 多配置生成器产物在 bin 下按配置分子目录
 .\bin\Release\perception.exe
 ```
 
-### 清理
+### Regenerate screenshots
 
-删除 CMake 中间生成物与构建产物（`build\`、`build-gui\`、`bin\`、`lib\`、Python 缓存），恢复「克隆即构建」状态；源码 / 规格 / 文档 / `third-party\` 一律保留：
+All images under `docs/screenshots/` are produced by `scripts/update_screenshots.ps1`,
+which drives `bin\Release/perception.exe` with `--snapshot` / `--snapshot-float` /
+`--theme` / `--console-script` debug flags (~39 launches, 1-3 min):
 
 ```powershell
-.\scripts\clean.ps1        # 交互确认后清理
-.\scripts\clean.ps1 -Force # 免确认直接清理
-.\scripts\clean.ps1 -WhatIf # 仅预览将删除的内容
+.\scripts\update_screenshots.ps1
 ```
 
-## 测试
+Re-run after any UI change to keep the gallery in sync.
 
-- **C++ 单测**（CTest）：`tests/cpp/`，core 层逻辑，无头可跑（见上）
-- **pytest**：`tests/python/`，命令驱动链路 load → transform → query → export（M5 后启用，见 `tests/python/README.md`）
+### Clean
 
-## 流程
+```powershell
+.\scripts\clean.ps1         # interactive confirmation
+.\scripts\clean.ps1 -Force  # skip confirmation
+.\scripts\clean.ps1 -WhatIf # preview only
+```
 
-遵循 `spec-kit` 规约闸门流水线（`.specify/`），设计稿经本地 mockup 注入（`docs/design/mockups/`），不使用远端设计服务。架构约束见 `.specify/memory/constitution.md` v1.1。
+Removes `build\` / `bin\` / `lib\` and Python caches; keeps source / spec / docs / `third-party\`.
+
+## Tests
+
+- **C++** (CTest): `tests/cpp/`, core logic, headless
+- **pytest**: `tests/python/`, command chain load → transform → query → export (M5+)
+
+## Workflow
+
+Follows the `spec-kit` spec-gate pipeline (`.specify/`); designs are injected via local
+mockups (`docs/design/mockups/`), no remote design service. Architectural constraints
+live in `.specify/memory/constitution.md` v1.1.
