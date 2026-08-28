@@ -87,6 +87,10 @@
 
 ---
 
+## Revision 2026-08-29（多屏最大化缺陷复核）
+
+- [X] T017 复核发现副屏最大化仍失败（"窗口消失"）：`window_geometry::maximizeGeometry` 返回的虚拟桌面绝对坐标直接填入 `ptMaxPosition`，违反 Windows `MINMAXINFO` 相对目标显示器坐标语义——主屏（原点 0,0）恰好正常、副屏（正/负坐标）被推到屏外。修改 `src/ui/window_geometry.{h,cpp}`：`MaximizeInfo{maxPosition(相对目标屏左上角偏移), maxSize}` 替换 `maximizeGeometry`，回退链覆盖"对应项为空"双列表校验；`src/ui/MainWindow.cpp` WM_GETMINMAXINFO 按新契约填充；`tests/cpp/window_geometry_test.cpp` 补"副屏在右/左/上、任务栏在顶部/左侧"相对偏移回归用例（红-绿，research R6 / contracts §2）
+
 ## Dependencies
 
 ### Story Completion Order

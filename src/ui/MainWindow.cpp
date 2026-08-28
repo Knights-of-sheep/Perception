@@ -1928,12 +1928,15 @@ bool MainWindow::nativeEvent(const QByteArray& eventType, void* message, long* r
         }
         const int idx =
             window_geometry::resolveTargetScreenIndex(screensGeom, normalGeometry_);
-        const QRect target = window_geometry::maximizeGeometry(screensAvail, idx);
-        if (!target.isEmpty()) {
-            mmi->ptMaxPosition.x = target.x();
-            mmi->ptMaxPosition.y = target.y();
-            mmi->ptMaxSize.x = target.width();
-            mmi->ptMaxSize.y = target.height();
+        // ptMaxPosition 为相对目标屏幕左上角的偏移（Windows MINMAXINFO 语义，
+        // research R6）：直接填虚拟桌面绝对坐标会把窗口推到目标屏之外
+        //（副屏最大化"消失"根因，2026-08-29 复核）。
+        const auto info = window_geometry::maximizeInfo(screensGeom, screensAvail, idx);
+        if (!info.maxSize.isEmpty()) {
+            mmi->ptMaxPosition.x = info.maxPosition.x();
+            mmi->ptMaxPosition.y = info.maxPosition.y();
+            mmi->ptMaxSize.x = info.maxSize.width();
+            mmi->ptMaxSize.y = info.maxSize.height();
         }
         *result = 0;
         return true;

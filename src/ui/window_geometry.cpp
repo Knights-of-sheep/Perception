@@ -22,20 +22,33 @@ int resolveTargetScreenIndex(const QList<QRect>& screensGeom, const QRect& windo
     return 0;
 }
 
-QRect maximizeGeometry(const QList<QRect>& screensAvailGeom, int index) {
-    if (screensAvailGeom.isEmpty()) {
-        return QRect();
+MaximizeInfo maximizeInfo(const QList<QRect>& screensGeom,
+                          const QList<QRect>& screensAvailGeom,
+                          int index) {
+    if (screensGeom.isEmpty() || screensAvailGeom.isEmpty() ||
+        screensGeom.size() != screensAvailGeom.size()) {
+        return MaximizeInfo{};
     }
-    if (index >= 0 && index < screensAvailGeom.size() && !screensAvailGeom.at(index).isEmpty()) {
-        return screensAvailGeom.at(index);
+    // ptMaxPosition 为相对目标屏幕左上角的偏移（Windows MINMAXINFO 语义，
+    // research R6）：avail 工作区左上角 − 目标屏完整几何左上角。
+    auto make = [](const QRect& geom, const QRect& avail) {
+        MaximizeInfo info;
+        info.maxPosition =
+            QPoint(avail.left() - geom.left(), avail.top() - geom.top());
+        info.maxSize = avail.size();
+        return info;
+    };
+    if (index >= 0 && index < screensGeom.size() &&
+        !screensGeom.at(index).isEmpty() && !screensAvailGeom.at(index).isEmpty()) {
+        return make(screensGeom.at(index), screensAvailGeom.at(index));
     }
-    // index 越界或对应项为空（如该屏已断开）→ 回退首个非空项
-    for (const QRect& r : screensAvailGeom) {
-        if (!r.isEmpty()) {
-            return r;
+    // index 越界或对应项为空（如该屏已断开）→ 回退首个两列表均非空的对
+    for (int i = 0; i < screensGeom.size(); ++i) {
+        if (!screensGeom.at(i).isEmpty() && !screensAvailGeom.at(i).isEmpty()) {
+            return make(screensGeom.at(i), screensAvailGeom.at(i));
         }
     }
-    return QRect();
+    return MaximizeInfo{};
 }
 
 }  // namespace window_geometry
