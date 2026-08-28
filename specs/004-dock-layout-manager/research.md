@@ -30,8 +30,8 @@
 
 ## 4. Python 命令桥接
 
-- **Decision**: 复用 `PythonConsole` 既有 `_cpp_log` 桥接模式：`PyMethodDef` + `PyCFunction_New` 将 `create_window(name)` 注入 REPL 全局命名空间，回调经 `std::function` 转发至 MainWindow。
-- **Rationale**: 探索确认 pybind11 命令层（`perception_py`）未构建（`src/python` 仅占位 CMakeLists）；`PythonConsole` 已有经验证的 C API 注入先例（`_cpp_log`，`PythonConsole.cpp:115-134`），是最短路径，符合宪法 IV（创建子窗口为 UI 侧桥接，布局管理本就不走命令层）。
+- **Decision**: 复用 `PythonConsole` 既有 `_cpp_log` 桥接模式：`PyMethodDef` + `PyCFunction_New` 将 `create_window(name)` 注入 REPL 全局命名空间，回调经 `std::function` 转发至 MainWindow；同时为 `PythonConsole` 增加命令执行入口 `executeCommand`，供菜单"新建子窗口"动作构造并提交同一 `create_window` 命令行（命令文本回显、返回值打印，FR-002/FR-027/SC-018）。
+- **Rationale**: 探索确认 pybind11 命令层（`perception_py`）未构建（`src/python` 仅占位 CMakeLists）；`PythonConsole` 已有经验证的 C API 注入先例（`_cpp_log`，`PythonConsole.cpp:115-134`），是最短路径。符合宪法 IV——创建子窗口（含菜单入口）统一经命令行执行，菜单不再产生绕过命令层的第三入口；布局管理本就不走命令层。
 - **Alternatives considered**: 先构建 `perception_py`（pybind11）—— 属 M5 规划范围，且 spec 明确布局管理无 Python 接口 —— 放弃。
 
 ## 5. 布局逻辑可测性与测试策略
@@ -54,6 +54,6 @@
 
 ## 8. 菜单与图标
 
-- **Decision**: "视图"菜单新增"新建子窗口"与"布局…"动作（`createActions`/`createMenus`）；"新建子窗口"复用 `icon-map.yaml` 现有 `view-multi-view` 图标（已确认存在）。
-- **Rationale**: spec 指明入口为菜单栏且"视图"菜单语义匹配（现有 toggle 面板/重置布局动作同处）；图标零新增成本。
+- **Decision**: "视图"菜单新增"新建子窗口"与"布局…"动作（`createActions`/`createMenus`）；"新建子窗口"复用 `icon-map.yaml` 现有 `view-multi-view` 图标（已确认存在）；动作槽构造 `create_window("plot_N")` 命令文本并提交 `PythonConsole::executeCommand` 执行（命令回显、返回值打印，FR-002/FR-027）。
+- **Rationale**: spec 指明入口为菜单栏且"视图"菜单语义匹配（现有 toggle 面板/重置布局动作同处）；图标零新增成本；经命令层执行保证与 PyShell 入口行为 100% 一致（SC-008）。
 - **Alternatives considered**: 工具栏按钮 —— spec 未要求，属可选增强 —— 本次不做。
