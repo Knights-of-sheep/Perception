@@ -5,6 +5,7 @@
 
 #include <cassert>
 
+using perception::ui::GridDirection;
 using perception::ui::GridLayout;
 using perception::ui::LayoutConfig;
 using perception::ui::LayoutManager;
@@ -85,6 +86,31 @@ int main() {
         expectGrid(3, 3, 9, cfg);   // 9 → 3×3（恰为方阵）
         expectGrid(4, 3, 12, cfg);  // 12 → 4×3
         expectGrid(4, 4, 13, cfg);  // 13 → 4×4
+    }
+    // ---- 2026-08-29 反馈：Grid + 优先列（gridDirection=Column）无约束转置（同 FR-005）----
+    {
+        LayoutConfig cfg;
+        cfg.mode = LayoutMode::Grid;
+        cfg.gridDirection = GridDirection::Column;
+        expectGrid(1, 1, 1, cfg);
+        expectGrid(1, 2, 2, cfg);   // 2 → 1×2
+        expectGrid(2, 2, 3, cfg);   // 3 → 2×2
+        expectGrid(2, 3, 5, cfg);   // 5 → 2×3
+        expectGrid(3, 4, 12, cfg);  // 12 → 3×4
+        expectGrid(4, 4, 13, cfg);  // 13 → 4×4
+        cfg.maxCols = 2;            // 约束仍优先
+        expectGrid(3, 2, 5, cfg);
+        cfg.maxCols = 0;
+        cfg.maxRows = 2;
+        expectGrid(2, 3, 5, cfg);   // 行约束优先
+    }
+    // ---- Grid + 默认方向（Row）保持行优先（FR-006 无约束语义不变）----
+    {
+        LayoutConfig cfg;
+        cfg.mode = LayoutMode::Grid;
+        cfg.gridDirection = GridDirection::Row;
+        expectGrid(2, 1, 2, cfg);  // 2 → 2×1
+        expectGrid(3, 2, 5, cfg);  // 5 → 3×2
     }
     // ---- FR-007：网格 + 仅最大列数：列数受限，行自适应换行 ----
     {

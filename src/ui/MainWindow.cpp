@@ -59,6 +59,7 @@
 
 #include "ui/action_icon_map.h"
 #include "ui/console/PythonConsole.h"
+#include "ui/dialog_title_bar.h"
 #include "ui/subwindow/layout_settings_dialog.h"
 #include "ui/subwindow/subwindow_container.h"
 #include "ui/subwindow/subwindow_view.h"
@@ -95,44 +96,8 @@ QIcon makeActionIcon(const QString& iconId) {
 
 // 窗口控制按钮图标见 ui/win_btn_icon.h（统一 16px 矢量绘制；
 // 文本字符字形/基线不一观感不齐，故全部用 QPainter 图标）。
-
-// ---- 通用对话框标题栏工厂（FramelessDialog 与 ThemedFileDialog 共享） ----
-// 复用 QSS objectName (titleBarRow/titleBarTitle/titleBarIcon/winCloseBtn) 与
-// makeWinBtnIcon 图标，保证所有无边框窗口标题栏外观一致、随主题。
-// owner: 用于 parent 与 close 事件连接（QFileDialog/FramelessDialog 均为 QDialog 子类）。
-QWidget* buildDialogTitleBar(QDialog* owner, const QString& title) {
-    auto* bar = new QWidget(owner);
-    bar->setObjectName(QStringLiteral("titleBarRow"));
-    bar->setFixedHeight(30);
-    auto* layout = new QHBoxLayout(bar);
-    layout->setContentsMargins(12, 0, 4, 0);
-    layout->setSpacing(6);
-
-    auto* icon = new QLabel(bar);
-    icon->setObjectName(QStringLiteral("titleBarIcon"));
-    icon->setPixmap(QPixmap(QStringLiteral(":/perception/icons/icons/png/app/app-icon-24.png")));
-    layout->addWidget(icon);
-
-    auto* titleLabel = new QLabel(bar);
-    titleLabel->setObjectName(QStringLiteral("titleBarTitle"));
-    titleLabel->setText(title);
-    layout->addWidget(titleLabel);
-    layout->addStretch();
-
-    auto* closeBtn = new QToolButton(bar);
-    closeBtn->setObjectName(QStringLiteral("winCloseBtn"));
-    closeBtn->setFixedSize(40, 30);
-    closeBtn->setCursor(Qt::PointingHandCursor);
-    closeBtn->setAutoRaise(true);
-    closeBtn->setFocusPolicy(Qt::NoFocus);
-    closeBtn->setIconSize(QSize(16, 16));
-    closeBtn->setIcon(makeWinBtnIcon(WinBtnKind::Close, bar->palette()));
-    closeBtn->setToolTip(QObject::tr("Close"));
-    QObject::connect(closeBtn, &QToolButton::clicked, owner, [owner] { owner->close(); });
-    layout->addWidget(closeBtn);
-
-    return bar;
-}
+// 通用对话框标题栏工厂 buildDialogTitleBar 见 ui/dialog_title_bar.h
+//（FramelessDialog / ThemedFileDialog / LayoutSettingsDialog 共享）。
 
 // ---- 文件/目录对话框：无边框容器 + 自定义标题栏 + 内嵌 QFileDialog ----
 // 背景：QFileDialog::getOpenFileName 等静态接口即使 setOption(DontUseNativeDialog)

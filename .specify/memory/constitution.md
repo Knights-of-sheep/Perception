@@ -1,14 +1,11 @@
 <!--
 # 同步影响报告（Sync Impact Report）
-- 版本变更：1.2.2 → 1.3.0（MINOR）
+- 版本变更：1.3.0 → 2.0.0（MAJOR）
 - 变更原则：
-  - 全部核心原则 MUST 化（统一「必须/禁止」措辞，可 yes/no 验收，删除「鼓励/尽量」等模糊表述）
-  - 新增「技术栈约束」章节：锁定语言/编译/GUI/渲染/脚本层/构建/格式范围/物理路径，每条附 Rationale
-  - 「设计约束」「可扩展性」章节并入「技术栈约束」，正文不再单列
-  - 「治理」补充修订程序与 SemVer 规则；软规范（命名/commit/分支/PR）指引至 CONTRIBUTING.md
-- 新增章节：技术栈约束（Technology Stack Constraints）
-- 移除章节：设计约束（并入技术栈约束）、可扩展性（并入技术栈约束）
-- 关联更新：templates/plan-template.md 的 Constitution Check 已固化为 GATE 清单（引用本文各条款）
+  - 「技术栈约束 · GUI」新增强制条款：所有应用弹窗（对话框/消息框/文件对话框）MUST 使用与主界面一致的无边框自定义标题栏（图标+标题+关闭按钮，可拖拽移动），禁止系统原生标题栏（弹窗统一风格，对应 004 FR-011，2026-08-29 用户反馈）
+- 新增章节：无（条款并入既有「技术栈约束 · GUI」）
+- 移除章节：无
+- 关联更新：specs/004-dock-layout-manager（spec.md FR-011 / data-model.md / quickstart.md）；共享工厂 `src/ui/dialog_title_bar.h`；LayoutSettingsDialog 已落地无边框风格
 - 待办 TODO：无
 -->
 
@@ -52,7 +49,7 @@ UI 的唯一设计源是 `docs/design/mockups/`（纯本地方案；禁止使用
 > 锁定版本与边界，防止随时间漂移；任何变更必须先按「治理」修订宪法。
 
 - **语言/编译**：C++17 + MSVC（VS2022）；禁止使用 C++20+ 语法。理由：Qt 5.15.2 预建二进制按 C++17 交付。
-- **GUI**：Qt 5.15.2 Widgets + QSS + Fusion 风格；禁止引入外部 UI 框架，禁止 WebView。理由：深色主题 QSS 须 100% 生效；Dock 布局为产品根基。
+- **GUI**：Qt 5.15.2 Widgets + QSS + Fusion 风格；禁止引入外部 UI 框架，禁止 WebView。所有应用弹窗（对话框/消息框/文件对话框）MUST 使用与主界面一致的无边框自定义标题栏（图标+标题+关闭按钮，可拖拽移动），禁止系统原生标题栏。理由：深色主题 QSS 须 100% 生效；Dock 布局为产品根基；弹窗与主界面视觉统一（004 FR-011，弹窗统一风格）。
 - **渲染**：VTK 9.4.1（Qt5 预建版）；VTK 仅允许出现在 `src/render/`。理由：前后端分离，UI 只持有显示抽象（如 `ICurveChart`），绝不接触原始 VTK/数据内部。
 - **脚本层**：CPython 3.13 + pybind11；内嵌 REPL 与命令层共用同一 Python。理由：单一解释器保证命令行为一致。
 - **构建**：CMake ≥ 3.16 + Ninja + VS2022；禁止引入新构建系统。理由：配置稳定可复现（scripts/build.ps1）。
@@ -80,4 +77,4 @@ UI 的唯一设计源是 `docs/design/mockups/`（纯本地方案；禁止使用
 - 软规范（命名、commit 格式、分支策略、PR 流程）不在此处，见根目录 `CONTRIBUTING.md`。
 - Mockup 约定见 `docs/design/mockups/README.md`。
 
-**版本**: 1.3.0 | **批准日期**: 2026-08-23 | **最后修订**: 2026-08-26
+**版本**: 2.0.0 | **批准日期**: 2026-08-23 | **最后修订**: 2026-08-29

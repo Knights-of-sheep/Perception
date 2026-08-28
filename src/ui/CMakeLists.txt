@@ -4,6 +4,7 @@ add_library(perception_ui STATIC
   MainWindow.cpp
   action_icon_map.cpp
   console/PythonConsole.cpp
+  dialog_title_bar.cpp
   log/qt_message_bridge.cpp
   subwindow/layout_manager.cpp
   subwindow/layout_settings_dialog.cpp

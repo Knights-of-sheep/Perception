@@ -23,6 +23,7 @@
 | 字段 | 类型 | 默认 | 校验 |
 |------|------|------|------|
 | mode | enum { Row, Column, Grid } | Grid | — |
+| gridDirection | enum { Row, Column } | Row | 仅 mode=Grid 时生效；无约束时决定比例网格行/列优先（2026-08-29 反馈） |
 | maxRows | int | 0（未设置） | 1–10 整数；非法输入回退上次有效值（FR-012） |
 | maxCols | int | 0（未设置） | 同上 |
 | sameSize | bool | false | — |
@@ -43,7 +44,7 @@ enum { Normal, Maximized, Fullscreen }，附着于 `Subwindow.displayState`（sp
 输入：`n` = 子窗口数，`cfg` = LayoutConfiguration，`available` = 可用尺寸。
 
 - **优先行排 / 网格（无约束，FR-004/006）**：保持比例的网格（非方阵）：cols = round(√n)，rows = ceil(n / cols)。示例：1→1×1、2→2×1、3→2×2、5→3×2、12→4×3、13→4×4。
-- **优先列排（无约束，FR-005）**：优先行网格的转置：rows = round(√n)，cols = ceil(n / rows)。示例：1→1×1、2→1×2、3→2×2、5→2×3、12→3×4、13→4×4。
+- **优先列排 / 网格+优先列（无约束，FR-005/006）**：行优先网格的转置：rows = round(√n)，cols = ceil(n / rows)。示例：1→1×1、2→1×2、3→2×2、5→2×3、12→3×4、13→4×4。Grid 模式由 `gridDirection` 决定（Row=默认行优先，Column=转置）。
 - **约束优先（FR-007/008/014）**：
   - maxCols > 0：cols = min(n, maxCols)，rows = ceil(n / cols)（列数受限、行自适应）
   - 否则 maxRows > 0：rows = min(n, maxRows)，cols = ceil(n / rows)（行数受限、列自适应）
