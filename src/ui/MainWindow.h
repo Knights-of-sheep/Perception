@@ -54,8 +54,9 @@ public:
 public slots:
     void resetLayout();            // 恢复默认布局（Ctrl+Shift+L / --snapshot 模式调用）
     void applyTheme(const QString& themeId);  // 主题热切换（菜单触发 / --snapshot 模式调用）
-    // 004-dock-layout-manager：创建渲染子窗口（Python create_window 桥 + 菜单双入口，FR-001/002）
-    void createSubwindow(const QString& title);
+    // 004-dock-layout-manager：创建渲染子窗口（Python create_window 桥 + 菜单双入口，FR-001/002）；
+    // 返回生成的窗口 id（"Plot_" + 全局递增序号）
+    QString createSubwindow(const QString& title);
     void openLayoutSettings();     // 打开布局设置界面（US5 统一入口）
     void showHiddenSubwindows();   // 恢复全部"隐藏"的子窗口（View 菜单）
     // 004-dock-layout-manager：暴露子窗口容器（快照模式用——触发首个 subwindow 选中以展示高亮）

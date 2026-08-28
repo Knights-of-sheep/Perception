@@ -82,7 +82,7 @@ tests/python/
 
 **Structure Decision**: 布局逻辑与 UI 分离——`LayoutManager` 为纯 C++ 类（输入：子窗口数、模式、最大行列、可用尺寸、间隙 → 输出：行列数与各 cell 几何），仅依赖 QtCore 类型，使 Test-First 可行（`tests/cpp` 无窗口环境可测）。`SubwindowContainer` 承担 QWidget 容器与交互（排列执行、最大化/全屏、面板隐藏协调）。`SubwindowView` 复用 `MainWindow.cpp` 内 `DockTitleBar` 的无标题栏模式（实现时评估是否提取为公共组件）。全屏的中央区域重挂载与面板显隐恢复由 `MainWindow` 协调（需访问各 dock 成员）。
 
-创建子窗口的命令行路径：菜单"视图 → 新建子窗口"动作槽构造 `create_window("plot_N")` 命令文本并提交 `PythonConsole::executeCommand`（与 PyShell 手工输入走同一执行路径），由 PythonConsole 统一回显命令文本、执行桥接回调并打印返回值（True/False）——满足 FR-002/FR-027/SC-018，避免绕过命令层产生第三入口。
+创建子窗口的命令行路径：菜单"视图 → 新建子窗口"动作槽构造无参 `create_window()` 命令文本并提交 `PythonConsole::executeCommand`（与 PyShell 手工输入走同一执行路径），由 PythonConsole 统一回显命令文本、执行桥接回调并打印返回值（新建子窗口的 id，`"Plot_" + 序号）——满足 FR-002/FR-027/SC-018，避免绕过命令层产生第三入口。
 
 ## Complexity Tracking
 
