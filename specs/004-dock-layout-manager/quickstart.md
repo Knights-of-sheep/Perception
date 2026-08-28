@@ -33,7 +33,7 @@ ctest --test-dir build -R layout_manager_test --output-on-failure
 - 菜单"视图 → 新建子窗口"× 3；
 - PyShell 执行 `create_window("曲线图")` × 2。
 
-**预期**：5 个子窗口出现并参与当前布局；1 秒内出现（SC-007）；两入口行为一致（SC-008）；子窗口均无系统标题栏（SC-012 抽查）。
+**预期**：5 个子窗口出现并参与当前布局；1 秒内出现（SC-007）；两入口行为一致（SC-008）；子窗口均无系统标题栏（SC-012 抽查）；每次创建（含菜单入口）后 PyShell 输出区回显 `create_window` 命令文本并打印返回值（True），核对输出区文本 100% 匹配（FR-027 / SC-018）。
 
 ### 3.2 排列模式切换
 
@@ -70,5 +70,6 @@ ctest --test-dir build -R layout_manager_test --output-on-failure
 |----------|------|--------|
 | ctest 单测（layout_manager_test） | 排列/约束/宽高/间隙计算 | SC-003/004/009 |
 | GUI 手动 + 截图比对 | 创建、排列、最大化/全屏、无标题栏 | SC-007/008/010/011/012 |
+| GUI 手动：PyShell 输出区核对 | 菜单创建触发命令行、命令文本回显、返回值打印 | FR-027 / SC-018 |
 | 连续操作压测 | 稳定性 | SC-005 |
 | 系统缩放抽查 | 高 DPI | SC-006 |
