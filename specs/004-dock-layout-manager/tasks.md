@@ -54,8 +54,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [P] [US1] 在 `src/ui/console/PythonConsole.cpp` 注入全局函数 `create_window`（复用 `_cpp_log` 的 `PyMethodDef` + `PyCFunction_New` 模式，`PythonConsole.cpp:115-134`），参数校验（空名/非 str 返回 False 不崩溃）按 `contracts/python-create-window.md`；经 `std::function` 桥接声明于 `src/ui/MainWindow.h`
-- [ ] T009 [P] [US1] 在 `src/ui/MainWindow.cpp` 的 `createActions()`/`createMenus()` 添加"视图 → 新建子窗口"动作，复用 `icon-map.yaml` 现有 `view-multi-view` 图标（`action_icon_map` 接入）；动作槽构造 `create_window("plot_N")` 命令文本并提交至 PythonConsole 命令层执行（命令文本回显、返回值打印），不绕过命令层（FR-002、FR-027）
+- [ ] T008 [P] [US1] 在 `src/ui/console/PythonConsole.cpp` 注入全局函数 `create_window`（复用 `_cpp_log` 的 `PyMethodDef` + `PyCFunction_New` 模式，`PythonConsole.cpp:115-134`），参数校验（空名/非 str 返回 False 不崩溃）按 `contracts/python-create-window.md`；经 `std::function` 桥接声明于 `src/ui/MainWindow.h`；同时实现命令执行入口 `executeCommand`（执行命令文本、在输出区回显命令、打印返回值 True/False，FR-027）供菜单入口复用——与 PyShell 手工输入同一执行路径（plan Structure Decision）
+- [ ] T009 [P] [US1] 在 `src/ui/MainWindow.cpp` 的 `createActions()`/`createMenus()` 添加"视图 → 新建子窗口"动作，复用 `icon-map.yaml` 现有 `view-multi-view` 图标（`action_icon_map` 接入）；动作槽构造 `create_window("plot_N")` 命令文本并提交至 `PythonConsole::executeCommand` 执行（命令文本回显、返回值打印，FR-027），不绕过命令层（FR-002）
 - [ ] T010 [US1] 实现 `MainWindow::createSubwindow(const QString& title)`：创建 `SubwindowView`、加入容器并立即重排（FR-001）；Python 命令桥与菜单触发的命令行最终均调用此入口（FR-002、SC-008）
 
 **Checkpoint**: US1 独立可用——双入口创建、占位内容不崩溃（FR-003）
@@ -189,8 +189,8 @@
 
 ```bash
 # 并行启动 US1 的两个互不依赖任务：
-Task: "T008 注入 create_window Python 桥接 in src/ui/console/PythonConsole.cpp"
-Task: "T009 添加'视图 → 新建子窗口'菜单动作 in src/ui/MainWindow.cpp"
+Task: "T008 注入 create_window 桥接与 executeCommand 命令执行入口 in src/ui/console/PythonConsole.cpp"
+Task: "T009 添加'视图 → 新建子窗口'菜单动作（提交 executeCommand）in src/ui/MainWindow.cpp"
 
 # 依赖两者完成后串行：
 Task: "T010 实现 MainWindow::createSubwindow（菜单入口触发同一命令行执行）"
