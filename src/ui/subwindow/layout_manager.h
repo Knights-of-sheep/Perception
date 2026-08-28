@@ -13,9 +13,16 @@ namespace ui {
 // 排列模式（FR-004~006；"优先行排/优先列排" 即 Row/Column）
 enum class LayoutMode { Row, Column, Grid };
 
+// Grid 模式下的填充方向（2026-08-29 用户反馈：Grid 布局支持设置优先行/优先列）：
+// 仅 mode == Grid 时生效，决定无约束比例网格的行优先/列优先。
+enum class GridDirection { Row, Column };
+
 // 布局配置（对应数据模型 LayoutConfiguration）
 struct LayoutConfig {
     LayoutMode mode = LayoutMode::Grid;
+    // Grid 模式填充方向：Row = 行优先（同 FR-004 无约束网格），Column = 列优先
+    //（转置，同 FR-005）。仅 mode == Grid 时读取；Row/Column 模式由自身语义决定。
+    GridDirection gridDirection = GridDirection::Row;
     // 最大行/列数：0 = 未设置（自动）。
     //   约束优先：设置了任一约束即按约束排列——
     //     maxCols>0：列数 ≤ maxCols 固定，行数 = ceil(n/cols)（不丢窗口，FR-014）；

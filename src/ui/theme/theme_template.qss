@@ -426,6 +426,20 @@ QDialog#layoutSettingsDialog QComboBox {
 QDialog#layoutSettingsDialog QCheckBox {
     color: @text@;
 }
+QDialog#layoutSettingsDialog QRadioButton {
+    color: @text@;
+}
+QDialog#layoutSettingsDialog QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+    border: 1px solid @border@;
+    border-radius: 7px;
+    background: @controlBg@;
+}
+QDialog#layoutSettingsDialog QRadioButton::indicator:checked {
+    border: 4px solid @accent@;
+    background: @windowBg@;
+}
 
 /* ===== Python 控制台（底部 Dock，内嵌 REPL）===== */
 /* 容器：控制台区域带弱边框，与 Dock 标题栏、右侧操作栏区分 */

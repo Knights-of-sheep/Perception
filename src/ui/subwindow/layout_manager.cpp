@@ -28,13 +28,17 @@ GridLayout LayoutManager::computeGrid(int windowCount, const LayoutConfig& cfg) 
         return {rows, ceilDiv(n, rows)};
     }
     // 无约束：保持比例的网格（不再强制方阵/单行/单列）。
-    //   优先行排 / 网格（默认方向）：cols 取最接近 √n 的整数（round），
+    //   行优先（优先行排 / 网格默认方向）：cols 取最接近 √n 的整数（round），
     //     rows = ceil(n/cols)，使子窗口尽量接近 1:1，但允许 2:1、3:2、4:3 等比例
     //     （1→1×1, 2→2×1, 3→2×2, 5→3×2, 12→4×3, 13→4×4）。
-    //   优先列排：转置（1→1×1, 2→1×2, 3→2×2, 5→2×3, 12→3×4, 13→4×4）。
+    //   列优先（优先列排 / Grid + 优先列）：转置
+    //     （1→1×1, 2→1×2, 3→2×2, 5→2×3, 12→3×4, 13→4×4）。
     const int nearSqrt =
         static_cast<int>(std::lround(std::sqrt(static_cast<double>(n))));
-    if (cfg.mode == LayoutMode::Column) {
+    const bool columnPreferred =
+        cfg.mode == LayoutMode::Column ||
+        (cfg.mode == LayoutMode::Grid && cfg.gridDirection == GridDirection::Column);
+    if (columnPreferred) {
         const int rows = nearSqrt;
         return {rows, ceilDiv(n, rows)};
     }

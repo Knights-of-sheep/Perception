@@ -148,6 +148,11 @@
 
 ---
 
+## Revision 2026-08-29（用户反馈）
+
+- [X] R-001 [US2] 布局设置对话框统一弹窗风格：共享标题栏工厂抽取至 `src/ui/dialog_title_bar.{h,cpp}`（MainWindow.cpp 本地实现移除，ThemedFileDialog/FramelessDialog 改引用共享工厂）；`LayoutSettingsDialog` 改为 `Qt::FramelessWindowHint` + 复用工厂标题栏（图标+标题+关闭按钮，可拖拽移动），FR-011 / 宪法「技术栈约束 · GUI」2.0.0
+- [X] R-002 [US2] Grid 布局支持设置优先行/优先列：`LayoutConfig` 新增 `gridDirection`（仅 Grid 模式生效），`LayoutManager::computeGrid` 无约束时按方向决定行/列优先（列优先=FR-005 转置）；对话框 Grid 模式显示 Priority radio 组（By row / By column），By Row/By Column 模式语义不变（FR-006/FR-011 修订）
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
