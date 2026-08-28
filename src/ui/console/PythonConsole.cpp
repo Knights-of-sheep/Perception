@@ -133,6 +133,44 @@ PyMethodDef cpp_log_def[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
+// create_window：Python REPL 创建渲染子窗口的桥（004-dock-layout-manager，FR-001）。
+// self = PyLong_FromVoidPtr(PythonConsole*)，桥到 requestCreateWindow（契约
+// contracts/python-create-window.md）：返回生成的窗口 id（"Plot_" + 序号）；
+// title 为可选参数，缺省时 title = id；类型错误抛 TypeError 由 REPL 展示。
+PyObject* create_window_impl(PyObject* self, PyObject* args) {
+    PyObject* titleObj = Py_None;  // 缺省：title = id（由 C++ 端生成）
+    if (!PyArg_ParseTuple(args, "|O", &titleObj)) return nullptr;
+    auto* console = reinterpret_cast<PythonConsole*>(PyLong_AsVoidPtr(self));
+    if (!console) {
+        PyErr_SetString(PyExc_RuntimeError, "Python console unavailable");
+        return nullptr;
+    }
+    QString title;
+    if (titleObj != Py_None) {
+        if (!PyUnicode_Check(titleObj)) {
+            PyErr_SetString(PyExc_TypeError,
+                           "create_window() title must be a string");
+            return nullptr;
+        }
+        const char* s = PyUnicode_AsUTF8(titleObj);
+        if (!s) return nullptr;
+        title = QString::fromUtf8(s);
+    }
+    const QString id = console->requestCreateWindow(title);
+    if (id.isEmpty()) {
+        // 创建失败（宿主未连接/回调异常）：返回 None，不崩溃
+        Py_RETURN_NONE;
+    }
+    return PyUnicode_FromString(id.toUtf8().constData());
+}
+
+PyMethodDef create_window_def[] = {
+    {"create_window", create_window_impl, METH_VARARGS,
+     "create_window(title='') -> str: create a render subwindow and return its id "
+     "(\"Plot_\" + sequence number); title defaults to the id when omitted"},
+    {nullptr, nullptr, 0, nullptr},
+};
+
 // 引导脚本：续行判定（codeop.compile_command 为无状态的标准判定器，
 // 返回 None=不完整 / code=完整 / 抛异常=语法错误；与 code.InteractiveConsole 同源）
 // + traceback 格式化 + 空 stdin（防止 help() 等交互函数读输入时阻塞 GUI）
@@ -187,6 +225,7 @@ struct PythonConsole::Impl {
     QTextCharFormat outputFormat;       // 普通输出
     QTextCharFormat resultFormat;       // 表达式结果
     QColor errorColor;                  // stderr / traceback
+    CreateWindowCallback createWindowCallback;  // create_window 桥回调（返回生成的 id）
 };
 
 PythonConsole::PythonConsole(QWidget* parent)
@@ -249,6 +288,14 @@ void PythonConsole::initPython() {
     if (cppLogFunc) {
         PyDict_SetItemString(d_->globals, "_cpp_log", cppLogFunc);
         Py_DECREF(cppLogFunc);
+    }
+
+    // 注入 create_window 桥（FR-001；self 携带本实例指针供回调）
+    PyObject* createWinFunc =
+        PyCFunction_New(&create_window_def[0], PyLong_FromVoidPtr(this));
+    if (createWinFunc) {
+        PyDict_SetItemString(d_->globals, "create_window", createWinFunc);
+        Py_DECREF(createWinFunc);
     }
 
     PyRun_String(kBootstrap, Py_file_input, d_->globals, d_->globals);
@@ -523,6 +570,40 @@ void PythonConsole::runScript(const QString& script) {
     // 按行喂给 REPL（与逐行输入同语义：续行自动累积、表达式自动求值）
     const QStringList lines = script.split(QLatin1Char('\n'));
     for (const QString& line : lines) runCommand(line);
+}
+
+void PythonConsole::executeCommand(const QString& command) {
+    // FR-027：无论经 PyShell 手工输入还是菜单栏触发，所执行的命令文本 MUST 回显到输出区。
+    // 手工输入路径下输入区已含该文本（runCommand 步骤 2 会跳过插入）；菜单等外部入口触发时
+    // 此处将命令文本插入当前输入行（紧跟提示符，与手工输入行布局一致），不额外换行——
+    // 避免在空提示符后强制换行造成"命令独立成行"的回显错位（用户反馈 2026-08-29）。
+    ensureCursorInInput();
+    QTextCursor cur = textCursor();
+    cur.movePosition(QTextCursor::End);
+    if (!currentInput().trimmed().isEmpty()) {
+        cur.insertText(QStringLiteral("\n"));  // 输入行已有内容：先换行避免文本粘连
+    }
+    cur.insertText(command, d_->inputFormat);
+    setTextCursor(cur);
+    setCurrentCharFormat(d_->inputFormat);
+
+    // 与 PyShell 手工输入走同一执行路径：runCommand 判定完整性 -> runBlock 执行；
+    // create_window 的返回值（窗口 id 字符串）由 runBlock 对表达式结果自动 repr 打印（FR-027）。
+    runCommand(command);
+}
+
+void PythonConsole::setCreateWindowCallback(CreateWindowCallback callback) {
+    d_->createWindowCallback = std::move(callback);
+}
+
+QString PythonConsole::requestCreateWindow(const QString& title) {
+    // 经回调创建（MainWindow::createSubwindow，契约 python-create-window.md）：
+    // title 空白时由回调侧默认 = id；返回生成的 id（"Plot_" + 全局递增序号）。
+    if (!d_->createWindowCallback) {
+        appendOutput(tr("create_window: subwindow host is not connected\n"), d_->errorColor);
+        return QString();
+    }
+    return d_->createWindowCallback(title.trimmed());
 }
 
 void PythonConsole::runPastedText(const QString& text) {

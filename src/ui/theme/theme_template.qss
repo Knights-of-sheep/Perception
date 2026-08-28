@@ -200,10 +200,18 @@ QComboBox QAbstractItemView {
 
 /* ===== Dock ===== */
 /* 自定义标题栏（修复 Qt5+Fusion 下浮动态不绘制 normal-button 的问题）：
-   通过 QDockWidget::setTitleBarWidget(DockTitleBar) 接管，按钮显式 QToolButton。 */
+   通过 QDockWidget::setTitleBarWidget(DockTitleBar) 接管，按钮显式 QToolButton。
+   注：QDockWidget 自身的 border 在 QMainWindow 内部不绘制（QDockAreaLayout 管理，
+   QSS 不走标准渲染路径），改用 QDockWidget > QWidget 选 dock 内容 wrap widget
+   （MainWindow::wrapWithSizeGrip 构造的 QWidget+QGridLayout+QTreeWidget/PythonConsole）
+   加 1px 边框——视觉上等同 dock 外缘描边；与 QToolBar#left/right border 邻接时形成
+   2px 强分隔条。 */
 QDockWidget {
     background-color: @panelBg@;   /* BG_PANEL */
     color: @textWeak@;              /* FG_TEXT_WEAK */
+}
+QDockWidget > QWidget {
+    border: 1px solid @border@;     /* dock 内容外缘描边（绕开 QSS 限制） */
 }
 QWidget#dockTitleBar {
     background-color: @dockTitleBg@;
@@ -240,7 +248,12 @@ QSizeGrip#dockSizeGrip {
 QTreeWidget, QTreeView, QListView, QTableView {
     background-color: @panelBg@;
     alternate-background-color: @surfaceElev@;
-    border: none;
+    border: 1px solid @border@;   /* dock 内容 widget 自身描边 = 视觉 dock 边；
+                                      QDockWidget 自身 border 在 QMainWindow 内不绘制，
+                                      wrap container 也不延伸到 dock 边缘，只有直接给
+                                      内容 widget（QTreeWidget / QPlainTextEdit）加边
+                                      才能稳定画出 dock 外缘；fileTree/propertyTree 占满
+                                      wrap container 内容区，QTreeWidget 外缘 ≈ dock 边。 */
     outline: none;
 }
 QTreeView::item, QListView::item, QTableView::item {
@@ -305,10 +318,15 @@ QStatusBar {
 QStatusBar::item { border: none; }
 
 /* ===== 分割 ===== */
-/* Dock 之间/与中央区用 1px 弱分隔线（BORDER_WEAK），保持清晰但不喧宾夺主 */
-QSplitter::handle { background: @borderWeak@; }
-QSplitter::handle:horizontal { width: 1px; }
-QSplitter::handle:vertical   { height: 1px; }
+/* Dock 之间/与中央区用强分隔线（1px @border@ 已通过 QDockWidget border + QToolBar
+   border-right/left 各自描边，相邻边对边 = 2px 强色带，本类目仅负责 splitter 句柄
+   与多文档子窗口间水平/垂直把手；保持 2px @border@ 增强深色主题下可见性。
+   注：QMainWindow 的 Dock 分隔条是内部 QMainWindowLayoutSeparator（非 QSplitter），
+   QSplitter::handle 对其无效；但 QMainWindow::separator 的 width/height 会压缩
+   分隔条尺寸（默认约 4px）导致拖拽区域过窄，故此处不覆盖，保持默认尺寸。 */
+QSplitter::handle { background: @border@; }
+QSplitter::handle:horizontal { width: 2px; }
+QSplitter::handle:vertical   { height: 2px; }
 QSplitter::handle:hover { background: @accent@; }
 
 /* ===== ToolTip（弹层，禁默认黄底）===== */
@@ -343,6 +361,86 @@ QLabel#centralPlaceholder {
     background-color: @viewBg@;   /* BG_VIEW */
 }
 
+/* ===== 子窗口容器（004-dock-layout-manager）===== */
+QWidget#subwindowContainer {
+    background-color: @viewBg@;   /* BG_VIEW */
+}
+/* SubwindowView 的边框/背景实际由 paintEvent 自绘接管（QPainter，见 subwindow_view.cpp），
+   规避 QStyleSheetStyle 对 QFrame border 几何宽度的 lineWidth 钳制；以下 QSS 仅作语义参考。 */
+QFrame#subwindowView {           /* SubwindowView 继承 QFrame（WA_StyledBackground 启用） */
+    background-color: @panelBg@;
+    border: 1px solid @border@;   /* 未选中：1px 边框（弱化存在感，聚焦内容） */
+}
+QFrame#subwindowView[selected="true"] {
+    border: 2px solid @border@;   /* 选中：仅加粗为 2px，颜色保持 @border@（无强调色） */
+}
+/* titleBar_ 已设 WA_TranslucentBackground：背景 @dockTitleBg@ 与底部分隔线 @borderWeak@
+   由 SubwindowView::paintEvent 自绘（见 subwindow_view.cpp），本规则仅作语义参考。 */
+QWidget#subwindowTitleBar {
+    background-color: @dockTitleBg@;
+    border-bottom: 1px solid @borderWeak@;
+}
+QLabel#subwindowTitleLabel {
+    color: @text@;
+    font-weight: 600;
+    background: transparent;
+}
+QToolButton#subwindowMaxBtn, QToolButton#subwindowHideBtn,
+QToolButton#subwindowRestoreBtn, QToolButton#subwindowPrevBtn,
+QToolButton#subwindowNextBtn, QToolButton#subwindowCloseBtn {
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+}
+QToolButton#subwindowMaxBtn:hover, QToolButton#subwindowHideBtn:hover,
+QToolButton#subwindowRestoreBtn:hover, QToolButton#subwindowPrevBtn:hover,
+QToolButton#subwindowNextBtn:hover, QToolButton#subwindowCloseBtn:hover {
+    background: @hoverBg@;   /* BG_CONTROL */
+}
+QToolButton#subwindowCloseBtn:hover {
+    background: @dangerHoverBg@;   /* 关闭按钮 hover 红色底（与其他窗口控制一致） */
+}
+/* content_ 已设 WA_TranslucentBackground，父 SubwindowView::paintEvent 自绘 @panelBg@ 背景；
+   此规则若保留会遮挡父背景，故移除（子窗口内容区背景统一由 SubwindowView 负责）。 */
+
+/* 布局设置对话框（US5：深/浅主题均可读） */
+QDialog#layoutSettingsDialog QLabel {
+    color: @text@;
+}
+QDialog#layoutSettingsDialog QSpinBox {
+    background-color: @controlBg@;
+    color: @text@;
+    border: 1px solid @border@;
+    border-radius: 4px;
+    padding: 2px 4px;
+    min-width: 90px;
+}
+QDialog#layoutSettingsDialog QComboBox {
+    background-color: @controlBg@;
+    color: @text@;
+    border: 1px solid @border@;
+    border-radius: 4px;
+    padding: 3px 8px;
+    min-width: 120px;
+}
+QDialog#layoutSettingsDialog QCheckBox {
+    color: @text@;
+}
+QDialog#layoutSettingsDialog QRadioButton {
+    color: @text@;
+}
+QDialog#layoutSettingsDialog QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+    border: 1px solid @border@;
+    border-radius: 7px;
+    background: @controlBg@;
+}
+QDialog#layoutSettingsDialog QRadioButton::indicator:checked {
+    border: 4px solid @accent@;
+    background: @windowBg@;
+}
+
 /* ===== Python 控制台（底部 Dock，内嵌 REPL）===== */
 /* 容器：控制台区域带弱边框，与 Dock 标题栏、右侧操作栏区分 */
 QWidget#pythonConsoleContainer {
@@ -351,7 +449,7 @@ QWidget#pythonConsoleContainer {
 QPlainTextEdit#pythonConsole {
     background-color: @controlBg@;
     color: @text@;
-    border: 1px solid @borderWeak@;
+    border: 1px solid @border@;   /* 与 QTreeWidget 一致：占满 pythonContainer 外缘 = dock 视觉边 */
     border-radius: 0;
     padding: 0;
     font-family: "Consolas", "Courier New", monospace;

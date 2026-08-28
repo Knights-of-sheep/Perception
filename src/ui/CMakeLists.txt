@@ -4,10 +4,16 @@ add_library(perception_ui STATIC
   MainWindow.cpp
   action_icon_map.cpp
   console/PythonConsole.cpp
+  dialog_title_bar.cpp
   log/qt_message_bridge.cpp
+  subwindow/layout_manager.cpp
+  subwindow/layout_settings_dialog.cpp
+  subwindow/subwindow_container.cpp
+  subwindow/subwindow_view.cpp
   theme/icon_factory.cpp
   theme/theme_manager.cpp
   theme/theme.qrc
+  window_geometry.cpp
 )
 # MSVC Debug + 发布版 Python（Anaconda）链接兼容层：提供 Py_REF_DEBUG 下引用的
 # 调试版专用符号（_Py_INCREF_IncRefTotal / _Py_DECREF_DecRefTotal /

@@ -12,6 +12,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <functional>
+
 class QColor;
 class QInputMethodEvent;
 class QKeyEvent;
@@ -44,6 +46,20 @@ public:
     QStringList history() const;
     // 清空控制台显示（重置为版本横幅 + 新提示符；不清 Python 命名空间）
     void clearConsole();
+
+    // create_window 桥（004-dock-layout-manager，FR-001）：
+    // REPL 内调用 create_window([title]) 时经回调创建子窗口，返回生成的窗口 id
+    //（"Plot_" + 全局递增序号）；title 缺省（或空白）时 title = id；
+    // 参数类型错误抛 TypeError（契约 contracts/python-create-window.md）。
+    QString requestCreateWindow(const QString& title);  // 返回生成的窗口 id；title 空白时默认 = id
+    using CreateWindowCallback = std::function<QString(const QString& title)>;
+    void setCreateWindowCallback(CreateWindowCallback callback);
+
+    // 命令执行入口（004-dock-layout-manager，FR-002/FR-027，plan Structure Decision）：
+    // 菜单"视图 → 新建子窗口"等外部入口构造 create_window() 命令文本提交至此，
+    // 与 PyShell 手工输入走同一执行路径——先回显命令文本到输出区，再执行命令，
+    // 表达式结果（create_window 返回的窗口 id）自动打印，禁止绕过命令层直接调用 C++ 入口。
+    void executeCommand(const QString& command);
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;

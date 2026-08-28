@@ -213,6 +213,14 @@ if ($Gui) {
 # ---------------------------------------------------------------
 if ($UnitTests) {
     Write-Step "运行 CTest（C++ 单元测试）"
+    # 004-dock-layout-manager：链接 Qt 的测试（icon_action_map_test/layout_manager_test）运行时
+    # 依赖 Qt 运行库；windeployqt --no-system-d3d-compiler 未部署全部依赖（如 D3DCompiler_47.dll），
+    # 故将 Qt bin 追加到 PATH 保证测试可加载（否则退出码 0xC0000135 STATUS_DLL_NOT_FOUND）。
+    if ($Gui -and $Qt5Dir -and (Test-Path $Qt5Dir)) {
+        $qtRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $Qt5Dir))
+        $qtBin = Join-Path $qtRoot "bin"
+        if (Test-Path $qtBin) { $env:PATH = "$qtBin;$env:PATH" }
+    }
     & $ctestExe --test-dir $BuildDir -C $Config --output-on-failure
     if ($LASTEXITCODE -ne 0) { throw "CTest 失败（exit=$LASTEXITCODE）" }
     Write-Ok "CTest 全部通过"
