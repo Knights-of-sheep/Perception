@@ -554,6 +554,24 @@ void PythonConsole::runScript(const QString& script) {
     for (const QString& line : lines) runCommand(line);
 }
 
+void PythonConsole::executeCommand(const QString& command) {
+    // FR-027：无论经 PyShell 手工输入还是菜单栏触发，所执行的命令文本 MUST 回显到输出区。
+    // 手工输入路径下输入区已含该文本（runCommand 步骤 2 会跳过插入）；菜单等外部入口
+    // 触发时此处强制将命令文本回显到输出区新行，保证回显一致性。
+    QTextCursor cur = textCursor();
+    cur.movePosition(QTextCursor::End);
+    if (cur.positionInBlock() != 0) {
+        cur.insertText(QStringLiteral("\n"));
+    }
+    cur.insertText(command, d_->inputFormat);
+    setTextCursor(cur);
+    setCurrentCharFormat(d_->inputFormat);
+
+    // 与 PyShell 手工输入走同一执行路径：runCommand 判定完整性 -> runBlock 执行；
+    // create_window 的返回值（True/False）由 runBlock 对表达式结果自动 repr 打印（FR-027）。
+    runCommand(command);
+}
+
 bool PythonConsole::requestCreateWindow(const QString& title) {
     // 参数校验（契约 contracts/python-create-window.md）：空名返回 False 并提示，不崩溃
     if (title.trimmed().isEmpty()) {

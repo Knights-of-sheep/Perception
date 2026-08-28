@@ -50,6 +50,12 @@ public:
     // 契约 contracts/python-create-window.md），通过后发射 createWindowRequested。
     bool requestCreateWindow(const QString& title);
 
+    // 命令执行入口（004-dock-layout-manager，FR-002/FR-027，plan Structure Decision）：
+    // 菜单"视图 → 新建子窗口"等外部入口构造 create_window("plot_N") 命令文本提交至此，
+    // 与 PyShell 手工输入走同一执行路径——先回显命令文本到输出区，再执行命令，
+    // 表达式结果（create_window 的 True/False）自动打印，禁止绕过命令层直接调用 C++ 入口。
+    void executeCommand(const QString& command);
+
 signals:
     // 通知 MainWindow 创建渲染子窗口（UI 线程直连槽：MainWindow::createSubwindow）
     void createWindowRequested(const QString& title);
