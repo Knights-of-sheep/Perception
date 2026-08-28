@@ -635,10 +635,10 @@ MainWindow::MainWindow(QWidget* parent)
     createCentralArea();
     createStatusBar();
 
-    // 004-dock-layout-manager：Python create_window 桥 → 创建子窗口（FR-001，契约
-    // contracts/python-create-window.md；REPL 在 GUI 线程执行，直连安全）
-    connect(pythonConsole_, &PythonConsole::createWindowRequested, this,
-            &MainWindow::createSubwindow);
+    // 004-dock-layout-manager：Python create_window 桥 → 回调注册（FR-001，契约
+    // contracts/python-create-window.md；REPL 在 GUI 线程执行，回调返回生成的窗口 id）
+    pythonConsole_->setCreateWindowCallback(
+        [this](const QString& title) { return createSubwindow(title); });
 
     // Dock 布局记忆（ui-guidelines §5.1：下次打开还原布局）
     QSettings settings;
@@ -739,11 +739,10 @@ void MainWindow::createActions() {
     setActionIcon(newSubwindowAction_, "view-multi-view");
     connect(newSubwindowAction_, &QAction::triggered, this, [this] {
         // FR-002/FR-027（plan Structure Decision）：菜单入口触发同一 create_window 命令行执行——
-        // 动作槽构造 create_window("plot_N") 命令文本提交 PythonConsole::executeCommand，
-        // 命令文本回显、返回值打印到 PyShell；禁止绕过命令层直接调用 C++ 入口 createSubwindow。
-        const int next = subwindowSeq_ + 1;
-        pythonConsole_->executeCommand(
-            QStringLiteral("create_window(\"plot_%1\")").arg(next));
+        // 动作槽构造无参 create_window() 命令文本提交 PythonConsole::executeCommand，
+        // 命令文本回显、返回值（窗口 id）打印到 PyShell；title 缺省时自动 = id（Plot_N）。
+        // 禁止绕过命令层直接调用 C++ 入口 createSubwindow。
+        pythonConsole_->executeCommand(QStringLiteral("create_window()"));
     });
 
     layoutSettingsAction_ = new QAction(tr("Layout Settings..."), this);
@@ -1620,10 +1619,12 @@ void MainWindow::createCentralArea() {
 }
 
 // ---- 004-dock-layout-manager：创建子窗口（FR-001/002，Python 桥 + 菜单双入口）----
-void MainWindow::createSubwindow(const QString& title) {
-    Q_UNUSED(title);  // 标题栏统一为 "plot_" + 递增序号（用户需求：plot_1、plot_2、…）
+// 返回生成的窗口 id（"Plot_" + 全局递增序号，用户需求 2026-08-29）；
+// title 缺省（空白）时窗口标题 = id，传入 title 时窗口标题显示 title。
+QString MainWindow::createSubwindow(const QString& title) {
     ++subwindowSeq_;
-    const QString displayTitle = QStringLiteral("plot_%1").arg(subwindowSeq_);
+    const QString id = QStringLiteral("Plot_%1").arg(subwindowSeq_);
+    const QString displayTitle = title.trimmed().isEmpty() ? id : title.trimmed();
     auto* view = new SubwindowView(displayTitle, subwindowContainer_);
     subwindowContainer_->addSubwindow(view);
 
@@ -1659,6 +1660,7 @@ void MainWindow::createSubwindow(const QString& title) {
             [this, view] { subwindowContainer_->removeSubwindow(view); });  // 关闭 = 销毁（FR-002）
 
     statusBar()->showMessage(tr("Subwindow created: %1").arg(view->title()), 3000);
+    return id;
 }
 
 // ---- 004-dock-layout-manager：布局设置入口（US5；修改即生效 FR-011）----
