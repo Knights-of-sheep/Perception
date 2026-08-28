@@ -10,6 +10,7 @@ class QCloseEvent;
 class QDragEnterEvent;
 class QDropEvent;
 class QEvent;
+class QKeyEvent;
 class QLabel;
 class QToolBar;
 class QToolButton;
@@ -19,6 +20,8 @@ class QTreeWidget;
 #include <QList>
 #include <QPair>
 #include <QPointer>
+#include <QRect>
+#include <QVector>
 
 namespace perception {
 namespace core {
@@ -32,6 +35,9 @@ namespace perception {
 namespace ui {
 
 class PythonConsole;  // 前向声明须与定义同名空间（类在 perception::ui 内）
+class SubwindowContainer;  // 004-dock-layout-manager：中央区域子窗口容器
+class SubwindowView;
+class LayoutSettingsDialog;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -48,6 +54,13 @@ public:
 public slots:
     void resetLayout();            // 恢复默认布局（Ctrl+Shift+L / --snapshot 模式调用）
     void applyTheme(const QString& themeId);  // 主题热切换（菜单触发 / --snapshot 模式调用）
+    // 004-dock-layout-manager：创建渲染子窗口（Python create_window 桥 + 菜单双入口，FR-001/002）；
+    // 返回生成的窗口 id（"Plot_" + 全局递增序号）
+    QString createSubwindow(const QString& title);
+    void openLayoutSettings();     // 打开布局设置界面（US5 统一入口）
+    void showHiddenSubwindows();   // 恢复全部"隐藏"的子窗口（View 菜单）
+    // 004-dock-layout-manager：暴露子窗口容器（快照模式用——触发首个 subwindow 选中以展示高亮）
+    perception::ui::SubwindowContainer* centralContainer() const { return subwindowContainer_; }
 
 public:
     // Dock 拖拽高亮（VSCode 风格分割线指示）：由 DockTitleBar 拖拽回调驱动
@@ -93,6 +106,8 @@ protected:
     // 主题切换（palette 变化）时重新生成标题栏按钮图标颜色；
     // 同时检测分隔条命中（press/release）驱动分界线高亮
     bool event(QEvent* event) override;
+    // 全屏/最大化状态：Esc 退出（FR-017）
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     void createActions();
@@ -111,6 +126,12 @@ private:
     void setActionIcon(QAction* action, const QString& iconId);
     void refreshActionIcons();                // 主题切换后按当前色板重建全部动作图标
 
+    // 004-dock-layout-manager：全屏协调（FR-017）。
+    // 全屏 = 中间区域（子窗口容器）扩展至整个主界面：隐藏三个 Dock，容器（centralWidget）
+    // 自动扩展；退出时按记录恢复各 Dock 显隐。侧边栏功能按钮触发。
+    void setContainerFullscreen(bool on);
+    bool isContainerFullscreen() const { return containerFullscreen_; }
+
     // 动作
     QAction* openAction_ = nullptr;
     QAction* exportAction_ = nullptr;
@@ -118,6 +139,11 @@ private:
     QAction* toggleFileDockAction_ = nullptr;
     QAction* togglePropertyDockAction_ = nullptr;
     QAction* resetLayoutAction_ = nullptr;
+    // 004-dock-layout-manager：视图菜单
+    QAction* newSubwindowAction_ = nullptr;      // 新建子窗口（FR-001/002）
+    QAction* layoutSettingsAction_ = nullptr;    // 布局设置入口（US5）
+    QAction* toggleFullscreenAction_ = nullptr;  // 全屏：中间区域扩展至整个主界面（侧边栏按钮）
+    QAction* showHiddenSubwindowsAction_ = nullptr;  // 恢复"隐藏"的子窗口
     QAction* aboutAction_ = nullptr;
     QAction* exportImageAction_ = nullptr;  // 导出主界面图片（grab + save）
     QAction* togglePythonConsoleAction_ = nullptr;  // 底部 Python 控制台开关
@@ -176,6 +202,21 @@ private:
     QTreeWidget* propertyTree_ = nullptr;  // 右侧：属性/曲线列表
     QLabel*      centralPlaceholder_ = nullptr; // 中央：曲线视图占位
     QLabel*      versionLabel_ = nullptr;       // 状态栏版本号（主题切换时刷新颜色）
+
+    // 004-dock-layout-manager：子窗口容器与全屏状态
+    SubwindowContainer* subwindowContainer_ = nullptr;
+    LayoutSettingsDialog* layoutSettingsDialog_ = nullptr;  // 单例对话框（无模式）
+    bool containerFullscreen_ = false;  // 全屏中（三个 Dock 隐藏，容器扩展占满主界面）
+    QVector<bool> docksVisibleBeforeFullscreen_;  // 全屏前各 Dock 显隐，退出时恢复
+    int subwindowSeq_ = 0;  // 子窗口标题序号（plot_1、plot_2、…，全局递增不回退）
+
+    // 005-multi-screen-maximize：最大化前几何（FR-003/006）。
+    // normalGeometry_ 在 WM_GETMINMAXINFO 中记录（消息于窗口尺寸改变前到达，
+    // frameGeometry 仍为最大化前几何），恢复时还原原屏原尺寸；prevMaximized_
+    // 用于 changeEvent 判断"进入/退出最大化"过渡，覆盖系统侧触发（任务栏右键）。
+    QRect normalGeometry_;
+    bool  normalGeometryValid_ = false;
+    bool  prevMaximized_ = false;
 
     // 无边框自定义标题栏（与菜单栏同一行）
     QWidget*     titleBarWidget_ = nullptr;  // 左：应用图标 + 标题
