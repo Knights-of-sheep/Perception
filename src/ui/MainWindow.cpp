@@ -737,8 +737,14 @@ void MainWindow::createActions() {
     newSubwindowAction_ = new QAction(tr("New Subwindow"), this);
     newSubwindowAction_->setStatusTip(tr("Create a new render subwindow"));
     setActionIcon(newSubwindowAction_, "view-multi-view");
-    connect(newSubwindowAction_, &QAction::triggered, this,
-            [this] { createSubwindow(tr("Untitled")); });
+    connect(newSubwindowAction_, &QAction::triggered, this, [this] {
+        // FR-002/FR-027（plan Structure Decision）：菜单入口触发同一 create_window 命令行执行——
+        // 动作槽构造 create_window("plot_N") 命令文本提交 PythonConsole::executeCommand，
+        // 命令文本回显、返回值打印到 PyShell；禁止绕过命令层直接调用 C++ 入口 createSubwindow。
+        const int next = subwindowSeq_ + 1;
+        pythonConsole_->executeCommand(
+            QStringLiteral("create_window(\"plot_%1\")").arg(next));
+    });
 
     layoutSettingsAction_ = new QAction(tr("Layout Settings..."), this);
     layoutSettingsAction_->setStatusTip(tr("Arrange subwindows: mode, max rows/columns, same size"));
