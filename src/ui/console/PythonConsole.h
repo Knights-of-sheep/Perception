@@ -45,6 +45,15 @@ public:
     // 清空控制台显示（重置为版本横幅 + 新提示符；不清 Python 命名空间）
     void clearConsole();
 
+    // create_window 桥（004-dock-layout-manager，FR-001）：
+    // REPL 内调用 create_window(name) 时经此校验（空名/类型错误返回 false 不崩溃，
+    // 契约 contracts/python-create-window.md），通过后发射 createWindowRequested。
+    bool requestCreateWindow(const QString& title);
+
+signals:
+    // 通知 MainWindow 创建渲染子窗口（UI 线程直连槽：MainWindow::createSubwindow）
+    void createWindowRequested(const QString& title);
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void inputMethodEvent(QInputMethodEvent* event) override;
