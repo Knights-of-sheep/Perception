@@ -8,6 +8,10 @@
 
 **Input**: User description: "确保主界面在多屏幕情况下的任何一个屏幕上都可以最大化成功，当前情况是，将主界面拖到另一个屏幕后，点击最大化，窗口却看不到了，很奇怪。"
 
+## Session 2026-08-29（修订记录）
+
+- 缺陷复核：US1–US3 实现（tasks T001–T016）后实测，副屏最大化仍"窗口消失"。根因：`WM_GETMINMAXINFO` 的 `ptMaxPosition` 被填入目标屏工作区的**虚拟桌面绝对坐标**，而 Windows `MINMAXINFO` 语义为**相对目标显示器左上角**的坐标（主屏原点恰为 0 故正常，副屏在主屏右侧/左侧/上方时被推到屏外）。修复：几何层输出"工作区尺寸 + 相对目标屏左上角的偏移"（research R6 / contracts §2 / tasks T017）。行为验收不变（FR-001~006 均以"完整可见"为准）。
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - 任意屏幕最大化成功 (Priority: P1)

@@ -8,7 +8,9 @@
 #pragma once
 
 #include <QList>
+#include <QPoint>
 #include <QRect>
+#include <QSize>
 
 namespace perception {
 namespace ui {
@@ -23,12 +25,31 @@ namespace window_geometry {
 // 时返回 -1（调用方跳过限制）。
 int resolveTargetScreenIndex(const QList<QRect>& screensGeom, const QRect& windowFrame);
 
-// 最大化几何：目标屏幕的可用工作区（QScreen::availableGeometry()）。
-//   screensAvailGeom —— 与 screensGeom 一一对应的可用几何列表；
-//   index             —— resolveTargetScreenIndex() 的结果。
-// index 合法且非空 → 返回对应项；index 越界/对应项为空 → 回退列表首个非空项；
-// 列表全空 → QRect()（调用方保留原行为，不覆写 MINMAXINFO）。
-QRect maximizeGeometry(const QList<QRect>& screensAvailGeom, int index);
+// Windows MINMAXINFO 最大化填充数据：
+//   maxPosition —— ptMaxPosition：窗口最大化时左上角位置，语义为"相对目标屏幕
+//                  左上角"的偏移（Windows 对 MINMAXINFO 使用目标监视器坐标，
+//                  而非虚拟桌面绝对坐标；Chromium 等成熟实现均按
+//                  rcWork - rcMonitor 换算，research R6）。直接填入虚拟桌面
+//                  绝对坐标会把窗口推到目标屏之外（副屏最大化"消失"的根因）。
+//   maxSize     —— ptMaxSize：目标屏幕工作区尺寸（无边框窗口无系统边框，
+//                  直接使用工作区尺寸）。
+struct MaximizeInfo {
+    QPoint maxPosition;
+    QSize maxSize;
+    bool isEmpty() const { return maxSize.isEmpty(); }
+};
+
+// 最大化填充数据：目标屏幕可用工作区（screensAvailGeom）相对其完整几何
+// （screensGeom，含任务栏/系统区）左上角的偏移 + 工作区尺寸。
+//   screensGeom      —— 屏幕完整几何列表（与 resolveTargetScreenIndex 输入一致）；
+//   screensAvailGeom —— 与 screensGeom 一一对应的可用工作区列表；
+//   index            —— resolveTargetScreenIndex() 的结果。
+// index 合法且两列表对应项均非空 → 返回对应项；index 越界/对应项为空 →
+// 回退首个两列表均非空的对；列表全空 → 空 MaximizeInfo（调用方保留原行为，
+// 不覆写 MINMAXINFO）。
+MaximizeInfo maximizeInfo(const QList<QRect>& screensGeom,
+                          const QList<QRect>& screensAvailGeom,
+                          int index);
 
 }  // namespace window_geometry
 }  // namespace ui

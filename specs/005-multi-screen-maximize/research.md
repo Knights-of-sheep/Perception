@@ -93,13 +93,35 @@ const QScreen* resolveTargetScreen(const QWidget* w);
 
 ---
 
+## R6: `ptMaxPosition` 坐标语义——相对目标显示器而非虚拟桌面（2026-08-29 修订）
+
+**Context**: 修复后实测仍发现"副屏最大化窗口消失"。几何层 `maximizeGeometry` 返回目标屏 `availableGeometry()`（虚拟桌面绝对坐标），接线层直接填入 `ptMaxPosition`。Windows 的 `MINMAXINFO` 坐标语义为**相对目标显示器左上角**（Chromium `DesktopWindowTreeHostWin` 等成熟实现均按 `rcWork - rcMonitor` 换算）；直接填入虚拟坐标后，副屏在主屏右侧时 `ptMaxPosition.x = 1920` 会把窗口推到目标屏右侧 1920px 处（完全跑出屏幕），负坐标副屏（主屏左侧/上方）同理偏移更明显。
+
+**Decision**: 目标屏解析（R2）不变；最大化几何输出改为"相对偏移 + 工作区尺寸"：
+
+```cpp
+struct MaximizeInfo { QPoint maxPosition; QSize maxSize; };
+// maxPosition = avail.topLeft - geom.topLeft（相对目标屏左上角）
+// maxSize     = avail.size()
+```
+
+接线层按此填充 `ptMaxPosition`/`ptMaxSize`。
+
+**Rationale**: 对齐 Windows `MINMAXINFO` 语义；`ptMaxSize` 对无边框窗口直接取工作区尺寸（无客户区扣除问题）；任务栏在屏幕顶部/左侧时偏移非零，由纯函数单测覆盖（`tests/cpp/window_geometry_test.cpp`：副屏右/左/上方、任务栏顶/左用例）。
+
+**Alternatives considered**:
+- 保留虚拟坐标 + Win32 `MonitorFromWindow` 由系统换算——需自管 monitor 句柄与 DPI，与 Qt 体系重复
+- 仅修接线层（MainWindow 里手动减几何）——逻辑下沉到纯函数层更可单测、符合 R5
+
+---
+
 ## 汇总
 
 | 决策点 | 结论 | 对应需求 |
 |--------|------|----------|
 | 根因 | `screen()` 在 native 时机解析错误屏幕 | FR-001/002/004 |
 | 目标屏解析 | `screenAt(frameGeometry().center())` + fallback 链 | FR-001/002/004/006 |
-| 最大化几何 | 目标屏 `availableGeometry()`（DIP，负坐标天然正确） | FR-001/006 |
+| 最大化几何 | 目标屏工作区尺寸 + `ptMaxPosition` 相对目标屏左上角偏移（R6） | FR-001/006 |
 | 恢复几何 | `changeEvent` 记录 normal geometry，恢复时显式还原 | FR-003/006 |
 | 热插拔/DPI | fallback 链 + Qt DIP，不引入自管逻辑 | FR-005/006 |
-| 测试 | 纯函数单测 + 手动多屏场景清单 | SC-001..004 |
+| 测试 | 纯函数单测（含 R6 相对偏移回归）+ 手动多屏场景清单 | SC-001..004 |
