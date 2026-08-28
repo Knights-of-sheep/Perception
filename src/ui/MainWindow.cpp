@@ -2,6 +2,8 @@
 // 布局：菜单栏 / 工具栏 / 左侧文件树 Dock / 中央曲线视图（M3 接入 VTK）/ 右侧属性 Dock / 状态栏。
 // 规范：docs/design/ui-guidelines.md §5 布局范式 / §6 交互规范。
 #include "ui/MainWindow.h"
+#include "ui/win_btn_icon.h"
+#include "ui/window_geometry.h"
 
 #include <QAction>
 #include <QApplication>
@@ -16,6 +18,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
@@ -23,12 +26,12 @@
 #include <QMimeData>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
 #include <QProxyStyle>
 #include <QPushButton>
-#include <QScreen>
 #include <QScreen>
 #include <QSizeGrip>
 #include <QSettings>
@@ -56,6 +59,9 @@
 
 #include "ui/action_icon_map.h"
 #include "ui/console/PythonConsole.h"
+#include "ui/subwindow/layout_settings_dialog.h"
+#include "ui/subwindow/subwindow_container.h"
+#include "ui/subwindow/subwindow_view.h"
 #include "ui/theme/icon_factory.h"
 #include "ui/theme/theme_catalog.h"
 #include "ui/theme/theme_manager.h"
@@ -87,74 +93,8 @@ QIcon makeActionIcon(const QString& iconId) {
                                           t->colors.textDisabled, t->colors.accent);
 }
 
-// ---- 窗口控制按钮图标（统一 16px 矢量绘制；文本字符字形/基线不一，观感不齐）----
-enum class WinBtnKind { Minimize, Maximize, Restore, Close, FloatDock, Undock };
-
-void drawWinBtnIcon(QPainter& p, WinBtnKind kind, const QColor& color) {
-    p.save();
-    p.setRenderHint(QPainter::Antialiasing, true);
-    QPen pen(color, 1.6);
-    pen.setCapStyle(Qt::RoundCap);
-    pen.setJoinStyle(Qt::RoundJoin);
-    p.setPen(pen);
-    p.setBrush(Qt::NoBrush);
-    switch (kind) {
-    case WinBtnKind::Minimize:
-        // 横线垂直居中（与其他图标 centerY 对齐，避免按钮排布不齐平）
-        p.drawLine(QPointF(3, 8.5), QPointF(13, 8.5));
-        break;
-    case WinBtnKind::Maximize:
-        p.drawRect(QRectF(3.2, 3.2, 9.6, 9.6));  // 方框
-        break;
-    case WinBtnKind::Restore:
-        // 两个重叠小方框（Windows 还原惯例：后框 + 前框）
-        p.drawRect(QRectF(2.4, 5.4, 8.2, 8.2));
-        p.drawRect(QRectF(5.4, 2.4, 8.2, 8.2));
-        break;
-    case WinBtnKind::Close:
-        // 对角交叉
-        p.drawLine(QPointF(3.6, 3.6), QPointF(12.4, 12.4));
-        p.drawLine(QPointF(12.4, 3.6), QPointF(3.6, 12.4));
-        break;
-    case WinBtnKind::FloatDock:
-        // 分离：上下对三角（⇅ 语义，停靠面板分离为浮动窗口）
-        p.drawPolyline(QPolygonF() << QPointF(8, 3.2) << QPointF(4.6, 7.4)
-                                   << QPointF(11.4, 7.4) << QPointF(8, 3.2));
-        p.drawPolyline(QPolygonF() << QPointF(8, 12.8) << QPointF(4.6, 8.6)
-                                   << QPointF(11.4, 8.6) << QPointF(8, 12.8));
-        break;
-    case WinBtnKind::Undock:
-        // 恢复嵌入：L 形返回箭头（↩ 语义，浮动窗口回到主窗口停靠）
-        p.drawLine(QPointF(12.5, 4.2), QPointF(12.5, 9.2));
-        p.drawLine(QPointF(12.5, 9.2), QPointF(4.8, 9.2));
-        p.drawLine(QPointF(4.8, 9.2), QPointF(7.6, 6.8));
-        p.drawLine(QPointF(4.8, 9.2), QPointF(7.6, 11.6));
-        break;
-    }
-    p.restore();
-}
-
-QIcon makeWinBtnIcon(WinBtnKind kind, const QPalette& pal) {
-    const QColor normal = pal.color(QPalette::WindowText);
-    // 关闭按钮 hover 背景为红色（QSS @dangerHoverBg@），图标取白色保证对比；
-    // 其余按钮 hover 沿用主文字色。
-    const QColor active = (kind == WinBtnKind::Close)
-                              ? pal.color(QPalette::BrightText)
-                              : pal.color(QPalette::WindowText);
-    QIcon icon;
-    const int sizes[] = {16, 32};  // 兼容高 DPI 缩放
-    for (int s : sizes) {
-        QPixmap base(s, s);
-        base.fill(Qt::transparent);
-        { QPainter p(&base); drawWinBtnIcon(p, kind, normal); }
-        QPixmap act(s, s);
-        act.fill(Qt::transparent);
-        { QPainter p(&act); drawWinBtnIcon(p, kind, active); }
-        icon.addPixmap(base);                             // Normal / Off
-        icon.addPixmap(act, QIcon::Active, QIcon::Off);   // hover / 按下
-    }
-    return icon;
-}
+// 窗口控制按钮图标见 ui/win_btn_icon.h（统一 16px 矢量绘制；
+// 文本字符字形/基线不一观感不齐，故全部用 QPainter 图标）。
 
 // ---- 通用对话框标题栏工厂（FramelessDialog 与 ThemedFileDialog 共享） ----
 // 复用 QSS objectName (titleBarRow/titleBarTitle/titleBarIcon/winCloseBtn) 与
@@ -695,6 +635,11 @@ MainWindow::MainWindow(QWidget* parent)
     createCentralArea();
     createStatusBar();
 
+    // 004-dock-layout-manager：Python create_window 桥 → 创建子窗口（FR-001，契约
+    // contracts/python-create-window.md；REPL 在 GUI 线程执行，直连安全）
+    connect(pythonConsole_, &PythonConsole::createWindowRequested, this,
+            &MainWindow::createSubwindow);
+
     // Dock 布局记忆（ui-guidelines §5.1：下次打开还原布局）
     QSettings settings;
     restoreGeometry(settings.value(kSettingsGeometryKey).toByteArray());
@@ -788,6 +733,34 @@ void MainWindow::createActions() {
     resetLayoutAction_->setStatusTip(tr("Restore the default layout (data left, properties right)"));
     setActionIcon(resetLayoutAction_, "view-reset-camera");
 
+    // 004-dock-layout-manager：创建子窗口与布局设置（FR-001/002，US5 统一入口）
+    newSubwindowAction_ = new QAction(tr("New Subwindow"), this);
+    newSubwindowAction_->setStatusTip(tr("Create a new render subwindow"));
+    setActionIcon(newSubwindowAction_, "view-multi-view");
+    connect(newSubwindowAction_, &QAction::triggered, this,
+            [this] { createSubwindow(tr("Untitled")); });
+
+    layoutSettingsAction_ = new QAction(tr("Layout Settings..."), this);
+    layoutSettingsAction_->setStatusTip(tr("Arrange subwindows: mode, max rows/columns, same size"));
+    setActionIcon(layoutSettingsAction_, "view-multi-view");
+    connect(layoutSettingsAction_, &QAction::triggered, this, &MainWindow::openLayoutSettings);
+
+    // 004：全屏 = 中间区域（子窗口容器）扩展至整个主界面（隐藏 Dock；FR-017）。
+    // View 菜单入口；checkable 表示当前处于全屏（侧边栏无此按钮，见 createToolbars）。
+    toggleFullscreenAction_ = new QAction(tr("Fullscreen"), this);
+    toggleFullscreenAction_->setCheckable(true);
+    toggleFullscreenAction_->setStatusTip(
+        tr("Expand the central area to the whole main window (hide docks)"));
+    setActionIcon(toggleFullscreenAction_, "view-fit-screen");
+    connect(toggleFullscreenAction_, &QAction::triggered, this,
+            [this] { setContainerFullscreen(!containerFullscreen_); });
+
+    // 004：恢复被"隐藏"的子窗口（View 菜单；隐藏按钮在子窗口标题栏）
+    showHiddenSubwindowsAction_ = new QAction(tr("Show Hidden Subwindows"), this);
+    showHiddenSubwindowsAction_->setStatusTip(tr("Restore subwindows hidden via the title-bar button"));
+    connect(showHiddenSubwindowsAction_, &QAction::triggered, this,
+            &MainWindow::showHiddenSubwindows);
+
     // 003：未实现功能占位动作（FR-011：禁用态 + tooltip 明确提示，不连接功能槽）
     undoAction_ = new QAction(tr("&Undo"), this);
     undoAction_->setShortcut(QKeySequence::Undo);
@@ -850,6 +823,11 @@ void MainWindow::createMenus() {
     viewMenu->addAction(toggleFileDockAction_);
     viewMenu->addAction(togglePropertyDockAction_);
     viewMenu->addAction(togglePythonConsoleAction_);
+    viewMenu->addSeparator();
+    viewMenu->addAction(newSubwindowAction_);      // 004：新建子窗口（FR-001/002）
+    viewMenu->addAction(layoutSettingsAction_);    // 004：布局设置（US5 统一入口）
+    viewMenu->addAction(toggleFullscreenAction_);  // 004：全屏（中央区域扩展占满主界面，FR-017）
+    viewMenu->addAction(showHiddenSubwindowsAction_);  // 004：恢复隐藏子窗口
     viewMenu->addSeparator();
     viewMenu->addAction(resetLayoutAction_);
 
@@ -1025,6 +1003,8 @@ void MainWindow::createTitleBar() {
 
 void MainWindow::toggleMaximize() {
     if (isMaximized()) {
+        // 005-multi-screen-maximize：几何恢复统一由 changeEvent(WindowStateChange)
+        // 完成（按钮/双击/任务栏右键/快捷键同一路径，FR-003/006）
         showNormal();
     } else {
         showMaximized();
@@ -1088,7 +1068,6 @@ void MainWindow::createToolbars() {
             leftToolBar_->addAction(act);
         }
     }
-
     // 右：领域功能栏（FR-005：9 按钮，全部禁用态占位，顺序契约 §3）
     rightToolBar_ = new QToolBar(tr("Right Toolbar"), this);
     rightToolBar_->setObjectName(QStringLiteral("rightToolBar"));
@@ -1626,19 +1605,122 @@ void MainWindow::resizeEvent(QResizeEvent* event) {
     if (dockDragOverlay_) dockDragOverlay_->setGeometry(rect());
 }
 
-// ---- 中央区域（空状态设计，ui-guidelines §5.1）----
+// ---- 中央区域（004-dock-layout-manager：子窗口容器；空状态沿用占位语义）----
 void MainWindow::createCentralArea() {
-    auto* central = new QWidget(this);
-    auto* layout = new QVBoxLayout(central);
-    layout->setContentsMargins(0, 0, 0, 0);
+    subwindowContainer_ = new SubwindowContainer(this);
+    subwindowContainer_->setEmptyHint(
+        tr("Drop VTK / SVisual / HDF5 data files here\nor press Ctrl+O to open"));
+    setCentralWidget(subwindowContainer_);
+}
 
-    centralPlaceholder_ = new QLabel(central);
-    centralPlaceholder_->setObjectName("centralPlaceholder");
-    centralPlaceholder_->setAlignment(Qt::AlignCenter);
-    centralPlaceholder_->setText(tr("Drop VTK / SVisual / HDF5 data files here\nor press Ctrl+O to open"));
-    layout->addWidget(centralPlaceholder_);
+// ---- 004-dock-layout-manager：创建子窗口（FR-001/002，Python 桥 + 菜单双入口）----
+void MainWindow::createSubwindow(const QString& title) {
+    Q_UNUSED(title);  // 标题栏统一为 "plot_" + 递增序号（用户需求：plot_1、plot_2、…）
+    ++subwindowSeq_;
+    const QString displayTitle = QStringLiteral("plot_%1").arg(subwindowSeq_);
+    auto* view = new SubwindowView(displayTitle, subwindowContainer_);
+    subwindowContainer_->addSubwindow(view);
 
-    setCentralWidget(central);
+    // 子窗口交互接线（US6）：单击选中 / 最大化 / 隐藏 / 还原 / 向前向后切换
+    connect(view, &SubwindowView::selected, this, [this, view] {
+        // 选中即成为作用对象；仅对状态实际变化的 view 重新 apply QSS（unpolish/polish），
+        // 避免反复刷新所有子窗口。状态未变的 view 直接跳过，性能更稳。
+        for (auto* v : subwindowContainer_->subwindows()) {
+            const bool sel = (v == view);
+            if (v->property("selected").toBool() == sel) continue;
+            v->setProperty("selected", sel);
+            v->style()->unpolish(v);
+            v->style()->polish(v);
+            v->update();
+        }
+    });
+    connect(view, &SubwindowView::maximizeRequested, this, [this, view] {
+        if (subwindowContainer_->isMaximized()) {
+            subwindowContainer_->exitMaximized();  // 已最大化：再次触发 = 退出（FR-016）
+        } else {
+            subwindowContainer_->setMaximized(view);  // 选中子窗口占满容器（中央区域）
+        }
+    });
+    connect(view, &SubwindowView::hideRequested, this,
+            [this, view] { subwindowContainer_->hideSubwindow(view); });
+    connect(view, &SubwindowView::restoreRequested, this,
+            [this] { subwindowContainer_->exitMaximized(); });
+    connect(view, &SubwindowView::prevRequested, this,
+            [this] { subwindowContainer_->cycleMaximized(-1); });
+    connect(view, &SubwindowView::nextRequested, this,
+            [this] { subwindowContainer_->cycleMaximized(1); });
+    connect(view, &SubwindowView::closeRequested, this,
+            [this, view] { subwindowContainer_->removeSubwindow(view); });  // 关闭 = 销毁（FR-002）
+
+    statusBar()->showMessage(tr("Subwindow created: %1").arg(view->title()), 3000);
+}
+
+// ---- 004-dock-layout-manager：布局设置入口（US5；修改即生效 FR-011）----
+void MainWindow::openLayoutSettings() {
+    if (!layoutSettingsDialog_) {
+        layoutSettingsDialog_ =
+            new LayoutSettingsDialog(subwindowContainer_->layoutConfig(), this);
+        layoutSettingsDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
+        connect(layoutSettingsDialog_, &LayoutSettingsDialog::configChanged, this,
+                [this](const LayoutConfig& cfg) {
+                    subwindowContainer_->setLayoutConfig(cfg);  // 即时重排（FR-011）
+                });
+    } else {
+        // 打开时回显当前配置（US5）
+        layoutSettingsDialog_->setConfig(subwindowContainer_->layoutConfig());
+    }
+    layoutSettingsDialog_->show();
+    layoutSettingsDialog_->raise();
+    layoutSettingsDialog_->activateWindow();
+}
+
+// ---- 004-dock-layout-manager：全屏协调（FR-017）----
+// 全屏 = 中间区域（子窗口容器）扩展至整个主界面：隐藏三个 Dock 后 centralWidget
+// 自动占满；退出时按全屏前记录恢复各 Dock 显隐。与子窗口最大化正交：
+// 若已有子窗口最大化（checked），全屏时该子窗口随之占满整个主界面。
+void MainWindow::setContainerFullscreen(bool on) {
+    if (containerFullscreen_ == on) return;
+    containerFullscreen_ = on;
+    if (on) {
+        docksVisibleBeforeFullscreen_.clear();
+        for (QDockWidget* dock : {fileDock_, propertyDock_, pythonDock_}) {
+            if (!dock) continue;
+            docksVisibleBeforeFullscreen_.append(dock->toggleViewAction()->isChecked());
+            dock->hide();
+        }
+    } else {
+        int i = 0;
+        for (QDockWidget* dock : {fileDock_, propertyDock_, pythonDock_}) {
+            if (!dock) continue;
+            if (i < docksVisibleBeforeFullscreen_.size())
+                dock->setVisible(docksVisibleBeforeFullscreen_.at(i));
+            ++i;
+        }
+        docksVisibleBeforeFullscreen_.clear();
+    }
+    if (toggleFullscreenAction_) toggleFullscreenAction_->setChecked(containerFullscreen_);
+}
+
+// ---- 004：恢复被"隐藏"的子窗口（View 菜单）----
+void MainWindow::showHiddenSubwindows() {
+    if (!subwindowContainer_) return;
+    subwindowContainer_->showHiddenSubwindows();
+    statusBar()->showMessage(tr("Hidden subwindows restored"), 3000);
+}
+
+// ---- 全屏/最大化：Esc 退出（FR-017）----
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Escape) {
+        if (containerFullscreen_) {
+            setContainerFullscreen(false);  // 先退出全屏
+            return;
+        }
+        if (subwindowContainer_ && subwindowContainer_->isMaximized()) {
+            subwindowContainer_->exitMaximized();
+            return;
+        }
+    }
+    QMainWindow::keyPressEvent(event);
 }
 
 // ---- 状态栏 ----
@@ -1743,6 +1825,24 @@ void MainWindow::about() {
 // ---- 无边框窗口状态同步 ----
 void MainWindow::changeEvent(QEvent* e) {
     if (e->type() == QEvent::WindowStateChange) {
+        // 005-multi-screen-maximize：最大化/还原几何状态管理（FR-003/006）。
+        // normalGeometry_ 已在 WM_GETMINMAXINFO 记录（消息于窗口尺寸改变前到达，
+        // frameGeometry 为最大化前几何，准确）；此处只做过渡判定与系统侧触发的还原：
+        //   - 进入最大化：确保已记录（兜底取当前几何，覆盖极少数未走该消息的路径）
+        //   - 退出最大化：还原最大化前几何（按钮/双击/任务栏右键/快捷键统一路径，
+        //     原屏原尺寸，FR-003；若原屏已被断开，由系统将窗口归位到可见区域）
+        const bool maximized = isMaximized();
+        if (maximized && !prevMaximized_) {
+            if (!normalGeometryValid_) {
+                normalGeometry_ = frameGeometry();
+                normalGeometryValid_ = !normalGeometry_.isEmpty();
+            }
+        } else if (!maximized && prevMaximized_ && normalGeometryValid_ &&
+                   !normalGeometry_.isEmpty()) {
+            setGeometry(normalGeometry_);
+            normalGeometryValid_ = false;  // 一次性还原，再次最大化时由 MINMAXINFO 重新记录
+        }
+        prevMaximized_ = maximized;
         // 系统/外部触发最大化或还原（如任务栏右键菜单）时同步按钮图标
         updateWindowButtonIcons();
     }
@@ -1834,14 +1934,33 @@ bool MainWindow::nativeEvent(const QByteArray& eventType, void* message, long* r
         }
         break;
     case WM_GETMINMAXINFO: {
-        // 无边框最大化：限制到工作区，避免覆盖任务栏
+        // 005-multi-screen-maximize：无边框最大化限制到窗口"主体所在"屏幕的工作区
+        // （FR-001/002/004：任意屏幕、主/副屏一致、跨屏按窗口中心归属；不遮任务栏）。
+        // 目标屏每次消息动态解析（不缓存屏幕指针），显示器热插拔/DPI 变化后仍正确
+        // （FR-005，research R4）。
         auto* mmi = reinterpret_cast<MINMAXINFO*>(msg->lParam);
-        if (const QScreen* scr = screen()) {
-            const QRect avail = scr->availableGeometry();
-            mmi->ptMaxPosition.x = avail.x();
-            mmi->ptMaxPosition.y = avail.y();
-            mmi->ptMaxSize.x = avail.width();
-            mmi->ptMaxSize.y = avail.height();
+        // 消息于窗口尺寸改变前到达：frameGeometry 仍为最大化前几何，
+        // 顺带记录供 changeEvent 还原（FR-003/006）
+        normalGeometry_ = frameGeometry();
+        normalGeometryValid_ = !normalGeometry_.isEmpty();
+
+        QList<QRect> screensGeom;
+        QList<QRect> screensAvail;
+        const QList<QScreen*> screens = QGuiApplication::screens();
+        screensGeom.reserve(screens.size());
+        screensAvail.reserve(screens.size());
+        for (const QScreen* scr : screens) {
+            screensGeom.append(scr->geometry());
+            screensAvail.append(scr->availableGeometry());
+        }
+        const int idx =
+            window_geometry::resolveTargetScreenIndex(screensGeom, normalGeometry_);
+        const QRect target = window_geometry::maximizeGeometry(screensAvail, idx);
+        if (!target.isEmpty()) {
+            mmi->ptMaxPosition.x = target.x();
+            mmi->ptMaxPosition.y = target.y();
+            mmi->ptMaxSize.x = target.width();
+            mmi->ptMaxSize.y = target.height();
         }
         *result = 0;
         return true;

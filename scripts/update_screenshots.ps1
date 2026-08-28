@@ -18,24 +18,30 @@ function Invoke-Snap {
 }
 
 # ---- 1. Main window (default dark-classic theme) ----
-Invoke-Snap @("--snapshot", (Join-Path $shots "main.png"))
+# 注意：所有快照必须显式 --theme（QSettings 记忆的上次主题会污染无主题的渲染）
+Invoke-Snap @("--snapshot", (Join-Path $shots "main.png"), "--theme", "dark-classic")
+
+# ---- 1b. Main window with render subwindows (verify subwindowView 边框 + 选中高亮) ----
+# 用鼠标点击 plot_1 触发 selected() 通路，验证 [selected="true"] 高亮 QSS
+Invoke-Snap @("--snapshot", (Join-Path $shots "subwindows.png"), "--subwindows", "3", "--theme", "dark-classic")
 
 # ---- 2. Python console REPL (version query) ----
 $verScript = "import sys`nsys.version"
-Invoke-Snap @("--snapshot", (Join-Path $shots "python-console.png"), "--console-script", $verScript)
+Invoke-Snap @("--snapshot", (Join-Path $shots "python-console.png"), "--console-script", $verScript, "--theme", "dark-classic")
 
 # ---- 3. Console echo / execution demos ----
-Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo.png"), "--console-script", "print('hello')")
-Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo2.png"), "--console-script", "2 + 2")
-Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo3.png"), "--console-script", "for i in range(3): print(i * 10)")
-Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo4.png"), "--console-script", "print(1 / 0)")
+Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo.png"), "--console-script", "print('hello')", "--theme", "dark-classic")
+Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo2.png"), "--console-script", "2 + 2", "--theme", "dark-classic")
+Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo3.png"), "--console-script", "for i in range(3): print(i * 10)", "--theme", "dark-classic")
+Invoke-Snap @("--snapshot", (Join-Path $shots "console-echo4.png"), "--console-script", "print(1 / 0)", "--theme", "dark-classic")
 
 $testScript = "import math`nprint(math.pi)`nx = 42`nprint(f'x = {x}')`ndef greet(name):`n    return f'hi, {name}'`n`nprint(greet('Perception'))"
-Invoke-Snap @("--snapshot", (Join-Path $shots "console-test.png"), "--console-script", $testScript)
+Invoke-Snap @("--snapshot", (Join-Path $shots "console-test.png"), "--console-script", $testScript, "--theme", "dark-classic")
 
 # ---- 4. Dock floating / restored (one run, two images) ----
 Invoke-Snap @("--snapshot-float", (Join-Path $shots "dock-floating.png"),
-              "--snapshot-restore", (Join-Path $shots "dock-restored.png"))
+              "--snapshot-restore", (Join-Path $shots "dock-restored.png"),
+              "--theme", "dark-classic")
 
 # ---- 5. UI polish series (light theme) ----
 Invoke-Snap @("--theme", "light-classic", "--snapshot", (Join-Path $shots "ui-opt-main.png"))

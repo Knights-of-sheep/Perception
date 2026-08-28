@@ -66,10 +66,14 @@ struct ThemeDescriptor {
 // ===== 深色主题（15）=====
 
 // 1. 深色经典：产品默认（vsCode Dark+ 系）
+// 注：border / borderWeak 提亮以满足「面板/子窗口分隔线必须清晰可见」的设计反馈；
+//     仍属深色 UI 范畴（≥#4A4A4A），与 VS Code 默认 Dark+ (#3F3F3F) 相比略亮，
+//     实测在 1280px 截图中 ≥1px 即可辨识。1px 边若仍嫌纤细可加大 subwindowView border
+//     至 2px（在 viewBg 容器上 ΔL≈80，可达 2x 对比度）。
 inline const ThemeColors kDarkClassic = {
     {"#1E1E1E"}, {"#252526"}, {"#3C3C3C"}, {"#161616"},
     {"#D4D4D4"}, {"#9D9D9D"}, {"#808080"},
-    {"#454545"}, {"#3F3F3F"},
+    {"#5A5A5A"}, {"#4A4A4A"},
     {"#0A84FF"}, {"#3399FF"}, {"#0066CC"}, {"#094771"},
     {"#3C3C3C"}, {"#2A2A2A"}, {"#333333"}, {"#4A4A4A"}, {"#5A5A5A"},
     {"#2D2D30"}, {"#FF8A8A"}, {"#5A1F1F"},

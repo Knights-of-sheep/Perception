@@ -15,6 +15,10 @@
 #include "ui/MainWindow.h"
 #include "ui/console/PythonConsole.h"
 #include "ui/log/qt_message_bridge.h"
+#include <QDebug>
+#include <QStyle>
+#include "ui/subwindow/subwindow_container.h"
+#include "ui/subwindow/subwindow_view.h"
 #include "ui/theme/theme_manager.h"
 
 #ifndef PERCEPTION_APP_VERSION
@@ -121,10 +125,13 @@ int main(int argc, char* argv[])
     //                                （验证 DockTitleBar::eventFilter 拦截链是否生效）
     QString snapshotPath, snapshotFloatPath, snapshotRestorePath, snapshotThemeId,
             snapshotDragZone, snapshotFocusDock, snapshotRealDragDock, consoleScript;
+    int snapshotSubwindows = 0;
     for (int i = 1; i < argc; ++i) {
         QString arg = QString::fromLocal8Bit(argv[i]);
         if (arg == QLatin1String("--snapshot") && i + 1 < argc) {
             snapshotPath = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QLatin1String("--subwindows") && i + 1 < argc) {
+            snapshotSubwindows = QString::fromLocal8Bit(argv[++i]).toInt();
         } else if (arg == QLatin1String("--snapshot-float") && i + 1 < argc) {
             snapshotFloatPath = QString::fromLocal8Bit(argv[++i]);
         } else if (arg == QLatin1String("--snapshot-restore") && i + 1 < argc) {
@@ -149,7 +156,7 @@ int main(int argc, char* argv[])
         QTimer::singleShot(800, &window, [&window, snapshotPath, snapshotFloatPath,
                                           snapshotRestorePath, snapshotThemeId,
                                           snapshotDragZone, snapshotFocusDock,
-                                          snapshotRealDragDock,
+                                          snapshotRealDragDock, snapshotSubwindows,
                                           consoleScript, &app] {
             QString savedThemeId;
             if (!snapshotThemeId.isEmpty()) {
@@ -164,6 +171,30 @@ int main(int argc, char* argv[])
             }
             window.resetLayout();                        // 强制默认布局（不受 QSettings 记忆影响）
             QApplication::processEvents();
+            // 创建渲染子窗口（验证 subwindowView 边框/选中高亮，--subwindows N）
+            if (snapshotSubwindows > 0) {
+                for (int k = 1; k <= snapshotSubwindows; ++k) {
+                    window.createSubwindow(QStringLiteral("Scene %1").arg(k));
+                }
+                QApplication::processEvents();
+                // 触发首个子窗口的 selected() 通路，验证 [selected="true"] 高亮 QSS
+                if (auto* container = window.centralContainer();
+                    container && !container->subwindows().isEmpty()) {
+                    auto* first = container->subwindows().first();
+                    first->setProperty("selected", true);
+                    first->style()->unpolish(first);
+                    first->style()->polish(first);
+                    first->update();
+                    QApplication::processEvents();
+                    qInfo() << "[snapshot] first selected prop ="
+                            << first->property("selected").toString();
+                    const QString qss = app.styleSheet();
+                    const int si = qss.indexOf(QLatin1String("subwindowView"));
+                    if (si >= 0)
+                        qInfo().noquote() << "[snapshot] QSS subwindowView ="
+                                          << qss.mid(si, 300).replace(QLatin1Char('\n'), QLatin1Char(' '));
+                }
+            }
             // 分界线拖拽高亮：模拟按住 pythonConsoleDock 上缘（水平分隔条）拖动，
             // 验证真实分隔条（QDockWidgetSeparator）命中 + 高亮线长度=分隔条长度
             const QString themeIdNow = perception::ui::ThemeManager::currentThemeId();

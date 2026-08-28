@@ -133,6 +133,27 @@ PyMethodDef cpp_log_def[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
+// create_window：Python REPL 创建渲染子窗口的桥（004-dock-layout-manager，FR-001）。
+// self = PyLong_FromVoidPtr(PythonConsole*)，桥到 requestCreateWindow（契约
+// contracts/python-create-window.md：类型错误抛异常由 REPL 展示，空名返回 False 不崩溃）。
+PyObject* create_window_impl(PyObject* self, PyObject* args) {
+    const char* name = nullptr;
+    if (!PyArg_ParseTuple(args, "s", &name)) return nullptr;  // 非 str：TypeError
+    auto* console = reinterpret_cast<PythonConsole*>(PyLong_AsVoidPtr(self));
+    if (!console) {
+        PyErr_SetString(PyExc_RuntimeError, "Python console unavailable");
+        return nullptr;
+    }
+    const bool ok = console->requestCreateWindow(name ? QString::fromUtf8(name) : QString());
+    return PyBool_FromLong(ok ? 1 : 0);
+}
+
+PyMethodDef create_window_def[] = {
+    {"create_window", create_window_impl, METH_VARARGS,
+     "Create a render subwindow with the given title and arrange it in the current layout"},
+    {nullptr, nullptr, 0, nullptr},
+};
+
 // 引导脚本：续行判定（codeop.compile_command 为无状态的标准判定器，
 // 返回 None=不完整 / code=完整 / 抛异常=语法错误；与 code.InteractiveConsole 同源）
 // + traceback 格式化 + 空 stdin（防止 help() 等交互函数读输入时阻塞 GUI）
@@ -249,6 +270,14 @@ void PythonConsole::initPython() {
     if (cppLogFunc) {
         PyDict_SetItemString(d_->globals, "_cpp_log", cppLogFunc);
         Py_DECREF(cppLogFunc);
+    }
+
+    // 注入 create_window 桥（FR-001；self 携带本实例指针供回调）
+    PyObject* createWinFunc =
+        PyCFunction_New(&create_window_def[0], PyLong_FromVoidPtr(this));
+    if (createWinFunc) {
+        PyDict_SetItemString(d_->globals, "create_window", createWinFunc);
+        Py_DECREF(createWinFunc);
     }
 
     PyRun_String(kBootstrap, Py_file_input, d_->globals, d_->globals);
@@ -523,6 +552,16 @@ void PythonConsole::runScript(const QString& script) {
     // 按行喂给 REPL（与逐行输入同语义：续行自动累积、表达式自动求值）
     const QStringList lines = script.split(QLatin1Char('\n'));
     for (const QString& line : lines) runCommand(line);
+}
+
+bool PythonConsole::requestCreateWindow(const QString& title) {
+    // 参数校验（契约 contracts/python-create-window.md）：空名返回 False 并提示，不崩溃
+    if (title.trimmed().isEmpty()) {
+        appendOutput(tr("create_window: window name must not be empty\n"), d_->errorColor);
+        return false;
+    }
+    emit createWindowRequested(title.trimmed());
+    return true;
 }
 
 void PythonConsole::runPastedText(const QString& text) {
