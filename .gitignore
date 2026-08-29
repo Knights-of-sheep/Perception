@@ -36,6 +36,10 @@ __pycache__/
 venv/
 
 # ===== IDE / misc =====
+# CodeBuddy：commands 斜杠命令为团队共享工作流，随仓库分发；
+# plans/（会话过程快照）与 mcp.json（本地环境变量配置）不入库
+.codebuddy/plans/
+.codebuddy/mcp.json
 .vs/
 .idea/
 .vscode/
