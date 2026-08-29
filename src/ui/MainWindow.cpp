@@ -363,9 +363,11 @@ void MainWindow::createDocks() {
     connect(clearBtn, &QToolButton::clicked,
             this, [this] { pythonConsole_->clearConsole(); });
 
+    sideLayout->addStretch();          // 顶部弹性间隔：Export 不再紧贴 top margin
     sideLayout->addWidget(exportBtn);
-    sideLayout->addStretch();
-    sideLayout->addWidget(clearBtn);
+    sideLayout->addStretch();          // Export 与 Clear 之间弹性间隔
+    sideLayout->addWidget(clearBtn);   // Clear 贴底（保留 bottom margin 8）
+    sideLayout->addStretch(); 
     pythonLayout->addWidget(sideBar);
 
     pythonDock_->setWidget(wrapWithSizeGrip(pythonContainer, pythonDock_));
