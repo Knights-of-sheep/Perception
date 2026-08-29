@@ -251,6 +251,10 @@ void applyNoFocusRectStyle(QDockWidget* dock) {
 
 QWidget* wrapWithSizeGrip(QWidget* content, QDockWidget* dock) {
     auto* container = new QWidget(dock);
+    // 供 QSS 精确定位 dock 内容 wrap 容器（QWidget#dockWrapContainer）：
+    // docked 态取消其 1px border（内容 widget 自身已描边，避免双重描边导致
+    // 视觉外缘内缩 2px、分隔条 6 个点 handle 偏右）；浮动态保持 1px 窗口外缘。
+    container->setObjectName(QStringLiteral("dockWrapContainer"));
     auto* grid = new QGridLayout(container);
     grid->setContentsMargins(0, 0, 0, 0);
     grid->setSpacing(0);

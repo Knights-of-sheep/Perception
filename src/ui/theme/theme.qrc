@@ -117,12 +117,24 @@
         <file>icons/png/actions/tools-help-16.png</file>
         <file>icons/png/actions/tools-help-24.png</file>
         <file>icons/png/actions/tools-help-32.png</file>
+        <file>icons/png/actions/tools-log-16.png</file>
+        <file>icons/png/actions/tools-log-24.png</file>
+        <file>icons/png/actions/tools-log-32.png</file>
+        <file>icons/png/actions/tools-log-dir-16.png</file>
+        <file>icons/png/actions/tools-log-dir-24.png</file>
+        <file>icons/png/actions/tools-log-dir-32.png</file>
+        <file>icons/png/actions/tools-log-path-16.png</file>
+        <file>icons/png/actions/tools-log-path-24.png</file>
+        <file>icons/png/actions/tools-log-path-32.png</file>
         <file>icons/png/actions/tools-measure-16.png</file>
         <file>icons/png/actions/tools-measure-24.png</file>
         <file>icons/png/actions/tools-measure-32.png</file>
         <file>icons/png/actions/tools-settings-16.png</file>
         <file>icons/png/actions/tools-settings-24.png</file>
         <file>icons/png/actions/tools-settings-32.png</file>
+        <file>icons/png/actions/view-add-subwindow-16.png</file>
+        <file>icons/png/actions/view-add-subwindow-24.png</file>
+        <file>icons/png/actions/view-add-subwindow-32.png</file>
         <file>icons/png/actions/view-display-2d-16.png</file>
         <file>icons/png/actions/view-display-2d-24.png</file>
         <file>icons/png/actions/view-display-2d-32.png</file>
@@ -132,9 +144,15 @@
         <file>icons/png/actions/view-fit-screen-16.png</file>
         <file>icons/png/actions/view-fit-screen-24.png</file>
         <file>icons/png/actions/view-fit-screen-32.png</file>
+        <file>icons/png/actions/view-fullscreen-16.png</file>
+        <file>icons/png/actions/view-fullscreen-24.png</file>
+        <file>icons/png/actions/view-fullscreen-32.png</file>
         <file>icons/png/actions/view-layer-visibility-16.png</file>
         <file>icons/png/actions/view-layer-visibility-24.png</file>
         <file>icons/png/actions/view-layer-visibility-32.png</file>
+        <file>icons/png/actions/view-layout-reset-16.png</file>
+        <file>icons/png/actions/view-layout-reset-24.png</file>
+        <file>icons/png/actions/view-layout-reset-32.png</file>
         <file>icons/png/actions/view-multi-view-16.png</file>
         <file>icons/png/actions/view-multi-view-24.png</file>
         <file>icons/png/actions/view-multi-view-32.png</file>

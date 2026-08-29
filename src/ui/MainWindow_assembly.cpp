@@ -84,12 +84,12 @@ void MainWindow::createActions() {
     resetLayoutAction_ = new QAction(tr("Reset Layout"), this);
     resetLayoutAction_->setShortcut(QKeySequence("Ctrl+Shift+L"));
     resetLayoutAction_->setStatusTip(tr("Restore the default layout (data left, properties right)"));
-    setActionIcon(resetLayoutAction_, "view-reset-camera");
+    setActionIcon(resetLayoutAction_, "view-layout-reset");
 
     // 004-dock-layout-manager：创建子窗口与布局设置（FR-001/002，US5 统一入口）
     newSubwindowAction_ = new QAction(tr("New Subwindow"), this);
     newSubwindowAction_->setStatusTip(tr("Create a new render subwindow"));
-    setActionIcon(newSubwindowAction_, "view-multi-view");
+    setActionIcon(newSubwindowAction_, "view-add-subwindow");
     connect(newSubwindowAction_, &QAction::triggered, this, [this] {
         // FR-002/FR-027（plan Structure Decision）：菜单入口触发同一 create_window 命令行执行——
         // 动作槽构造无参 create_window() 命令文本提交 PythonConsole::executeCommand，
@@ -109,7 +109,7 @@ void MainWindow::createActions() {
     toggleFullscreenAction_->setCheckable(true);
     toggleFullscreenAction_->setStatusTip(
         tr("Expand the central area to the whole main window (hide docks)"));
-    setActionIcon(toggleFullscreenAction_, "view-fit-screen");
+    setActionIcon(toggleFullscreenAction_, "view-fullscreen");
     connect(toggleFullscreenAction_, &QAction::triggered, this,
             [this] { setContainerFullscreen(!containerFullscreen_); });
 
@@ -225,9 +225,9 @@ void MainWindow::createMenus() {
     QMenu* settingsMenu = menuBar()->addMenu(tr("&Settings"));
     const LogMenuActions logMenu = logSettingsController_->attachLogMenu(settingsMenu);
     // 003：契约图标（动作仍由 MainWindow 注册，主题切换时随 iconItems_ 重建）
-    setActionIcon(logMenu.vtkLog, "tools-settings");
-    setActionIcon(logMenu.openLogDir, "tools-settings");
-    setActionIcon(logMenu.setLogPath, "tools-settings");
+    setActionIcon(logMenu.vtkLog, "tools-log");
+    setActionIcon(logMenu.openLogDir, "tools-log-dir");
+    setActionIcon(logMenu.setLogPath, "tools-log-path");
     setActionIcon(logMenu.clearLog, "edit-delete-selection");
 
     QMenu* helpMenu = menuBar()->addMenu(tr("&Help"));

@@ -6,6 +6,7 @@
 #include <QDockWidget>
 #include <QMainWindow>
 #include <QPainter>
+#include <QStyle>
 
 namespace perception {
 namespace ui {
@@ -189,10 +190,13 @@ void DockDragOverlay::endDockDrag(const QPoint& globalPos) {
 // 同步 → 与真实分隔条完全重合。
 int DockDragOverlay::hitTest(const QPoint& pos) const {
     const int zone = 6;
+    // 与 highlightRect 一致：命中中心 = separator 中心（Qt 6 个点 handle 位置）
+    const int sepW = window_ ? window_->style()->pixelMetric(QStyle::PM_DockWidgetSeparatorExtent)
+                             : 4;
     // 垂直分隔条：左侧 fileDock 右缘
     if (fileDock() && fileDock()->isVisible() && !fileDock()->isFloating()) {
         const QRect g = fileDock()->geometry();
-        const int x = g.right() + 1;
+        const int x = g.right() + 1 + sepW / 2;
         if (qAbs(pos.x() - x) <= zone && pos.y() >= g.top() - zone &&
             pos.y() <= g.bottom() + zone)
             return SashFileRight;
@@ -200,7 +204,7 @@ int DockDragOverlay::hitTest(const QPoint& pos) const {
     // 垂直分隔条：右侧 propertyDock 左缘
     if (propertyDock() && propertyDock()->isVisible() && !propertyDock()->isFloating()) {
         const QRect g = propertyDock()->geometry();
-        const int x = g.left() - 1;
+        const int x = g.left() - 1 - sepW / 2;
         if (qAbs(pos.x() - x) <= zone && pos.y() >= g.top() - zone &&
             pos.y() <= g.bottom() + zone)
             return SashPropertyLeft;
@@ -208,7 +212,7 @@ int DockDragOverlay::hitTest(const QPoint& pos) const {
     // 水平分隔条：底部 pythonDock 上缘
     if (pythonDock() && pythonDock()->isVisible() && !pythonDock()->isFloating()) {
         const QRect g = pythonDock()->geometry();
-        const int y = g.top() - 1;
+        const int y = g.top() - 1 - sepW / 2;
         if (qAbs(pos.y() - y) <= zone && pos.x() >= g.left() - zone &&
             pos.x() <= g.right() + zone)
             return SashPythonTop;
@@ -244,28 +248,41 @@ void DockDragOverlay::endSashDrag() {
 }
 
 // 分隔条矩形：由命中类型 + 最新 dock geometry 计算。长度 = 分隔条实际长度
-//（水平分隔条 = pythonDock 宽度；垂直分隔条 = 对应 dock 高度），与真实分隔条 100% 吻合。
+// （水平分隔条 = pythonDock 宽度；垂直分隔条 = 对应 dock 高度），与真实分隔条 100% 吻合。
+// 宽度/位置 = 精确对齐 Qt 5.15 QDockAreaLayout::separatorRect 的几何：
+//   - 外部 dock 区域与 centralWidget 之间的 separator 为
+//       LeftDock : [dock.right()+1, dock.right()+sepW]
+//       RightDock: [dock.left()-sepW,  dock.left()-1]
+//       BottomDock: [dock.top()-sepW,  dock.top()-1]
+//   - sepW = PM_DockWidgetSeparatorExtent（默认 4）；Qt 在 separator 中央绘制
+//     6 个点 handle（PE_IndicatorDockWidgetResizeHandle）。
+//   高亮条宽 sepW+2 居中于 separator，完整覆盖 6 个点（之前 4px 条中心仅对齐
+//   dock 边缘 ±1px，相对 separator 中心偏 1.5-2px，导致 6 个点露出偏右）。
 QRect DockDragOverlay::highlightRect() const {
+    const int sepW = window_ ? window_->style()->pixelMetric(QStyle::PM_DockWidgetSeparatorExtent)
+                             : 4;
+    const int w = sepW + 2;  // separator 宽 + 两侧 1px 余量（sepW=4 → 6px）
     switch (sashHit_) {
     case SashFileRight:
         if (fileDock() && fileDock()->isVisible() && !fileDock()->isFloating()) {
             const QRect g = fileDock()->geometry();
-            // 垂直分隔条在 fileDock 右缘 +1px 处；4px 条中心对齐
-            return QRect(g.right() - 1, g.top(), 4, g.height());
+            // separator 起点 = g.right()+1；高亮条左缘使中心对齐 separator 中心
+            const int x = g.right() + 1 + (sepW - w) / 2;
+            return QRect(x, g.top(), w, g.height());
         }
         break;
     case SashPropertyLeft:
         if (propertyDock() && propertyDock()->isVisible() && !propertyDock()->isFloating()) {
             const QRect g = propertyDock()->geometry();
-            // 垂直分隔条在 propertyDock 左缘 -1px 处
-            return QRect(g.left() - 3, g.top(), 4, g.height());
+            const int x = g.left() - sepW + (sepW - w) / 2;
+            return QRect(x, g.top(), w, g.height());
         }
         break;
     case SashPythonTop:
         if (pythonDock() && pythonDock()->isVisible() && !pythonDock()->isFloating()) {
             const QRect g = pythonDock()->geometry();
-            // 水平分隔条在 pythonDock 上缘 -1px 处；4px 条覆盖其上
-            return QRect(g.left(), g.top() - 2, g.width(), 4);
+            const int y = g.top() - sepW + (sepW - w) / 2;
+            return QRect(g.left(), y, g.width(), w);
         }
         break;
     default:

@@ -202,16 +202,24 @@ QComboBox QAbstractItemView {
 /* 自定义标题栏（修复 Qt5+Fusion 下浮动态不绘制 normal-button 的问题）：
    通过 QDockWidget::setTitleBarWidget(DockTitleBar) 接管，按钮显式 QToolButton。
    注：QDockWidget 自身的 border 在 QMainWindow 内部不绘制（QDockAreaLayout 管理，
-   QSS 不走标准渲染路径），改用 QDockWidget > QWidget 选 dock 内容 wrap widget
-   （MainWindow::wrapWithSizeGrip 构造的 QWidget+QGridLayout+QTreeWidget/PythonConsole）
-   加 1px 边框——视觉上等同 dock 外缘描边；与 QToolBar#left/right border 邻接时形成
-   2px 强分隔条。 */
+   QSS 不走标准渲染路径），改用 dock 内容 wrap 容器（QWidget#dockWrapContainer，
+   MainWindow::wrapWithSizeGrip 构造的 QWidget+QGridLayout+QTreeWidget/PythonConsole）
+   或内容 widget 自身的 1px 边框——视觉上等同 dock 外缘描边；与
+   QToolBar#left/right border 邻接时形成 2px 强分隔条。 */
 QDockWidget {
     background-color: @panelBg@;   /* BG_PANEL */
     color: @textWeak@;              /* FG_TEXT_WEAK */
 }
-QDockWidget > QWidget {
-    border: 1px solid @border@;     /* dock 内容外缘描边（绕开 QSS 限制） */
+/* docked：wrap 不画边框——内容 widget（QTreeWidget / QPlainTextEdit#pythonConsole）
+   自身已带 1px border（见下），wrap 若再画 1px 会形成双重描边，视觉外缘内缩 2px，
+   使分隔条上的 6 个点 handle 相对相邻区域视觉中央偏右 1px（sash 高亮错位根因）。
+   浮动：wrap 1px 边框即窗口外缘（Frameless 顶层窗口无原生边框）；浮动态内容 widget
+   边框已被下方 dockFloating="true" 规则取消，无双线。 */
+QWidget#dockWrapContainer {
+    border: none;
+}
+QDockWidget[dockFloating="true"] QWidget#dockWrapContainer {
+    border: 1px solid @border@;
 }
 /* 浮动窗口：wrap container 的 1px 边框即窗口外缘（Frameless 顶层窗口无原生边框）；
    内容 widget（QTreeWidget / QPlainTextEdit）自身 1px 边框与之紧贴会成双线，
