@@ -24,6 +24,8 @@ namespace ui {
 DockTitleBar::DockTitleBar(QDockWidget* parent)
     : QWidget(parent), dock_(parent) {
     setObjectName(QStringLiteral("dockTitleBar"));
+    // 浮动态动态属性：供 QSS 在浮动时取消 wrap container 内层边框
+    parent->setProperty("dockFloating", parent->isFloating());
 
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(10, 0, 4, 0);
@@ -202,6 +204,23 @@ void DockTitleBar::refreshMaxBtn() {
 }
 
 void DockTitleBar::onTopLevelChanged(bool topLevel) {
+    // dockFloating 动态属性：传播到 dock 子树全部 widget，并 polish 它们。
+    // QSS 属性选择器只约束该 widget 自身属性，且 unpolish/polish 单 widget
+    // 不会自动重评估后代样式缓存——必须显式逐个 polish 才能让
+    // "QDockWidget[dockFloating=...] QTreeWidget" 这类子选择器真正生效。
+    const auto descendants = dock_->findChildren<QWidget*>();
+    for (QWidget* w : descendants) {
+        w->setProperty("dockFloating", topLevel);
+    }
+    dock_->setProperty("dockFloating", topLevel);
+    if (auto* s = dock_->style()) {
+        s->unpolish(dock_);
+        s->polish(dock_);
+        for (QWidget* w : descendants) {
+            s->unpolish(w);
+            s->polish(w);
+        }
+    }
     if (topLevel) {
         // 去系统标题栏（Frameless）：无边框/系统按钮，由本标题栏接管
         // （拖动/双击最大化/按钮控制/右下角缩放），窗口保留任务栏项（Qt::Window）。
@@ -235,15 +254,28 @@ QWidget* wrapWithSizeGrip(QWidget* content, QDockWidget* dock) {
     auto* grid = new QGridLayout(container);
     grid->setContentsMargins(0, 0, 0, 0);
     grid->setSpacing(0);
-    grid->addWidget(content, 0, 0);
-    auto* grip = new QSizeGrip(container);
-    grip->setObjectName(QStringLiteral("dockSizeGrip"));
-    grid->addWidget(grip, 1, 1);  // 贴右下角
+    // content 横跨全部行/列：不再被 grip 行/列挤开。原先 grip 占独立行列
+    // （row1/col1=12px），浮动时 content 被挤开：右侧 12px 与下侧 12px 露出
+    // wrap 背景，导致内容左缘盖掉 wrap 左边框（左侧线中间缺失）且
+    // pyshell 输入框下侧与外框之间出现 12px 间隔。
+    grid->addWidget(content, 0, 0, 2, 2);
     grid->setRowStretch(0, 1);
     grid->setColumnStretch(0, 1);
+    auto* grip = new QSizeGrip(container);
+    grip->setObjectName(QStringLiteral("dockSizeGrip"));
+    grip->setFixedSize(12, 12);
+    grid->addWidget(grip, 1, 1);  // 叠放右下角，不占内容空间
     grip->setVisible(dock->isFloating());
     QObject::connect(dock, &QDockWidget::topLevelChanged, grip,
                      [grip](bool top) { grip->setVisible(top); });
+    // 浮动时内容整体内缩 1px：wrap container 的 1px border（QSS 绘制在
+    // rect 内侧环）不被内容 widget 覆盖，保证左/右/下缘描边完整；
+    // docked 时紧贴 0px，由内容 widget 自身 border 充当 dock 外缘（现状不变）。
+    QObject::connect(dock, &QDockWidget::topLevelChanged, grid,
+                     [grid](bool top) {
+                         grid->setContentsMargins(top ? 1 : 0, top ? 1 : 0,
+                                                  top ? 1 : 0, top ? 1 : 0);
+                     });
     return container;
 }
 
