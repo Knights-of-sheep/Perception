@@ -1,6 +1,7 @@
 # 架构设计：Perception
 
 > 顶层架构文档，M0 建立骨架，随里程碑细化。约束源：`.specify/memory/constitution.md` v1.1。
+> 流程图：见 [architecture/flows.md](architecture/flows.md)（模块依赖 / 启动 / 数据流 / 日志 / 主题 / UI 交互）。
 
 ## 1. 技术栈
 
@@ -23,6 +24,13 @@ src/
 │  └─ event/            事件总线（发布-订阅）：数据变更 → 渲染 / UI 更新
 ├─ render/              渲染层：VTK Charts 2D 曲线 + 色板（订阅事件，不轮询）
 ├─ ui/                  界面层：Qt5 Widgets + Dock + QSS 深色主题（命令桥接 + 展示）
+│  │                     006-constitution-refactor 拆分：MainWindow.cpp（窗口行为/事件）+
+│  │                     MainWindow_assembly.cpp（动作/菜单/标题栏/功能栏装配）+
+│  │                     职责控制器（maximize/ 多屏最大化、subwindow/dock_drag_overlay 拖拽高亮、
+│  │                     log/log_settings_controller 日志设置）+ Dock 辅助（subwindow/dock_title_bar）+
+│  │                     通用弹窗（frameless_dialog / themed_file_dialog）+
+│  │                     console/python_bridge（PythonConsole 的 CPython 胶水层）+
+│  │                     theme/theme_catalog_{types,dark,light,hc}（主题色板分层）
 ├─ app/                 入口：main.cpp（内嵌 Python 解释器，接线命令驱动）
 └─ python/              pybind 命令驱动层：load_plt / transform / query / export
 tests/
