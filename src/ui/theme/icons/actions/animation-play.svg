@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- animation-play 播放 | 深色按钮托+实心右三角，S-01/S-02 -->
-  <rect x="2" y="3" width="12" height="10" rx="2" fill="#3C3C3C"/>
-  <path d="M6.5,5.5 L10.5,8 L6.5,10.5 Z" fill="#D4D4D4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M10 8.64L15.27 12 10 15.36V8.64M8 5v14l11-7L8 5z"/></svg>

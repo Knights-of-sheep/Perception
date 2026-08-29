@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- view-panel-toggle 面板显隐 | 左侧栏 + 展开箭头，S-01 -->
-  <rect x="1.5" y="2.5" width="5" height="11" rx="1" fill="#D4D4D4"/>
-  <path d="M9.5,5.6 L12.3,8 L9.5,10.4 Z" fill="#D4D4D4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><g><rect fill="none" height="24" width="24"/><g><path d="M2,4v16h20V4H2z M20,8.67h-2.5V6H20V8.67z M17.5,10.67H20v2.67h-2.5V10.67z M4,6h11.5v12H4V6z M17.5,18v-2.67H20V18H17.5z"/></g></g></svg>

@@ -481,6 +481,14 @@ void PythonConsole::executeCommand(const QString& command) {
 
     // 与 PyShell 手工输入走同一执行路径：runCommand 判定完整性 -> runBlock 执行；
     // create_window 的返回值（窗口 id 字符串）由 runBlock 对表达式结果自动 repr 打印（FR-027）。
+    // 记入命令历史（与手工回车 / runPastedText 语义一致）：否则菜单触发的命令执行后
+    // 按上键（navigateHistory）无法查回（用户反馈 2026-08-30）。
+    const QString entry = command.trimmed();
+    if (!entry.isEmpty()) {
+        d_->history.removeAll(entry);  // 去重：重复命令移到最新
+        d_->history.append(entry);
+        d_->historyIndex = d_->history.size();  // 置末尾，上键从最新开始
+    }
     runCommand(command);
 }
 

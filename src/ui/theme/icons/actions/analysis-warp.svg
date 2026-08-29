@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- analysis-warp 变形 | 弯曲网格，S-01/S-02 -->
-  <path d="M3,3 C5,5.5 5,10.5 3,13" fill="none" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M13,3 C11,5.5 11,10.5 13,13" fill="none" stroke="#D4D4D4" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M3,6.5 C6,5 10,5 13,6.5" fill="none" stroke="#D4D4D4" stroke-width="2" stroke-dasharray="2.5 1.5" stroke-linecap="round"/>
-  <path d="M3,10.5 C6,9 10,9 13,10.5" fill="none" stroke="#D4D4D4" stroke-width="2" stroke-dasharray="2.5 1.5" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M22 18v-2H8V4h2L7 1 4 4h2v2H2v2h4v8c0 1.1.9 2 2 2h8v2h-2l3 3 3-3h-2v-2h4zM10 8h6v6h2V8c0-1.1-.9-2-2-2h-6v2z"/></svg>

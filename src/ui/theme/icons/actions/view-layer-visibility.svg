@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- view-layer-visibility 图层可见性 | 实心眼睛，S-01/S-02 -->
-  <path d="M2,8 C4,4.5 12,4.5 14,8 C12,11.5 4,11.5 2,8 Z" fill="#D4D4D4"/>
-  <circle cx="8" cy="8" r="2.2" fill="#161616"/>
-  <circle cx="8" cy="8" r="0.9" fill="#D4D4D4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16zm0-11.47L17.74 9 12 13.47 6.26 9 12 4.53z"/></svg>

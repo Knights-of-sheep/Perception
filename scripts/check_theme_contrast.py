@@ -19,7 +19,8 @@ FIELDS = ["windowBg","panelBg","controlBg","viewBg",
           "hoverBg","surfaceElev","itemHover","buttonHover","handleHover",
           "dockTitleBg","dangerText","dangerHoverBg",
           "success","warning","danger",
-          "white","textOnSelection","textOnAccent"]
+          "white","textOnSelection","textOnAccent",
+          "dockDropHighlight"]
 
 # (前景, 背景, 最低对比度, 说明)
 CHECKS = [
@@ -60,12 +61,17 @@ def _ratio(a, b):
 
 
 def main():
-    text = open(HEADER, encoding="utf-8").read()
+    # 006-constitution-refactor：色块按明暗/对比拆分至独立头文件，需全量扫描
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    text = open(root / HEADER, encoding="utf-8").read()
     blocks = {}
-    for m in re.finditer(r"inline const ThemeColors k(\w+)\s*=\s*\{(.*?)\n\};", text, re.S):
-        vals = re.findall(r'"#([0-9A-Fa-f]{6})"', m.group(2))
-        if len(vals) == 27:
-            blocks[m.group(1)] = ["#" + v.lower() for v in vals]
+    for h in sorted((root / "src/ui/theme").glob("theme_catalog_*.h")):
+        htext = h.read_text(encoding="utf-8")
+        for m in re.finditer(r"inline const ThemeColors k(\w+)\s*=\s*\{(.*?)\n\};", htext, re.S):
+            vals = re.findall(r'"#([0-9A-Fa-f]{6})"', m.group(2))
+            if len(vals) == len(FIELDS):
+                blocks[m.group(1)] = ["#" + v.lower() for v in vals]
     catalog = [(name, blocks[b]) for name, b in
                re.findall(r'\{"([\w-]+)"\s*,\s*"[^"]*"\s*,\s*"[^"]*"\s*,\s*k(\w+)\}', text)]
 

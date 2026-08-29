@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- animation-first-frame 首帧 | 深色托+双竖条+左三角，S-01/S-02 -->
-  <rect x="2" y="3" width="12" height="10" rx="2" fill="#3C3C3C"/>
-  <rect x="4" y="5.5" width="1.4" height="5" rx="0.4" fill="#D4D4D4"/>
-  <rect x="10.6" y="5.5" width="1.4" height="5" rx="0.4" fill="#D4D4D4"/>
-  <path d="M10,5.5 L6.8,8 L10,10.5 Z" fill="#D4D4D4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M24 0v24H0V0h24z" fill="none" opacity=".87"/><path d="M18.41 16.59L13.82 12l4.59-4.59L17 6l-6 6 6 6 1.41-1.41zM6 6h2v12H6V6z"/></svg>

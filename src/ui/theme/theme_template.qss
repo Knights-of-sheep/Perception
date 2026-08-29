@@ -213,6 +213,18 @@ QDockWidget {
 QDockWidget > QWidget {
     border: 1px solid @border@;     /* dock 内容外缘描边（绕开 QSS 限制） */
 }
+/* 浮动窗口：wrap container 的 1px 边框即窗口外缘（Frameless 顶层窗口无原生边框）；
+   内容 widget（QTreeWidget / QPlainTextEdit）自身 1px 边框与之紧贴会成双线，
+   浮动态取消内容 widget 边框，避免内部重复描边（docked 态保持现状）。
+   依赖 DockTitleBar::onTopLevelChanged 维护的 dockFloating 动态属性。 */
+QDockWidget[dockFloating="true"] QTreeWidget,
+QDockWidget[dockFloating="true"] QTreeView,
+QDockWidget[dockFloating="true"] QListView,
+QDockWidget[dockFloating="true"] QTableView,
+QDockWidget[dockFloating="true"] QPlainTextEdit,
+QDockWidget[dockFloating="true"] QTextEdit {
+    border: none;
+}
 QWidget#dockTitleBar {
     background-color: @dockTitleBg@;
     border-bottom: 1px solid @borderWeak@;
