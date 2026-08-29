@@ -28,8 +28,6 @@ moc_*.cpp
 ui_*.h
 qrc_*.cpp
 
-# ===== Third-party (vendored locally, out of VCS) =====
-third-party/
 
 # ===== Python =====
 __pycache__/
