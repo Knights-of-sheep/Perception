@@ -1,16 +1,14 @@
 <!--
 # 同步影响报告（Sync Impact Report）
-- 版本变更：3.0.0 → 4.0.0（MAJOR）
+- 版本变更：4.0.0 → 4.1.0（MINOR）
 - 变更原则：
-  - 核心原则重构：新增 7 条通用编码/流程原则（单一职责、声明与实现分离、可维护优先、文档与代码共生、安全与资源管理、Spec-Kit 流程、GitHub 治理）
-  - 原项目特有 NON-NEGOTIABLE 原则（Test-First、Layered Core、Command-Driven & Python Packages、Local Design Source、Data-Visualization Scope）整体移入新章节「Perception 架构契约」保留，约束强度不变
-  - 新增「架构与工程约束」：头文件/类/函数/命名/依赖 5 组工程规则
-  - 行数规则更新（用户最新输入覆盖 v3.0.0「cpp/h 统一 800 行」）：普通 .h 建议 300 行/红线 500 行；模板 .hpp 放宽 800 行；.cpp 保持 800 行
-  - 新增「测试质量标准」「工作流规则」「禁止行为（NON-NEGOTIABLE）」章节
-  - 治理新增：修改 constitution 属架构变更，必须人工评审，禁止 AI 自行修改
-- 新增章节：Perception 架构契约、架构与工程约束、测试质量标准、工作流规则、禁止行为
-- 移除章节：代码规范 Code Style（内容并入「架构与工程约束」，行数规则同步更新为分级）
-- 关联更新：质量门禁行数 PR 检查改为分级规则
+  - 「Perception 架构契约 · 测试先行」新增：每个新增需求/功能点必须配套对应的单元测试用例（该需求自身的"红"），无对应测试的需求禁止进入实现
+  - 「技术栈约束 · 脚本层」新增：新增 Python 命令必须通过 pybind11 绑定对应的 C++ 接口（src/python/）实现，禁止纯 Python 绕过 src/core 实现数据处理逻辑
+  - 「测试质量标准」新增：新增 Python 命令行接口必须同步补充 pytest 测试用例（tests/python/），无 pytest 覆盖的 CLI 接口禁止合入
+  - 「质量门禁」新增：新增需求的测试必须随 PR 一并提交并全部通过，PR 描述须列出覆盖的测试用例
+- 新增章节：无（条款并入既有章节）
+- 移除章节：无
+- 治理依据：4.0.0「修改 constitution 属架构变更，必须人工评审」——本修订已经用户人工评审批准（2026-08-29）
 - 待办 TODO：无
 -->
 
@@ -47,7 +45,7 @@
 - **命令驱动与 Python 包 Command-Driven & Python Packages**：所有数据处理操作（加载、增删曲线、变换、查询、导出）必须经命令驱动层执行，UI 禁止绕过命令层直接修改核心数据；逻辑按职责拆分为可 import 的 Python 包（`perception` 整体功能、`extract` 数据计算，对标 SVisual）。纯 UI 变更（布局、主题、面板可见性、选中高亮）除外。
 - **本地设计源 Local Design Source**：UI 唯一设计源是 `docs/design/mockups/`（纯本地，禁止 figma 扩展、Figma REST/MCP）；specify 前必须阅读 mockups 与 notes，plan 必须对照 mockups 安排 UI 工作，实现后必须截图对比自查。
 - **数据可视化定位 Data-Visualization Scope**：对标 ParaView + SVisual，必须支持打开 1D/2D/3D 数据集并读取 ParaView、SVisual 与 VTK 生态文件格式（范围见「技术栈约束 · 文件格式范围」）；范围之外格式默认超范围，除非规范明确批准。
-- **测试先行 Test-First**：必须先写测试、批准、观察失败、再实现（红-绿-重构循环）；`src/core` 必须通过 CTest（`tests/cpp/`），命令层与 Python 逻辑必须通过 pytest（`tests/python/`）。
+- **测试先行 Test-First**：必须先写测试、批准、观察失败、再实现（红-绿-重构循环）；`src/core` 必须通过 CTest（`tests/cpp/`），命令层与 Python 逻辑必须通过 pytest（`tests/python/`）。每个新增需求/功能点必须配套对应的单元测试用例——"红"必须来自该需求自身的测试，无对应测试的需求禁止进入实现。
 
 ## 技术栈约束 Technology Stack Constraints
 
@@ -56,7 +54,7 @@
 - **语言/编译**：C++17 + MSVC（VS2022）；禁止 C++20+ 语法。理由：Qt 5.15.2 预建二进制按 C++17 交付。
 - **GUI**：Qt 5.15.2 Widgets + QSS + Fusion 风格；禁止外部 UI 框架、WebView。所有应用弹窗（对话框/消息框/文件对话框）MUST 使用与主界面一致的无边框自定义标题栏（图标+标题+关闭按钮，可拖拽移动），禁止系统原生标题栏。理由：深色主题 QSS 100% 生效；Dock 布局为产品根基；弹窗统一风格（004 FR-011）。
 - **渲染**：VTK 9.4.1（Qt5 预建版）；VTK 仅允许出现在 `src/render/`。理由：前后端分离，UI 只持有显示抽象（如 `ICurveChart`），绝不接触原始 VTK/数据内部。
-- **脚本层**：CPython 3.13 + pybind11；内嵌 REPL 与命令层共用同一 Python。理由：单一解释器保证命令行为一致。
+- **脚本层**：CPython 3.13 + pybind11；内嵌 REPL 与命令层共用同一 Python。新增 Python 命令必须通过 pybind11 绑定对应的 C++ 接口（`src/python/`）实现，禁止纯 Python 绕过 `src/core` 实现数据处理逻辑。理由：单一解释器保证命令行为一致；Python 仅做薄绑定与命令编排，数据处理复用 C++ 核心已测实现。
 - **构建**：CMake ≥ 3.16 + Ninja + VS2022；禁止引入新构建系统。理由：配置稳定可复现（scripts/build.ps1）。
 - **文件格式范围**：VTK 全部类型（.vtk/.vti/.vtp/.vtu/.vts/.vtr 等）、SVisual（.plt/.tdr）、HDF5（.h5/.hdf5）、曲线（.csv/.dat）。新格式 = 在 `io/readers/` 注册新 reader，`model/` 与消费者不变。
 - **物理路径**：代码必须落入对应分层——`src/core`（model/io/process/event，禁止依赖 UI/VTK）、`src/render`（VTK 图表）、`src/ui`、`src/python`、`tests/cpp`（CTest）、`tests/python`（pytest）。
@@ -97,12 +95,14 @@
 ## 测试质量标准 Quality Rules
 
 - 核心业务模块必须配套单元测试；关键路径必须覆盖。
+- 新增 Python 命令行接口必须同步补充 pytest 测试用例（`tests/python/`）；无 pytest 覆盖的 CLI 接口禁止合入。
 - 内存相关逻辑，必须考虑泄漏、双重释放、空指针场景。
 - 多线程模块，必须明确标注线程安全属性；共享状态必须做同步保护。
 
 ## 质量门禁 Quality Gates
 
 - 合并前必须 `ctest` 与 `pytest` 全部通过。
+- 新增需求的单元测试（`tests/cpp/`）与 pytest（`tests/python/`）必须随 PR 一并提交并全部通过；PR 描述须列出覆盖的测试用例。
 - 在 M2/M4 里程碑必须将 UI 截图与 mockups 对比。
 - 每功能一个分支；合并到 `main` 必须走 PR。
 - PR 必须通过「架构与工程约束」检查：无新增超标文件（`.cpp` > 800 行、普通 `.h` > 500 行红线、`.hpp` > 800 行）。
@@ -131,4 +131,4 @@
 - 软规范（命名、commit 格式、分支策略、PR 流程）不在此处，见根目录 `CONTRIBUTING.md`。
 - Mockup 约定见 `docs/design/mockups/README.md`。
 
-**版本**: 4.0.0 | **批准日期**: 2026-08-23 | **最后修订**: 2026-08-29
+**版本**: 4.1.0 | **批准日期**: 2026-08-23 | **最后修订**: 2026-08-29
