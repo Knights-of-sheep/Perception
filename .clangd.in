@@ -27,3 +27,5 @@ CompileFlags:
     - "-I@PERCEPTION_CLANGD_QT_INCLUDE@/QtWidgets"
     # 内嵌 Python（Python.h / python3X.lib 开发库）
     - "-I@PERCEPTION_CLANGD_PYTHON_INCLUDE@"
+    # pybind11（006 US4：vendored，header-only）
+    - "-I@PERCEPTION_CLANGD_PYBIND11_INCLUDE@"

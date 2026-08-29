@@ -50,6 +50,8 @@ get_filename_component(_qt_dir "${_qt_dir}" DIRECTORY)    # <qt>/lib
 get_filename_component(_qt_dir "${_qt_dir}" DIRECTORY)    # <qt>
 set(PERCEPTION_CLANGD_QT_INCLUDE "${_qt_dir}/include")
 set(PERCEPTION_CLANGD_PYTHON_INCLUDE "${Python3_ROOT_DIR}/include")
+set(PERCEPTION_CLANGD_PYBIND11_INCLUDE
+  "${CMAKE_CURRENT_SOURCE_DIR}/third-party/pybind11-2.13.6/include")
 set(PERCEPTION_CLANGD_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/.clangd.in"
@@ -107,5 +109,6 @@ if(PERCEPTION_BUILD_GUI)
   message(STATUS "Python debug lib to ignore : ${PERCEPTION_PYTHON_DEBUG_LIB}")
   add_subdirectory(src/render)  # M3：VTK 曲线渲染
   add_subdirectory(src/ui)      # M4：Qt Widgets 界面层
+  add_subdirectory(src/python)  # 006 US4：pybind11 桥接模块（perception_console / perception_py 双 .pyd）
   add_subdirectory(src/app)     # 可执行程序入口
 endif()

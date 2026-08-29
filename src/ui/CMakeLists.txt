@@ -2,10 +2,16 @@
 # 规范：docs/design/ui-guidelines.md；视觉稿：docs/design/mockups/。
 add_library(perception_ui STATIC
   MainWindow.cpp
+  MainWindow_assembly.cpp
   action_icon_map.cpp
   console/PythonConsole.cpp
   dialog_title_bar.cpp
+  frameless_dialog.cpp
+  log/log_settings_controller.cpp
   log/qt_message_bridge.cpp
+  maximize/window_maximize_controller.cpp
+  subwindow/dock_drag_overlay.cpp
+  subwindow/dock_title_bar.cpp
   subwindow/layout_manager.cpp
   subwindow/layout_settings_dialog.cpp
   subwindow/subwindow_container.cpp
@@ -13,6 +19,7 @@ add_library(perception_ui STATIC
   theme/icon_factory.cpp
   theme/theme_manager.cpp
   theme/theme.qrc
+  themed_file_dialog.cpp
   window_geometry.cpp
 )
 # MSVC Debug + 发布版 Python（Anaconda）链接兼容层：提供 Py_REF_DEBUG 下引用的
@@ -25,9 +32,10 @@ endif()
 target_include_directories(perception_ui PUBLIC
   ${CMAKE_SOURCE_DIR}/src
 )
-# Python.h 只在 console/PythonConsole.cpp 内使用（pimpl 隔离），不污染公共头
+# Python.h / pybind11 只在 console/PythonConsole.cpp 内使用（pimpl 隔离），不污染公共头
 target_include_directories(perception_ui PRIVATE
   "${Python3_ROOT_DIR}/include"
+  "${CMAKE_SOURCE_DIR}/third-party/pybind11-2.13.6/include"  # 006 US4：pybind11（header-only）
 )
 
 target_link_libraries(perception_ui PUBLIC
