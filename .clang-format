@@ -1,0 +1,40 @@
+# ===== Perception 代码风格（006-constitution-refactor / FR-014）=====
+# 基线：Google C++ Style Guide。
+# U1 决议（spec.md FR-014 + analyze 结论）：IndentWidth=2、ColumnLimit=80 为锁定参数，
+#   任何偏离必须先在 spec 记录理由；本文件仅允许调整 Qt 相关排版保护，不改变缩进/行宽。
+---
+BasedOnStyle: Google
+
+# ---- 锁定参数（勿改）----
+IndentWidth: 2
+ContinuationIndentWidth: 4
+ColumnLimit: 80
+UseTab: Never
+
+# ---- Qt 宏排版保护（避免 clang-format 破坏 Q_OBJECT/signals/slots 等）----
+WhitespaceSensitiveMacros:
+  - Q_OBJECT
+  - Q_GADGET
+  - Q_PROPERTY
+  - Q_ENUM
+  - Q_ENUM_NS
+  - Q_FLAG
+  - Q_DECLARE_FLAGS
+  - Q_DECLARE_OPERATORS_FOR_FLAGS
+  - Q_SIGNALS
+  - Q_SLOTS
+  - Q_INVOKABLE
+  - Q_EMIT
+  - signals
+  - slots
+  - emit
+  - Q_DECLARE_METATYPE
+  - Q_DECLARE_TYPEINFO
+  - Q_DECLARE_SMART_POINTER_METATYPE
+
+# ---- 指针/引用对齐（Google 默认左侧，显式声明防漂移）----
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# ---- 访问修饰符：Google 风格（0 缩进）----
+AccessModifierOffset: -2

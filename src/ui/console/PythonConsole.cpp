@@ -9,13 +9,27 @@
 // 普通引用，而导入库只提供 __imp_<name>（数据无 thunk 别名）→ LNK2001。
 // 调试符号的解决：保持 dllimport 引用（__imp_<name>），由 python_debug_shim.cpp 提供
 // 普通实现，并经 /alternatename 链接选项映射（见 src/app/CMakeLists.txt）。
-#include <Python.h>
+// 006 US4：手写 CPython C API 已全部迁移至 pybind11（pybind11.h 内含 Python.h，
+// 仍须最先包含以规避 Qt slots/signals/emit 宏与 object.h 的冲突）。
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>  // py::initialize_interpreter / finalize_interpreter / is_initialized
+#include <pybind11/eval.h>   // py::exec（引导脚本，Py_file_input 等价）
+#include <pybind11/stl.h>
 
-#include "core/log/logger.h"
+// 006 US4：pybind11 2.13 默认命名空间为 pybind11，py 是别名（官方约定）。
+// 头文件仅前向声明 pybind11::error_already_set；本 TU 以别名统一 py:: 书写。
+namespace py = pybind11;
+
+#include "core/log/log_level.h"
+#include "core/log/logger.h"  // ILogBridge 转发目标（_cpp_log 契约 python-log-bridge.md）
+
+#include "python/api/i_window_factory.h"  // 006 US4：create_window 实现侧接口
 
 #include "ui/console/PythonConsole.h"
+#include "ui/console/bridge_api.h"  // 006 US4：IOutputSink / ILogBridge 虚接口
 
 #include <QColor>
+#include <QCoreApplication>
 #include <QFont>
 #include <QGuiApplication>
 #include <QInputMethod>
@@ -27,196 +41,55 @@
 #include <QTextCharFormat>
 #include <QTextCursor>
 
+#include <memory>  // std::unique_ptr（WindowFactoryAdapter 持有）
+
 #include "ui/theme/theme_catalog.h"
 #include "ui/theme/theme_manager.h"
 
 namespace perception {
 namespace ui {
 
+// 006 US4：桥接（ConsoleOut 重定向 / _cpp_log / create_window / 引导脚本）已迁移至
+// pybind11 模块 perception_console（src/python/console/）与 perception_py
+// （src/python/command/）；本类经 IOutputSink / ILogBridge 虚接口与模块交互。
+
 namespace {
 
-// ---- 自定义 sys.stdout/stderr 流对象：write() 回调 C++ 追加到控件 ----
-struct ConsoleOutObject {
-    PyObject_HEAD
-    PyObject* ptr;       // PyLong 包装的 PythonConsole*
-    PyObject* is_stderr; // 0/1：错误通道用错误色
-};
-
-PyObject* ConsoleOut_write(PyObject* self, PyObject* args) {
-    const char* text = nullptr;
-    Py_ssize_t len = 0;
-    if (!PyArg_ParseTuple(args, "s#", &text, &len)) return nullptr;
-    auto* obj = reinterpret_cast<ConsoleOutObject*>(self);
-    if (obj->ptr && PyLong_Check(obj->ptr)) {
-        auto* console = static_cast<PythonConsole*>(PyLong_AsVoidPtr(obj->ptr));
-        const bool isStderr = obj->is_stderr && PyLong_AsLong(obj->is_stderr);
-        QColor color;
-        if (isStderr) color = console->property("stderrColor").value<QColor>();
-        console->appendOutput(QString::fromUtf8(text, int(len)), color);
+// Python 版本横幅（等价替代 Py_GetVersion()）：取 sys.version 完整字符串。
+QString pythonVersionBanner() {
+    py::gil_scoped_acquire gil;
+    try {
+        const std::string v = py::str(
+            py::module_::import("sys").attr("version")).cast<std::string>();
+        return QString::fromStdString(v);
+    } catch (const py::error_already_set&) {
+        return QStringLiteral("Python");
     }
-    return PyLong_FromSsize_t(len);
 }
 
-PyObject* ConsoleOut_flush(PyObject*, PyObject*) { Py_RETURN_NONE; }
-
-PyObject* ConsoleOut_writelines(PyObject* self, PyObject* args) {
-    // 简化实现：逐行转 write（绝大多数库只用 write/flush）
-    PyObject* lines = nullptr;
-    if (!PyArg_ParseTuple(args, "O", &lines)) return nullptr;
-    PyObject* it = PyObject_GetIter(lines);
-    if (!it) return nullptr;
-    PyObject* line;
-    while ((line = PyIter_Next(it)) != nullptr) {
-        if (PyUnicode_Check(line)) {
-            PyObject* t = PyTuple_Pack(1, line);
-            PyObject* r = ConsoleOut_write(self, t);
-            Py_XDECREF(r);
-            Py_XDECREF(t);
-        }
-        Py_DECREF(line);
+// perception_py 的 IWindowFactory 适配器（006 US4）：
+// create_window 模块函数 → 本适配器 → createWindowCallback（MainWindow 注册，
+// 调 createSubwindow 真实创建子窗口）。宿主未连接（回调为空）返回空串 → None。
+class WindowFactoryAdapter : public perception::python::IWindowFactory {
+public:
+    explicit WindowFactoryAdapter(PythonConsole* console) : console_(console) {}
+    std::string createWindow(const std::string& title) override {
+        if (!console_) return std::string();
+        return console_->requestCreateWindow(QString::fromStdString(title)).toStdString();
     }
-    Py_DECREF(it);
-    if (PyErr_Occurred()) return nullptr;
-    Py_RETURN_NONE;
-}
 
-int ConsoleOut_init(PyObject* self, PyObject* args, PyObject*) {
-    PyObject* ptr = nullptr;
-    PyObject* isStderr = nullptr;
-    if (!PyArg_ParseTuple(args, "OO", &ptr, &isStderr)) return -1;
-    auto* obj = reinterpret_cast<ConsoleOutObject*>(self);
-    Py_INCREF(ptr);   Py_XDECREF(obj->ptr);   obj->ptr = ptr;
-    Py_INCREF(isStderr); Py_XDECREF(obj->is_stderr); obj->is_stderr = isStderr;
-    return 0;
-}
-
-PyMethodDef ConsoleOut_methods[] = {
-    {"write", ConsoleOut_write, METH_VARARGS, nullptr},
-    {"flush", ConsoleOut_flush, METH_NOARGS, nullptr},
-    {"writelines", ConsoleOut_writelines, METH_VARARGS, nullptr},
-    {nullptr, nullptr, 0, nullptr},
+private:
+    PythonConsole* console_;  // 借用指针（生命周期归本类持有者）
 };
-
-PyType_Slot ConsoleOut_slots[] = {
-    {Py_tp_new, reinterpret_cast<void*>(PyType_GenericNew)},
-    {Py_tp_init, reinterpret_cast<void*>(ConsoleOut_init)},
-    {Py_tp_methods, ConsoleOut_methods},
-    {0, nullptr},
-};
-
-PyType_Spec ConsoleOut_spec = {
-    "perception.console.ConsoleOut",
-    sizeof(ConsoleOutObject),
-    0,
-    Py_TPFLAGS_DEFAULT,
-    ConsoleOut_slots,
-};
-
-// _cpp_log：Python logging handler 的落点（FR-008）。
-// 桥接 Python logging → C++ 统一日志流；错误在内部捕获，不影响 Python 执行。
-PyObject* cpp_log_impl(PyObject*, PyObject* args) {
-    int level = 1;
-    const char* source = nullptr;
-    const char* message = nullptr;
-    if (!PyArg_ParseTuple(args, "iss", &level, &source, &message)) return nullptr;
-    // 防御：level 越界回退 Info；不抛异常逃逸
-    if (level < 0 || level > 4) level = 1;
-    perception::core::log::Logger::instance().log(
-        static_cast<perception::core::log::LogLevel>(level),
-        source ? source : "python",
-        message ? message : "");
-    Py_RETURN_NONE;
-}
-
-PyMethodDef cpp_log_def[] = {
-    {"_cpp_log", cpp_log_impl, METH_VARARGS, "C++ 统一日志桥接（Python logging 专用）"},
-    {nullptr, nullptr, 0, nullptr},
-};
-
-// create_window：Python REPL 创建渲染子窗口的桥（004-dock-layout-manager，FR-001）。
-// self = PyLong_FromVoidPtr(PythonConsole*)，桥到 requestCreateWindow（契约
-// contracts/python-create-window.md）：返回生成的窗口 id（"Plot_" + 序号）；
-// title 为可选参数，缺省时 title = id；类型错误抛 TypeError 由 REPL 展示。
-PyObject* create_window_impl(PyObject* self, PyObject* args) {
-    PyObject* titleObj = Py_None;  // 缺省：title = id（由 C++ 端生成）
-    if (!PyArg_ParseTuple(args, "|O", &titleObj)) return nullptr;
-    auto* console = reinterpret_cast<PythonConsole*>(PyLong_AsVoidPtr(self));
-    if (!console) {
-        PyErr_SetString(PyExc_RuntimeError, "Python console unavailable");
-        return nullptr;
-    }
-    QString title;
-    if (titleObj != Py_None) {
-        if (!PyUnicode_Check(titleObj)) {
-            PyErr_SetString(PyExc_TypeError,
-                           "create_window() title must be a string");
-            return nullptr;
-        }
-        const char* s = PyUnicode_AsUTF8(titleObj);
-        if (!s) return nullptr;
-        title = QString::fromUtf8(s);
-    }
-    const QString id = console->requestCreateWindow(title);
-    if (id.isEmpty()) {
-        // 创建失败（宿主未连接/回调异常）：返回 None，不崩溃
-        Py_RETURN_NONE;
-    }
-    return PyUnicode_FromString(id.toUtf8().constData());
-}
-
-PyMethodDef create_window_def[] = {
-    {"create_window", create_window_impl, METH_VARARGS,
-     "create_window(title='') -> str: create a render subwindow and return its id "
-     "(\"Plot_\" + sequence number); title defaults to the id when omitted"},
-    {nullptr, nullptr, 0, nullptr},
-};
-
-// 引导脚本：续行判定（codeop.compile_command 为无状态的标准判定器，
-// 返回 None=不完整 / code=完整 / 抛异常=语法错误；与 code.InteractiveConsole 同源）
-// + traceback 格式化 + 空 stdin（防止 help() 等交互函数读输入时阻塞 GUI）
-// + PerceptionLogHandler：Python logging → _cpp_log 桥接（FR-008，契约 python-log-bridge.md）
-const char kBootstrap[] =
-    "import codeop, sys, traceback\n"
-    "def _check_complete(src):\n"
-    "    try:\n"
-    "        result = codeop.compile_command(src, '<console>', symbol='single')\n"
-    "    except KeyboardInterrupt:\n"
-    "        return 'interrupt'  # 挂起的 Ctrl+C：标准 REPL 中断当前命令，不执行\n"
-    "    except (SyntaxError, OverflowError, ValueError, TypeError):\n"
-    "        return 'error'\n"
-    "    return 'incomplete' if result is None else 'complete'\n"
-    "def _format_traceback(tb):\n"
-    "    return ''.join(traceback.format_exception(*tb))\n"
-    "class _EmptyIn:\n"
-    "    def read(self, *a, **k): return ''\n"
-    "    def readline(self, *a, **k): return ''\n"
-    "    def readlines(self, *a, **k): return []\n"
-    "    def isatty(self): return False\n"
-    "sys.stdin = _EmptyIn()\n"
-    "import logging\n"
-    "_LEVEL_MAP = {10: 0, 20: 1, 30: 2, 40: 3, 50: 4}  # Python -> C++ LogLevel\n"
-    "class PerceptionLogHandler(logging.Handler):\n"
-    "    def emit(self, record):\n"
-    "        try:\n"
-    "            level = _LEVEL_MAP.get(record.levelno, 1)\n"
-    "            source = '%s:%d' % (record.name, record.lineno)\n"
-    "            _cpp_log(level, source, record.getMessage())\n"
-    "        except Exception:\n"
-    "            self.handleError(record)  # 桥接失败不影响 Python 执行\n"
-    "logging.getLogger().addHandler(PerceptionLogHandler())\n"
-    "logging.getLogger().setLevel(logging.DEBUG)\n";
 
 }  // namespace
 
-// ===== 内部状态（pimpl，避免头文件暴露 CPython）=====
+// ===== 内部状态（pimpl，避免头文件暴露 pybind11 类型）=====
 struct PythonConsole::Impl {
-    PyObject* globals = nullptr;        // 持久命名空间（跨命令保留变量）
-    PyObject* checkComplete = nullptr;  // _check_complete（借用引用，globals 持有）
-    PyObject* formatTraceback = nullptr;
-    PyObject* sysStdout = nullptr;      // 重定向对象（持有引用）
-    PyObject* sysStderr = nullptr;
-    PyObject* outType = nullptr;
-    QString pending;                    // 续行累积
+    py::object globals;          // 持久命名空间（跨命令保留变量）
+    py::object checkComplete;    // _check_complete（续行判定器）
+    py::object formatTraceback;  // _format_traceback（traceback 格式化）
+    QString pending;             // 续行累积
     QStringList history;                // 已执行命令（多行条目导航时跳过）
     int historyIndex = 0;
     bool imeComposing = false;          // 输入法正在组字（拼音候选未确认）
@@ -226,6 +99,7 @@ struct PythonConsole::Impl {
     QTextCharFormat resultFormat;       // 表达式结果
     QColor errorColor;                  // stderr / traceback
     CreateWindowCallback createWindowCallback;  // create_window 桥回调（返回生成的 id）
+    std::unique_ptr<perception::python::IWindowFactory> windowFactory;  // 006 US4：注册至 perception_py
 };
 
 PythonConsole::PythonConsole(QWidget* parent)
@@ -236,13 +110,16 @@ PythonConsole::PythonConsole(QWidget* parent)
     setFrameShape(QFrame::NoFrame);
     initColors();
     initPython();
-    appendOutput(QString::fromUtf8(Py_GetVersion()));
-    appendOutput(tr(" — Perception embedded console (Ctrl+O: open data files; paste multiple lines to execute)\n"));
+    // 仅解释器初始化成功后才显示横幅（pythonVersionBanner 依赖运行中的解释器）
+    if (pythonInitialized_) {
+        appendOutput(pythonVersionBanner());
+        appendOutput(tr(" — Perception embedded console (Ctrl+O: open data files; paste multiple lines to execute)\n"));
+    }
     showPrompt();
 }
 
 PythonConsole::~PythonConsole() {
-    // 不在此 finalize：Py_Finalize 由 main 退出前 shutdown() 显式完成，
+    // 不在此 finalize：解释器由 main 退出前 shutdown() 显式完成（py::finalize_interpreter），
     // 避免与 QApplication 对象析构顺序纠缠。
     delete d_;
 }
@@ -254,8 +131,10 @@ QStringList PythonConsole::history() const { return d_->history; }
 void PythonConsole::clearConsole() {
     clear();  // 清空全部显示（含输入区）
     d_->pending.clear();
-    appendOutput(QString::fromUtf8(Py_GetVersion()));
-    appendOutput(tr(" — Perception embedded console (Ctrl+O: open data files; paste multiple lines to execute)\n"));
+    if (pythonInitialized_) {
+        appendOutput(pythonVersionBanner());
+        appendOutput(tr(" — Perception embedded console (Ctrl+O: open data files; paste multiple lines to execute)\n"));
+    }
     showPrompt();
 }
 
@@ -274,65 +153,78 @@ void PythonConsole::initColors() {
 
 // ===== Python 运行时 =====
 void PythonConsole::initPython() {
-    Py_Initialize();
-    if (!Py_IsInitialized()) {
-        appendOutput(tr("Failed to initialize the Python interpreter.\n"), d_->errorColor);
+    try {
+        py::initialize_interpreter();
+    } catch (const std::exception& e) {
+        appendOutput(tr("Failed to initialize the Python interpreter: %1\n")
+                         .arg(QString::fromLocal8Bit(e.what())), d_->errorColor);
         showPrompt();
         return;
     }
-    d_->globals = PyDict_New();
-    PyDict_SetItemString(d_->globals, "__builtins__", PyEval_GetBuiltins());
+    pythonInitialized_ = true;  // 解释器就绪（shutdown 依据此标志）
+    d_->globals = py::dict();
+    d_->globals["__builtins__"] = py::module_::import("builtins");
 
-    // 注入 _cpp_log 桥接（必须在 kBootstrap 执行前，handler 引用它）
-    PyObject* cppLogFunc = PyCFunction_New(&cpp_log_def[0], nullptr);
-    if (cppLogFunc) {
-        PyDict_SetItemString(d_->globals, "_cpp_log", cppLogFunc);
-        Py_DECREF(cppLogFunc);
+    // 模块搜索路径：.pyd 与 exe 同级（CMAKE_BINARY_DIR），插入 sys.path 首位
+    py::module_ sys = py::module_::import("sys");
+    sys.attr("path").attr("insert")(
+        0, QCoreApplication::applicationDirPath().toStdString());
+
+    // 安装 REPL 桥（perception_console 模块）：注入 _cpp_log、执行引导脚本、
+    // 重定向 sys.stdout/sys.stderr -> 本控件。本实例经 py::capsule 传入模块
+    //（pyd 经 IOutputSink/ILogBridge 虚接口回调，不链接 UI 静态库）。
+    try {
+        py::module_ consoleModule = py::module_::import("perception_console");
+        consoleModule.attr("install_console_bridge")(
+            d_->globals,
+            py::capsule(static_cast<console::IOutputSink*>(this), "IOutputSink"),
+            py::capsule(static_cast<console::IOutputSink*>(this), "IOutputSink"),
+            py::capsule(static_cast<console::ILogBridge*>(this), "ILogBridge"));
+    } catch (const py::error_already_set& e) {
+        printError(e);
+        return;
     }
-
-    // 注入 create_window 桥（FR-001；self 携带本实例指针供回调）
-    PyObject* createWinFunc =
-        PyCFunction_New(&create_window_def[0], PyLong_FromVoidPtr(this));
-    if (createWinFunc) {
-        PyDict_SetItemString(d_->globals, "create_window", createWinFunc);
-        Py_DECREF(createWinFunc);
+    // 命令层模块（perception_py）：注册 IWindowFactory（本类适配器，经 capsule
+    // 传入模块——pyd 不链接 UI 静态库），并把 create_window 真实命令注入 REPL
+    // globals（契约 python-create-window.md 的注入机制）。
+    try {
+        py::module_ commandModule = py::module_::import("perception_py");
+        d_->windowFactory = std::make_unique<WindowFactoryAdapter>(this);
+        commandModule.attr("register_window_factory")(
+            py::capsule(static_cast<perception::python::IWindowFactory*>(
+                            d_->windowFactory.get()),
+                        "IWindowFactory"));
+        d_->globals["create_window"] = commandModule.attr("create_window");
+    } catch (const py::error_already_set& e) {
+        printError(e);
+        return;
     }
+    d_->checkComplete = d_->globals["_check_complete"];
+    d_->formatTraceback = d_->globals["_format_traceback"];
 
-    PyRun_String(kBootstrap, Py_file_input, d_->globals, d_->globals);
-    if (PyErr_Occurred()) printError();
-    d_->checkComplete = PyDict_GetItemString(d_->globals, "_check_complete");
-    d_->formatTraceback = PyDict_GetItemString(d_->globals, "_format_traceback");
-
-    // 重定向 sys.stdout / sys.stderr -> 本控件
-    d_->outType = PyType_FromSpec(&ConsoleOut_spec);
-    if (d_->outType) {
-        PyObject* argsOut =
-            PyTuple_Pack(2, PyLong_FromVoidPtr(this), PyLong_FromLong(0));
-        PyObject* argsErr =
-            PyTuple_Pack(2, PyLong_FromVoidPtr(this), PyLong_FromLong(1));
-        d_->sysStdout = PyObject_CallObject(d_->outType, argsOut);
-        d_->sysStderr = PyObject_CallObject(d_->outType, argsErr);
-        PySys_SetObject("stdout", d_->sysStdout);
-        PySys_SetObject("stderr", d_->sysStderr);
-        Py_DECREF(argsOut);
-        Py_DECREF(argsErr);
-    }
-
-    // 释放 GIL：事件循环运行期间不持有
-    PyEval_SaveThread();
+    // 释放 GIL：事件循环运行期间不持有（后续执行按需获取）
+    py::gil_scoped_release release;
 }
 
 void PythonConsole::shutdown() {
-    if (!Py_IsInitialized()) return;
-    PyGILState_STATE gil = PyGILState_Ensure();
-    Py_XDECREF(d_->sysStdout);   d_->sysStdout = nullptr;
-    Py_XDECREF(d_->sysStderr);   d_->sysStderr = nullptr;
-    Py_XDECREF(d_->outType);     d_->outType = nullptr;
-    Py_XDECREF(d_->globals);     d_->globals = nullptr;
-    d_->checkComplete = nullptr;
-    d_->formatTraceback = nullptr;
-    PyGILState_Release(gil);
-    Py_FinalizeEx();
+    if (!pythonInitialized_) return;  // 解释器未初始化（pybind11 2.13 无 is_initialized）
+    {
+        py::gil_scoped_acquire gil;
+        // 清命令层 IWindowFactory 注册表（防悬垂；适配器即将析构）
+        if (d_->windowFactory) {
+            try {
+                py::module_::import("perception_py")
+                    .attr("register_window_factory")(py::none());
+            } catch (const py::error_already_set&) {
+            }
+        }
+        d_->windowFactory.reset();
+        d_->globals = py::object();        // 释放持久命名空间引用
+        d_->checkComplete = py::object();
+        d_->formatTraceback = py::object();
+    }
+    py::finalize_interpreter();
+    pythonInitialized_ = false;
 }
 
 // ===== 输出 =====
@@ -659,21 +551,19 @@ void PythonConsole::runCommand(const QString& src) {
                               : (d_->pending + QLatin1Char('\n') + src);
 
     executing_ = true;
-    PyGILState_STATE gil = PyGILState_Ensure();
-
     QString verdict = QStringLiteral("complete");
-    PyObject* vObj = PyObject_CallFunction(
-        d_->checkComplete, "s", block.toUtf8().constData());
-    if (vObj) {
-        if (const char* v = PyUnicode_AsUTF8(vObj)) verdict = QString::fromUtf8(v);
-        Py_DECREF(vObj);
-    } else {
-        printError();  // 判定器自身异常（极罕见）：打印后终止，不再执行命令
+    {
+        py::gil_scoped_acquire gil;
+        try {
+            py::object vObj = d_->checkComplete(block.toStdString());
+            verdict = QString::fromStdString(py::cast<std::string>(vObj));
+        } catch (const py::error_already_set& e) {
+            printError(e);  // 判定器自身异常（极罕见）：打印后终止，不再执行命令
+        }
     }
 
     if (verdict == QLatin1String("incomplete")) {
         d_->pending = block;  // 累积整块（含当前行）
-        PyGILState_Release(gil);
         executing_ = false;
         showPrompt(true);  // "... " 后自动缩进
         return;
@@ -683,7 +573,6 @@ void PythonConsole::runCommand(const QString& src) {
     // 打印 KeyboardInterrupt 并回到新提示符（不清空历史，中断是一次性的）
     if (verdict == QLatin1String("interrupt")) {
         d_->pending.clear();
-        PyGILState_Release(gil);
         executing_ = false;
         appendOutput(QStringLiteral("KeyboardInterrupt\n"), d_->errorColor);
         showPrompt();
@@ -692,7 +581,6 @@ void PythonConsole::runCommand(const QString& src) {
 
     // 3) 完整 / 语法错误：执行整块（语法错误由 Python 抛 traceback）
     d_->pending.clear();
-    PyGILState_Release(gil);
     executing_ = false;
     runBlock(block);
 }
@@ -707,67 +595,68 @@ void PythonConsole::runBlock(const QString& full) {
     }
 
     executing_ = true;
-    PyGILState_STATE gil = PyGILState_Ensure();
-    // Py_single_input：表达式自动求值，与交互式一致
-    PyObject* result = PyRun_String(full.toUtf8().constData(), Py_single_input,
-                                    d_->globals, d_->globals);
-    if (result) {
-        if (result != Py_None) {
-            PyObject* reprObj = PyObject_Repr(result);
-            QString reprText;
-            if (reprObj) {
-                if (const char* s = PyUnicode_AsUTF8(reprObj))
-                    reprText = QString::fromUtf8(s);
-                Py_DECREF(reprObj);
-            }
-            appendOutput(reprText, d_->resultFormat.foreground().color());
+    {
+        py::gil_scoped_acquire gil;
+        try {
+            // _run_single：compile(...,'single') + exec —— 等价替代 Py_single_input，
+            // 表达式语句经 sys.displayhook 自动求值打印到重定向后的 sys.stdout。
+            d_->globals["_run_single"](full.toStdString(), d_->globals);
+        } catch (const py::error_already_set& e) {
+            printError(e);
         }
-        Py_DECREF(result);
-    } else {
-        printError();
     }
-    PyGILState_Release(gil);
     executing_ = false;
     showPrompt();
 }
 
-void PythonConsole::printError() {
-    PyObject *type = nullptr, *value = nullptr, *tb = nullptr;
-    PyErr_Fetch(&type, &value, &tb);
-    if (!type) return;
-    PyErr_NormalizeException(&type, &value, &tb);
-    PyErr_Clear();
+void PythonConsole::printError(const py::error_already_set& e) {
+    // error_already_set 已归一化异常：type / value / trace 三元组。
+    py::object type = e.type();
+    py::object value = e.value();
+    py::object tb = e.trace();
 
     QString text;
     if (d_->formatTraceback && value) {
-        // _format_traceback 的签名是 (tb)，tb 为 (type, value, tb) 三元组。
-        // 必须用 PyObject_CallFunctionObjArgs 把元组作为单个参数传入，
-        // 否则 PyObject_Call 会把三元组展开成 3 个位置参数 -> TypeError，
-        // 掩盖真正的异常并残留错误状态（引发后续 SystemError）。
-        PyObject* tbTuple = PyTuple_Pack(3, type, value, tb ? tb : Py_None);
-        PyObject* txt = tbTuple
-            ? PyObject_CallFunctionObjArgs(d_->formatTraceback, tbTuple, nullptr)
-            : nullptr;
-        if (txt) {
-            if (const char* s = PyUnicode_AsUTF8(txt)) text = QString::fromUtf8(s);
-            Py_DECREF(txt);
+        try {
+            // _format_traceback 的签名是 (tb)，tb 为 (type, value, tb) 三元组；
+            // 以元组作单个参数调用（防止元组被展开成多个位置参数）。
+            py::tuple tbTuple(3);
+            tbTuple[0] = type;
+            tbTuple[1] = value;
+            tbTuple[2] = tb ? tb : py::none();
+            py::object txt = d_->formatTraceback(tbTuple);
+            text = QString::fromStdString(py::cast<std::string>(txt));
+        } catch (const py::error_already_set&) {
+            // 格式化时的残留错误：error_already_set 析构自动清解释器错误状态
         }
-        Py_XDECREF(tbTuple);
-        if (PyErr_Occurred()) PyErr_Clear();  // 清理格式化时的残留错误，避免污染后续调用
     }
     if (text.isEmpty()) {
-        PyObject* str = PyObject_Str(value ? value : type);
-        if (str) {
-            if (const char* s = PyUnicode_AsUTF8(str)) text = QString::fromUtf8(s);
-            Py_DECREF(str);
+        try {
+            text = QString::fromStdString(
+                py::cast<std::string>(py::str(value ? value : type)));
+        } catch (const py::error_already_set&) {
         }
     }
     // 执行前已换行，错误文本直接输出（末尾换行留空到新提示符）
     appendOutput(text + QLatin1Char('\n'), d_->errorColor);
+}
 
-    Py_XDECREF(type);
-    Py_XDECREF(value);
-    Py_XDECREF(tb);
+// ===== IOutputSink / ILogBridge 虚接口实现（006 US4）=====
+void PythonConsole::write(const char* text, int len, bool isStderr) {
+    appendOutput(QString::fromUtf8(text, len), isStderr ? d_->errorColor : QColor());
+}
+
+void PythonConsole::flush() {
+    // Qt 控件无缓冲：空实现
+}
+
+void PythonConsole::log(int level, const char* source, const char* message) {
+    // _cpp_log 契约 python-log-bridge.md：level 为 C++ LogLevel 整数值，
+    // source 形如 "name:lineno"；错误在模块侧（makeCppLog）已防御，此处直通。
+    perception::core::log::Logger::instance().log(
+        static_cast<perception::core::log::LogLevel>(level),
+        source ? source : "python",
+        message ? message : "");
 }
 
 }  // namespace ui

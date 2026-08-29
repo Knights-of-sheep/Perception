@@ -14,6 +14,15 @@
 
 #include <functional>
 
+#include "ui/console/bridge_api.h"  // 006 US4：IOutputSink / ILogBridge 虚接口
+
+// 006 US4：pybind11 2.13 的命名空间是 pybind11（py 为别名）。头文件只前向声明
+// pybind11::error_already_set（printError 形参），不暴露 pybind11 其余类型；
+// .cpp 内以 namespace py = pybind11 别名引用（与 src/python 模块一致）。
+namespace pybind11 {
+class error_already_set;
+}
+
 class QColor;
 class QInputMethodEvent;
 class QKeyEvent;
@@ -23,7 +32,11 @@ class QMouseEvent;
 namespace perception {
 namespace ui {
 
-class PythonConsole : public QPlainTextEdit {
+// 006 US4：本类同时实现 REPL 桥回调虚接口（IOutputSink / ILogBridge），
+// 实例经 py::capsule 传入 perception_console 模块（pyd 经虚接口回调，不链 UI 库）。
+class PythonConsole : public QPlainTextEdit,
+                      public console::IOutputSink,
+                      public console::ILogBridge {
     Q_OBJECT
 
 public:
@@ -33,6 +46,11 @@ public:
     // 追加输出到控件末尾（stdout/stderr 重定向回调；外部也可调用）
     void appendOutput(const QString& text, const QColor& color = QColor());
     bool isExecuting() const { return executing_; }
+
+    // ---- IOutputSink / ILogBridge（006 US4：REPL 桥虚接口实现）----
+    void write(const char* text, int len, bool isStderr) override;  // stdout/stderr 落点
+    void flush() override;                                          // 空实现（Qt 控件无缓冲）
+    void log(int level, const char* source, const char* message) override;  // _cpp_log 转发 Logger
 
     // 执行一段脚本（按行喂入 REPL，语义与逐行输入一致；供测试/后续脚本功能）
     void runScript(const QString& script);
@@ -68,12 +86,12 @@ protected:
     void insertFromMimeData(const QMimeData* source) override;
 
 private:
-    void initPython();                       // Py_Initialize + 引导脚本 + 输出重定向
+    void initPython();                       // 006 US4：py::initialize_interpreter + perception_console 桥安装
     void initColors();                       // 提示符/输出/错误配色（取当前主题）
     void runCommand(const QString& src);     // 判定完整性 -> 执行 -> 结果/异常展示
     void runBlock(const QString& full);      // 执行完整命令块（含续行块提交）
     void runPastedText(const QString& text); // 多行粘贴：整块执行
-    void printError();                       // traceback 格式化展示
+    void printError(const pybind11::error_already_set& e);  // traceback 格式化展示
     void showPrompt(bool pending = false);   // 追加 ">>> " / "... "
     QString currentInput() const;            // 末行提示符后文本
     void replaceInput(const QString& text);  // 替换末行输入（保留提示符）
@@ -88,6 +106,9 @@ private:
     struct Impl;
     Impl* d_ = nullptr;
     bool executing_ = false;
+    // 006 US4：pybind11 2.13 已移除 py::is_initialized()；解释器状态用本标志跟踪
+    //（initPython 成功置位 / shutdown 清零），避免手写 Py_IsInitialized C API。
+    bool pythonInitialized_ = false;
 };
 
 }  // namespace ui

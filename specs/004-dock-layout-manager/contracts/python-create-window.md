@@ -1,6 +1,6 @@
 # 契约: `create_window` Python 命令
 
-> 对应 spec FR-001/FR-002/FR-027、US1、SC-018；经 `PythonConsole` 注入 REPL 全局命名空间（复用 `_cpp_log` 的 `PyMethodDef` + `PyCFunction_New` 模式，`PythonConsole.cpp:115-134`）。
+> 对应 spec FR-001/FR-002/FR-027、US1、SC-018；绑定位于 pybind11 命令层模块 `perception_py`，由 `PythonConsole::initPython` import 该模块后取 `create_window` 注入 REPL 全局命名空间（006 US4 桥接迁移后机制，原 `PyMethodDef` + `PyCFunction_New` 手写 C API 已废弃）。
 
 ## 签名
 
@@ -32,8 +32,8 @@ create_window(title: str = "") -> str
 
 ## 注入与桥接
 
-- `PythonConsole` 初始化时注册全局函数 `create_window`（与 `_cpp_log` 同批注入 `d_->globals`）。
-- 回调经 `std::function` 桥接至 `MainWindow::createSubwindow(title)`（`setCreateWindowCallback` 注册，UI 线程直接调用），返回生成的窗口 id；`create_window` 桥将其作为返回值回传 REPL。
+- 绑定归属：`create_window` 为 `perception_py` 模块的 pybind11 模块函数（经 `py::module_::def` 导出）；`PythonConsole::initPython()` 中 `py::module_::import("perception_py")` 后取该函数注入 `globals`（与 `_cpp_log` 同批注入）。
+- 派发链路：`create_window` 为 `perception_py` 模块函数，经 `IWindowFactory` 纯虚接口派发——`PythonConsole` 的 `WindowFactoryAdapter` 实现该接口并在 `initPython()` 时经 `py::capsule` 注册至模块注册表（pyd 不链接 UI 静态库）；`createWindow` 调 `createWindowCallback`（`MainWindow` 注册）→ `MainWindow::createSubwindow(title)`（UI 线程直接调用），返回生成的窗口 id；`create_window` 将其作为返回值回传 REPL。
 - 菜单栏"视图 → 新建子窗口"MUST 触发同一命令行执行（构造并执行无参 `create_window()` 命令，禁止绕过命令层直接调用 C++ 入口），命令文本在 PyShell 回显、返回值（窗口 id）打印到 PyShell（FR-002、FR-027、SC-008、SC-018）。
 
 ## 测试要点
