@@ -1,11 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- file-export-screenshot 导出截图 | 实心相机+右上导出箭头，S-01/S-02 -->
-  <path d="M5,5.5 L6,3.5 L9.5,3.5 L10.5,5.5 Z" fill="#D4D4D4"/>
-  <rect x="2" y="5.5" width="10" height="6.5" rx="1" fill="#D4D4D4"/>
-  <circle cx="7" cy="8.5" r="2" fill="#161616"/>
-  <circle cx="7" cy="8.5" r="1" fill="#D4D4D4"/>
-  <g transform="rotate(45 12.5 2.75)">
-    <rect x="12" y="2" width="1" height="2" fill="#D4D4D4"/>
-    <path d="M11.4,2 L12.5,0.8 L13.6,2 Z" fill="#D4D4D4"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M0 0h24v24H0V0z" fill="none"/><path d="m14.12 4 1.83 2H20v12H4V6h4.05l1.83-2h4.24M15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2zm-3 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"/></svg>

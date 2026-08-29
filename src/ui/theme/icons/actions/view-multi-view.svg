@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- view-multi-view 多视图 | 实心面板+深色十字，S-01/S-02 -->
-  <rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="#D4D4D4"/>
-  <rect x="2.5" y="7.5" width="11" height="1.5" fill="#161616"/>
-  <rect x="7.5" y="2.5" width="1.5" height="11" fill="#161616"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><rect fill="none" height="24" width="24"/><path d="M3,5v14h18V5H3z M19,11h-3.33V7H19V11z M13.67,11h-3.33V7h3.33V11z M8.33,7v4H5V7H8.33z M5,17v-4h3.33v4H5z M10.33,17v-4 h3.33v4H10.33z M15.67,17v-4H19v4H15.67z"/></svg>

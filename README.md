@@ -16,7 +16,7 @@
 - **25 主题**：15 深色 + 7 浅色 + 3 高对比；热切换并持久化到 QSettings
 - **内嵌 Python REPL**：CPython 3.13 + pybind11；表达式自动求值、多行续行、语法/运行时 traceback、多行粘贴即执行、导出 / 清空
 - **统一日志**：彩色终端输出 + Qt 消息重定向（`qDebug/qWarning` 汇入同一流）
-- **图标体系**：SVG 源 + 多尺寸 PNG/ICO，按功能区映射到菜单 / 工具栏 / 文件类型
+- **图标体系**：59 枚功能图标采用 Google Material Icons Outlined（Apache-2.0，本地化 SVG 源）+ 多尺寸 PNG/ICO，按功能区映射到菜单 / 工具栏 / 文件类型
 - **打开文件过滤**：VTK（`*.vtk *.vti *.vtp *.vtu *.vts *.vtr`）/ SVisual（`*.plt *.tdr`）/ HDF5（`*.h5 *.hdf5`）/ 曲线（`*.csv *.dat`）
 
 ## 工程架构
@@ -88,7 +88,7 @@ docs/
 | `check_line_counts.ps1` | 行数红线门禁：`.cpp` ≤ 800 / `.h` 红线 500（建议 300）/ `.hpp` ≤ 800 | `.\scripts\check_line_counts.ps1` |
 | `check_pragma_once.ps1` | 扫描 `src/` 与 `tests/cpp/`，检测缺失 `#pragma once` 的头文件 | `.\scripts\check_pragma_once.ps1` |
 | `check_icons.py` | 图标规范校验：色板 Token 白名单 / 命名规则 / icon-map 覆盖 / 字段 schema | `python scripts\check_icons.py` |
-| `check_theme_contrast.py` | 解析 `theme_catalog.h`，按 WCAG 校验文字/图标对比度 | `python scripts\check_theme_contrast.py` |
+| `check_theme_contrast.py` | 解析 `theme_catalog*.h`（dark/light/hc 拆分后目录），按 WCAG 校验文字/图标对比度 | `python scripts\check_theme_contrast.py` |
 
 ### 图标设计管线
 

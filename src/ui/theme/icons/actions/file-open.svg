@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- file-open 打开文件 | 实心文件夹（亮背板+深前盖），S-01/S-02 -->
-  <path d="M2,4.5 L7.5,4.5 L9.5,6.5 L14,6.5 L14,12.5 L2,12.5 Z" fill="#D4D4D4"/>
-  <path d="M2,6.5 L11.5,6.5 L10,12.5 L2,12.5 Z" fill="#3C3C3C"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>

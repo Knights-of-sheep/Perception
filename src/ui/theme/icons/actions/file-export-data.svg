@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- file-export-data 导出数据 | 实心文档+数据行+右箭头，S-01/S-02 -->
-  <path d="M4,2.5 L8.5,2.5 L11.5,5.5 L11.5,13.5 L4,13.5 Z" fill="#D4D4D4"/>
-  <path d="M8.5,2.5 L8.5,5.5 L11.5,5.5 Z" fill="#161616"/>
-  <rect x="5.5" y="8" width="2.6" height="1.2" fill="#161616"/>
-  <rect x="5.5" y="10.5" width="2" height="1.2" fill="#161616"/>
-  <path d="M11.5,4.5 L13.5,6.5 L11.5,6.5 Z" fill="#D4D4D4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5z"/></svg>

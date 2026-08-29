@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- view-zoom-box 框选缩放 | 实心放大镜+目标框，S-01/S-02 -->
-  <circle cx="10" cy="5.5" r="3" fill="#D4D4D4"/>
-  <circle cx="10" cy="5.5" r="1.8" fill="#161616"/>
-  <path d="M12.3,7.8 L14,9.5" stroke="#D4D4D4" stroke-width="2.5" stroke-linecap="round"/>
-  <rect x="2.5" y="9" width="4" height="4" rx="0.5" fill="#D4D4D4"/>
-  <path d="M3.6,9.4 L3.6,12.4 L6.4,12.4" fill="none" stroke="#161616" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" height="24" viewBox="0 0 24 24" width="24" fill="#D4D4D4"><g><rect fill="none" height="24" width="24"/></g><g><path d="M9,9l0-6L7,3l0,2.59L3.91,2.5L2.5,3.91L5.59,7L3,7l0,2L9,9z M21,9V7l-2.59,0l3.09-3.09L20.09,2.5L17,5.59V3l-2,0l0,6L21,9z M3,15l0,2h2.59L2.5,20.09l1.41,1.41L7,18.41L7,21h2l0-6L3,15z M15,15l0,6h2v-2.59l3.09,3.09l1.41-1.41L18.41,17H21v-2L15,15z"/></g></svg>

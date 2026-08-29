@@ -1,33 +1,35 @@
 # 图标设计规范（icon-spec）
 
-> **Feature**: 002-icon-design | **Status**: 正式规范（v1.1.0，风格修订：线性描边 → 实心填充）
+> **Feature**: 002-icon-design | **Status**: 正式规范（**v2.0.0**，风格修订：实心填充 → Material Icons Outlined 线性圆角描边，替换 58 枚功能图标）
 > 本文件是**图标设计的唯一规范文档**（面向实现者），与契约 `specs/002-icon-design/contracts/icon-style-spec.md` 完全一致、不得矛盾（单一事实源）。
 > 可检查定义以契约条款号（S/G/P/T/N/A）为准；交付验收执行 `specs/002-icon-design/contracts/conformance-checklist.md`。
-> 修订记录：2026-08-25 风格由"线性描边"调整为"实心填充"（对齐 SVisual 拟物参考）。
+> 修订记录：
+> - 2026-08-29 **v2.0.0**：风格由"实心填充"调整为 **Material Icons Outlined 线性圆角描边**（素材来源 Google Material Icons，Apache-2.0 免费许可，Figma 官方社区版 / 官方 GitHub 仓库，本地化为仓库资产，无在线运行时依赖）；基础网格 16→24；描边宽度档位 16=1.5 / 24=2 / 32=2.5。色板 / 状态 / 命名条款不变。对应 `specs/007-replace-icon-set`。
+> - 2026-08-25 v1.1.0：风格由"线性描边"调整为"实心填充"（对齐 SVisual 拟物参考）。
 
 ---
 
 ## 1. 目标
 
-为 Perception 全部功能按钮与应用主图标提供**统一、可逐项核验**的视觉规范：实心填充、深色适配、语义唯一、五态清晰。
+为 Perception 全部功能按钮与应用主图标提供**统一、可逐项核验**的视觉规范：线性圆角描边、深色适配、语义唯一、五态清晰。
 
 ## 2. 风格（Style）
 
 | 条款 | 要求 |
 |---|---|
-| S-01 | 实心填充风格：主体以 Token 色实心填充（默认 `FG_TEXT #D4D4D4`），内部细节以 `BG_VIEW #161616` / `BG_CONTROL #3C3C3C` 负形挖空表达层次；`fill="none"` 仅允许用于辅助描边元素 |
-| S-02 | 使用描边（`stroke`）时：端点 `stroke-linecap="round"`、连接 `stroke-linejoin="round"`；16px 档负形/细线宽度 ≥1.5px 保证可读 |
+| S-01 | **线性圆角描边风格**：主体以描边（`stroke-linecap="round"`、`stroke-linejoin="round"`）表达，默认 `FG_TEXT #D4D4D4`，无填充（`fill="none"`）；`fill` 仅允许 `none` 或 Token 白名单色（个别辅助元素） |
+| S-02 | 使用描边（`stroke`）时：端点 `stroke-linecap="round"`、连接 `stroke-linejoin="round"`；各档位描边宽度下限见 G-03 |
 | S-03 | 图形语义与功能语义一致，不使用与功能无关的装饰元素 |
 
-**负形挖空示例**：软盘 = 亮色外壳 + 深色标签/顶槽/滑块；放大镜 = 亮色镜圈 + 深色镜心 + 亮色加号；相机 = 亮色机身 + 深色镜头 + 亮色镜芯。
+**素材说明**：58 枚功能图标采用 Google **Material Icons Outlined** 官方图形（24×24 原生网格，Apache-2.0），归一化后本地化为仓库资产；渲染时以 `FG_TEXT #D4D4D4` 单色表达，适配深/浅/高对比主题。
 
 ## 3. 网格与尺寸（Grid & Size）
 
 | 条款 | 要求 |
 |---|---|
-| G-01 | 基础绘制网格 16×16；图形必须落在安全区 12×12 内（四边留 ≥2px）；关键图形外接 ≤14×14 |
-| G-02 | 尺寸档位 `16 / 24 / 32`；24=16×1.5、32=16×2 整数倍放大，保证视觉比例一致 |
-| G-03 | 描边宽度：16px=**2px**、24px=**2.5px**、32px=**3px** |
+| G-01 | 基础绘制网格 **24×24**（Material 原生）；图形必须落在安全区 18×18 内（四边留 ≥3px）；关键图形外接 ≤21×21 |
+| G-02 | 尺寸档位 `16 / 24 / 32`；按 24 网格等比缩放（16=24×2/3、32=24×4/3），保证视觉比例一致 |
+| G-03 | 描边宽度：**16px=1.5px、24px=2px、32px=2.5px**（16px 档下限 ≥1.5px） |
 | G-04 | 同语义图标在不同档位保持一致的视觉比例与辨识度 |
 
 **模板**：绘制必须从 `src/ui/theme/icons/templates/template-{16,24,32}.svg` 复制，模板含安全区辅助线。
@@ -79,21 +81,26 @@
 
 | 条款 | 要求 |
 |---|---|
-| A-01 | 与功能按钮图标共享同一实心填充视觉语言（S-01/S-02 适用） |
+| A-01 | 与功能按钮图标共享同一视觉语言（S-01/S-02 适用；既有 app-icon 实心填充图形不追溯） |
 | A-02 | 适配深色主题；在 `BG_VIEW #161616` 背景上辨识清晰 |
 | A-03 | 交付物：SVG 源 + PNG（16/24/32/48/64/128/256）+ Windows `.ico`（含 16px 分辨率） |
 | A-04 | 16px 档仍保留品牌辨识度（SC-006） |
 
 ## 8. 工作流
 
-1. **绘制**：从模板复制 → 按 §2–§6 绘制 → 交付前删除安全区辅助线。
-2. **登记**：在 `src/ui/theme/icons/icon-map.yaml` 登记条目（`icon_id`/`semantic`/`category`/`benchmark_ref`/`states`/`sizes`）。
-3. **校验**：`python scripts/check_icons.py`——色板白名单 / 命名 / 覆盖检查，违规即非零退出。
-4. **渲染**：SVG → PNG（16/24/32；应用图标 16/24/32/48/64/128/256 + `.ico`）。
-5. **集成**：`.qrc` 注册 `/perception/icons/` 资源；窗口图标挂接 `main.cpp`。
+1. **选型**：按映射契约 `specs/007-replace-icon-set/contracts/icon-replacement-map.md` 选取 Material Icons（默认 Outlined）。
+2. **下载**：从 Google Material Icons 官方仓库（GitHub `google/material-design-icons`）下载 24×24 SVG，本地化到 `build/icon-staging/`（不入库）。
+3. **归一化**：将素材非 Token 色值（`#000000`/`black`）替换为 `FG_TEXT #D4D4D4`，`fill="none"` 保留（一次性操作，不新增仓库脚本）。
+4. **入库**：写入 `src/ui/theme/icons/actions/<icon_id>.svg`（文件名与 `icon-map.yaml` 的 `icon_id` 完全一致）。
+5. **登记**：`icon-map.yaml` 维护条目（`icon_id`/`semantic`/`category`/`benchmark_ref`/`states`/`sizes`）。
+6. **校验**：`python scripts/check_icons.py`——色板白名单 / 命名 / 覆盖检查，违规即非零退出。
+7. **渲染**：`python scripts/render_icons.py`——SVG → PNG（16/24/32；应用图标 16/24/32/48/64/128/256 + `.ico`）。
+8. **集成**：`python scripts/gen_qrc.py` 注册 `/perception/icons/` 资源；窗口图标挂接 `main.cpp`。
+9. **视觉**：`python scripts/make_mockups.py` 生成 mockup 预览；语义盲测（正确率 ≥90%）与符合性清单验收。
 
 ## 9. 与既有文档的关系
 
 - 契约（可检查定义）：`specs/002-icon-design/contracts/icon-style-spec.md` —— 本规范与其一致。
+- 替换功能：`specs/007-replace-icon-set/`（映射契约 / 素材来源契约 / 任务 / 计划 / 规格）。
 - 设计系统：`docs/design/ui-guidelines.md` §3.1（Token 唯一来源）。
 - 映射表：`src/ui/theme/icons/icon-map.yaml`（图标↔功能↔对标条目关联，schema 见 `contracts/icon-function-map.md`）。
