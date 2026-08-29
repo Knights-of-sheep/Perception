@@ -1,6 +1,6 @@
 # 架构设计：Perception
 
-> 顶层架构文档，M0 建立骨架，随里程碑细化。约束源：`.specify/memory/constitution.md` v1.1。
+> 顶层架构文档，M0 建立骨架，随里程碑细化。约束源：`.specify/memory/constitution.md`（版本见文件头部）。
 > 流程图：见 [architecture/flows.md](architecture/flows.md)（模块依赖 / 启动 / 数据流 / 日志 / 主题 / UI 交互）。
 
 ## 1. 技术栈
@@ -8,7 +8,7 @@
 | 层 | 技术 | 说明 |
 |---|---|---|
 | 语言 | C++17 | 主体 |
-| 界面 | Qt 5.12.12 (Widgets + QSS) | 深色主题，前后端分离 |
+| 界面 | Qt 5.15.2 (Widgets + QSS) | 深色主题，前后端分离 |
 | 渲染 | VTK 9.4.1 (C++) | Charts 2D 曲线 + 结构可视化 |
 | 脚本 | pybind11 | 命令驱动模块 `perception_py` |
 | 测试 | CTest + pytest | C++ 单测 + Python 命令层测试 |

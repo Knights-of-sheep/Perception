@@ -1,6 +1,6 @@
 # Contributing to Perception
 
-本文件承载开发流程的**软规范**（命名、commit、分支、PR、代码风格）。硬性治理规则见 [宪法](.specify/memory/constitution.md)（v1.3.0），本文件与宪法冲突时以宪法为准。
+本文件承载开发流程的**软规范**（命名、commit、分支、PR、代码风格）。硬性治理规则见 [宪法](.specify/memory/constitution.md)（版本见文件头部），本文件与宪法冲突时以宪法为准。
 
 ## 工作流总览
 
