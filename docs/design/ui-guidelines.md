@@ -33,7 +33,7 @@
 
 ### 3.1 分层色板（深色主题，参考 VS Code Dark+）
 
-背景分层（3 层，形成空间感）：
+背景分层（4 层，形成空间感）：
 
 | Token | 色值 | 用途 |
 |---|---|---|
@@ -41,6 +41,7 @@
 | `BG_PANEL` | `#252526` | Dock / 侧边栏 / 图例底 |
 | `BG_CONTROL` | `#3C3C3C` | 按钮、输入框、树选中底 |
 | `BG_VIEW` | `#161616` | 中央视图底色（比 L0 略深，突出绘图区） |
+| `BG_DIALOG` | 由 `deriveDialogBg` 派生（深色示例 ≈ `#333333`） | 弹窗背景层（008：深色较主窗口提亮一档 / 浅色压暗一档 / 高对比回退主窗口，层次靠 1px 边框；正文对比度不足时自动降级保护可读性） |
 
 前景与边框：
 
@@ -109,7 +110,7 @@
 | 家族 | 必须覆盖的控件 | 容易漏的坑 |
 |---|---|---|
 | 弹层 | `QToolTip`、`QMenu`（弹出态）、`QComboBox` 下拉列表 | **ToolTip 默认系统黄底，必改** |
-| 窗口 | `QMainWindow`、`QDialog`、`QMessageBox` | 对话框内容区、按钮条 |
+| 窗口 | `QMainWindow`、`QDialog`、`QMessageBox` | 对话框内容区、按钮条；弹窗背景层 `BG_DIALOG`（QSS `@dialogBg@`，运行时派生） |
 | 列表树表 | `QTreeWidget`、`QListWidget`、`QTableView`、`QHeaderView` | 表头、展开箭头、选中/交替行 |
 | 输入 | `QLineEdit`、`QComboBox`、`QSpinBox`、`QDoubleSpinBox`、`QTextEdit` | 光标色、placeholder 色 |
 | 按钮 | `QPushButton`、`QToolButton`、`QCheckBox`、`QRadioButton` | 图标按钮 hover/checked 底 |
@@ -176,6 +177,25 @@ src/ui/theme/
 Tab、对话框、禁用态…），每次主题改动后视觉巡检 + 截图基线对比。
 
 **强制规则**：新增任何控件类型，必须先确认 QSS 矩阵已覆盖，并在 Showcase 页可检查。
+
+### 4.7 布局设置弹窗控件规范（004 / 008 WS2）
+
+统一布局设置弹窗（`LayoutSettingsDialog`，无边框 + 共享标题栏，见 §3.1 弹窗背景层次）的控件约定：
+
+1. **排列模式 = 分段按钮组**：`QButtonGroup`（exclusive）+ 3 个 checkable `QPushButton`
+   （objectName `layoutModeButton`：Grid / By Row / By Column），点击即切换并即时应用；
+   QSS 统一 `#layoutModeButton:checked`（@accent@ 背景 + @textOnAccent@ 文字）。
+2. **约束轴可用性矩阵**（单一判定源 `LayoutManager::constraintAxis`；2026-08-30 二次修订：约束轴 = 生效轴）：
+   - By Row / By Column：禁用 优先级 + 最大行 + 最大列（约束值保留但不参与计算）；
+   - Grid + 行优先：启用 优先级（radio）+ 仅 最大列数，灰显 最大行数；
+   - Grid + 列优先：启用 优先级（radio）+ 仅 最大行数，灰显 最大列数；
+   - **所有控件始终可见**——通过 `setEnabled` 控制可用性、QSS 灰显样式区分，避免模式/优先级切换造成弹窗几何跳动（SC-006）。
+3. **实时排列预览**：`LayoutPreviewWidget` 自绘（objectName `layoutPreviewWidget`），
+   几何完全复用 `LayoutManager::computeGrid/cellRect`（与真实排布必然一致）；
+   背景 @viewBg@、cell 填充 @panelBg@、cell 边框 1px @border@；空态（0 子窗口）显示提示文本，
+   单子窗口铺满。计数来源 `SubwindowContainer::visibleSubwindowCount()`（排除隐藏/最大化旁路）。
+4. **间隙宽度**：`QSpinBox`（0–50 px，默认 6，绑 `LayoutConfig::spacing`）。
+5. **恢复默认**：`QPushButton` 一键恢复 网格 + 行优先 + 无约束 + 不保持相同宽高 + 间隙 6。
 
 ---
 

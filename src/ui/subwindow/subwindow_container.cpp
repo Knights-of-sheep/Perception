@@ -45,6 +45,15 @@ void SubwindowContainer::removeSubwindow(SubwindowView* view) {
     emit subwindowCountChanged(views_.size());
 }
 
+int SubwindowContainer::visibleSubwindowCount() const {
+    int count = 0;
+    for (auto* v : views_) {
+        if (hidden_.contains(v)) continue;            // 用户隐藏的不参与排列
+        if (!maximized_ || v == maximized_) ++count;  // 最大化时仅选中者
+    }
+    return count;
+}
+
 void SubwindowContainer::setLayoutConfig(const LayoutConfig& cfg) {
     const bool sameSizeChanged = (cfg.sameSize != cfg_.sameSize);
     cfg_ = cfg;
@@ -151,8 +160,10 @@ void SubwindowContainer::relayout() {
     const QSize lastSpan = layoutManager_.lastCellSpan(visible.size(), grid, cfg_);
     const bool sameSize = cfg_.sameSize;
     for (int i = 0; i < visible.size(); ++i) {
-        const int row = i / grid.cols;
-        const int col = i % grid.cols;
+        // 填充方向（行优先/列优先）单一事实源：与 cellRect 一致（008 修订）
+        const auto pos = layoutManager_.cellPos(i, grid, cfg_);
+        const int row = pos.first;
+        const int col = pos.second;
         const bool isLast = (i == visible.size() - 1);
         if (isLast && !sameSize) {
             // 保持比例未勾选：最后一个子窗口占满剩余空间（末行/网格右下角）

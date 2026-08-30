@@ -48,6 +48,9 @@ struct ThemeColors {
     // ---- 交互反馈 ----
     QColor dockDropHighlight;  // Dock 拖拽放置高亮（VSCode sash.activeBorder 风格：
                                // 深色主题用亮蓝系、浅色主题用深蓝系、高对比用亮青系）
+    // ---- 弹窗层（008-unify-dialog-styling）----
+    QColor dialogBg;  // BG_DIALOG 弹窗背景层（默认无效色 = 渲染时由 deriveDialogBg 派生；
+                      // 显式赋值优先，供未来定制钩子）
 };
 
 struct ThemeDescriptor {

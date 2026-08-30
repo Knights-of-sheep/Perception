@@ -1,6 +1,10 @@
 #include "ui/themed_file_dialog.h"
 
 #include "ui/dialog_title_bar.h"
+#include "ui/theme/file_dialog_qss.h"
+#include "ui/theme/theme_dialog_layer.h"
+#include "ui/theme/theme_manager.h"
+#include "ui/theme/theme_types.h"  // ThemeDescriptor / ThemeColors 完整定义
 
 #include <QApplication>
 #include <QFileDialog>
@@ -44,6 +48,18 @@ ThemedFileDialog::ThemedFileDialog(QWidget* parent, const QString& title,
     }
     connect(fileDialog_, &QFileDialog::accepted, this, &QDialog::accept);
     connect(fileDialog_, &QFileDialog::rejected, this, &QDialog::reject);
+
+    // 008 跟进：Qt 5.15 QFileWidget 内部硬编码样式表屏蔽应用级 QSS（侧边栏/Look-in 行/
+    // 底部按钮/视图停留在浅色原生观感）——按当前主题色板显式注入样式表恢复视觉统一。
+    // 背景 dialogBg 走与全局 QSS 相同的派生路径（deriveDialogBg），保证弹窗层一致。
+    if (const auto* cur = ThemeManager::current()) {
+        const auto& c = cur->colors;
+        const QColor dlgBg =
+            c.dialogBg.isValid()
+                ? c.dialogBg
+                : theme::deriveDialogBg(c.windowBg, c.text, cur->family);
+        fileDialog_->setStyleSheet(buildFileDialogQss(c, dlgBg));
+    }
 
     root->addWidget(fileDialog_);
 

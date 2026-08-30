@@ -30,6 +30,9 @@ public:
     void removeSubwindow(SubwindowView* view);
     QVector<SubwindowView*> subwindows() const { return views_; }
     int subwindowCount() const { return views_.size(); }
+    // 参与当前排列的可见子窗口数（排除用户隐藏、最大化旁路；与 relayout 可见列表同源，
+    // 008 WS2：布局设置实时预览的计数来源 FR-013）
+    int visibleSubwindowCount() const;
     SubwindowView* maximizedView() const { return maximized_; }
 
     // 布局配置：修改即重排（FR-011 即时生效）

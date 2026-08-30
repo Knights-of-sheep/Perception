@@ -13,12 +13,16 @@ add_library(perception_ui STATIC
   subwindow/dock_drag_overlay.cpp
   subwindow/dock_title_bar.cpp
   subwindow/layout_manager.cpp
+  subwindow/layout_preview_widget.cpp
   subwindow/layout_settings_dialog.cpp
   subwindow/subwindow_container.cpp
   subwindow/subwindow_view.cpp
   theme/icon_factory.cpp
+  theme/file_dialog_qss.cpp
+  theme/theme_dialog_layer.cpp
   theme/theme_manager.cpp
   theme/theme.qrc
+  themed_message_box.cpp
   themed_file_dialog.cpp
   window_geometry.cpp
 )

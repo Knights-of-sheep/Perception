@@ -8,6 +8,7 @@
 #include "ui/subwindow/dock_drag_overlay.h"
 #include "ui/subwindow/dock_title_bar.h"
 #include "ui/themed_file_dialog.h"
+#include "ui/themed_message_box.h"
 #include "ui/win_btn_icon.h"
 
 #include <QAction>
@@ -177,7 +178,7 @@ void MainWindow::exportMainWindowImage() {
 
     const QPixmap pm = grab();  // 抓取整个主窗口当前渲染（含菜单/Dock/状态栏）
     if (!pm.save(path, "PNG")) {
-        QMessageBox::warning(this, tr("Export Failed"),
+        showThemedMessageBox(this, QMessageBox::Warning, tr("Export Failed"),
                              tr("Unable to write:\n%1").arg(path));
         return;
     }
@@ -198,7 +199,7 @@ void MainWindow::exportPythonCommands() {
 
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export Failed"),
+        showThemedMessageBox(this, QMessageBox::Warning, tr("Export Failed"),
                              tr("Unable to write:\n%1").arg(path));
         return;
     }
@@ -472,10 +473,20 @@ void MainWindow::openLayoutSettings() {
                 [this](const LayoutConfig& cfg) {
                     subwindowContainer_->setLayoutConfig(cfg);  // 即时重排（FR-011）
                 });
+        // 008 WS2：打开期间子窗口增删时同步实时预览计数（FR-013）
+        connect(subwindowContainer_, &SubwindowContainer::subwindowCountChanged, this,
+                [this](int) {
+                    if (layoutSettingsDialog_->isVisible()) {
+                        layoutSettingsDialog_->setPreviewCount(
+                            subwindowContainer_->visibleSubwindowCount());
+                    }
+                });
     } else {
         // 打开时回显当前配置（US5）
         layoutSettingsDialog_->setConfig(subwindowContainer_->layoutConfig());
     }
+    // 实时预览计数 = 当前可见子窗口数（FR-013）
+    layoutSettingsDialog_->setPreviewCount(subwindowContainer_->visibleSubwindowCount());
     layoutSettingsDialog_->show();
     layoutSettingsDialog_->raise();
     layoutSettingsDialog_->activateWindow();

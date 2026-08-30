@@ -33,7 +33,7 @@ public:
 
 private:
     static void applyPalette(QApplication& app, const theme::ThemeColors& colors);
-    static QString renderQss(const theme::ThemeColors& colors);  // 模板 -> QSS
+    static QString renderQss(const theme::ThemeDescriptor& theme);  // 模板 -> QSS
 };
 
 }  // namespace ui
