@@ -2,6 +2,7 @@
 
 #include "core/log/logger.h"
 #include "ui/themed_file_dialog.h"
+#include "ui/themed_message_box.h"
 
 #include <QAction>
 #include <QDesktopServices>
@@ -189,7 +190,7 @@ void LogSettingsController::openLogDir() {
     if (logFilePath_.isEmpty()) return;
     const QString dir = QFileInfo(logFilePath_).absolutePath();
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(dir))) {
-        QMessageBox::warning(window_, tr("Cannot Open Log Directory"),
+        showThemedMessageBox(window_, QMessageBox::Warning, tr("Cannot Open Log Directory"),
                              tr("Cannot open directory: %1").arg(dir));
     }
 }
@@ -221,8 +222,8 @@ void LogSettingsController::onSetLogPath() {
 void LogSettingsController::clearHistory() {
     if (logFilePath_.isEmpty()) return;
     const QString dir = QFileInfo(logFilePath_).absolutePath();
-    const auto ret = QMessageBox::question(
-        window_, tr("Clear Log History"),
+    const auto ret = showThemedMessageBox(
+        window_, QMessageBox::Question, tr("Clear Log History"),
         tr("This will delete all log files (including archives) in the log directory.\n\nDirectory: %1\n\nContinue?").arg(dir),
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (ret != QMessageBox::Yes) return;
@@ -232,7 +233,7 @@ void LogSettingsController::clearHistory() {
         PERCEPTION_LOG_I("log history cleared");
         window_->statusBar()->showMessage(tr("Cleared log history: %1").arg(dir), 5000);
     } else {
-        QMessageBox::warning(window_, tr("Clear Failed"),
+        showThemedMessageBox(window_, QMessageBox::Warning, tr("Clear Failed"),
                              tr("Unable to clear log files. Check directory permissions or disk status."));
     }
 }

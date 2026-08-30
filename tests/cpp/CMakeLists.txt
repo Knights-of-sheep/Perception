@@ -89,4 +89,10 @@ add_test(NAME window_geometry_test COMMAND window_geometry_test)
 if(DEFINED _perception_py_debug_lib)
   target_link_options(window_geometry_test PRIVATE "/NODEFAULTLIB:${_perception_py_debug_lib}")
 endif()
+
+# 008-unify-dialog-styling：弹窗背景层派生纯函数单测（SC-001 / FR-003；
+# 仅依赖 QtGui 类型，无 GUI 平台依赖，红-绿 TDD）。
+add_executable(theme_dialog_layer_test theme_dialog_layer_test.cpp)
+target_link_libraries(theme_dialog_layer_test PRIVATE perception_ui)
+add_test(NAME theme_dialog_layer_test COMMAND theme_dialog_layer_test)
 endif()  # PERCEPTION_BUILD_GUI

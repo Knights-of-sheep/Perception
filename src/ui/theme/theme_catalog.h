@@ -3,7 +3,7 @@
 //       切换主题时 ThemeManager 用本文件色板逐 token 渲染，得到最终 QSS。
 // 规范：docs/design/ui-guidelines.md §4.5（Token 单点定义）。
 // 006-constitution-refactor：色板按明暗/对比分组拆分至
-//   theme_catalog_dark.h（15 深色）/ theme_catalog_light.h（10 浅色）/
+//   theme_catalog_dark.h（15 深色）/ theme_catalog_light.h（7 浅色）/
 //   theme_catalog_hc.h（3 高对比），结构定义移至 theme_types.h（避免循环依赖）；
 //   本文件保留 目录 / 常量 / 查询（单一职责，头文件行数回落红线内）。
 // 注意：每套主题需通过 build/_theme_check.py 的 WCAG 对比度校验

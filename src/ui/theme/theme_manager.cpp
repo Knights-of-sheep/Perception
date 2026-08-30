@@ -7,6 +7,7 @@
 #include <QStyleFactory>
 
 #include "ui/theme/theme_catalog.h"
+#include "ui/theme/theme_dialog_layer.h"
 
 namespace perception {
 namespace ui {
@@ -27,7 +28,7 @@ void ThemeManager::applyTheme(const QString& themeId, QApplication& app) {
     applyPalette(app, t->colors);
 
     // 3. QSS 精修：模板 + 当前色板 -> 全量样式（一次 setStyleSheet 重建样式树）
-    app.setStyleSheet(renderQss(t->colors));
+    app.setStyleSheet(renderQss(*t));
 
     saveThemeId(t->id);
 }
@@ -80,16 +81,27 @@ void ThemeManager::applyPalette(QApplication& app, const theme::ThemeColors& c) 
 }
 
 // ===== QSS 渲染：模板 -> 当前主题（token 一一替换）=====
-QString ThemeManager::renderQss(const theme::ThemeColors& c) {
+QString ThemeManager::renderQss(const theme::ThemeDescriptor& t) {
     QFile file(QStringLiteral(":/perception/theme/theme_template.qss"));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
 
     QString qss = QString::fromUtf8(file.readAll());
 
+    const theme::ThemeColors& c = t.colors;
+
+    // 弹窗背景层：语义色优先（供未来定制钩子），否则派生（008-unify-dialog-styling）；
+    // High Contrast family 派生返回无效色 → 回退 windowBg（层次靠 QSS 1px 边框）
+    QColor dialogBg = c.dialogBg;
+    if (!dialogBg.isValid()) {
+        dialogBg = theme::deriveDialogBg(c.windowBg, c.text, t.family);
+        if (!dialogBg.isValid()) dialogBg = c.windowBg;
+    }
+
     struct Token { const char* name; QColor color; };
     const Token tokens[] = {
         {"@windowBg@", c.windowBg}, {"@panelBg@", c.panelBg},
         {"@controlBg@", c.controlBg}, {"@viewBg@", c.viewBg},
+        {"@dialogBg@", dialogBg},
         {"@text@", c.text}, {"@textWeak@", c.textWeak},
         {"@textDisabled@", c.textDisabled},
         {"@border@", c.border}, {"@borderWeak@", c.borderWeak},

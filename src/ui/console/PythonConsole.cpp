@@ -67,6 +67,17 @@ QString pythonVersionBanner() {
     }
 }
 
+// 记录 Python 初始化期失败到统一日志：与 printError 的退化分支（仅 str(value)，
+// 会丢失 traceback/__cause__）互补，e.what() 是 pybind11 完整格式化（类型名+消息+
+// traceback+chained exceptions），且不依赖引导脚本（此时 _format_traceback 可能
+// 尚未安装）。输出到 %APPDATA%/Perception/logs/app.log（main.cpp 装配）。
+void logPythonInitError(const py::error_already_set& e) {
+    const char* what = e.what();
+    if (!what || !*what) return;
+    perception::core::log::Logger::instance().log(
+        perception::core::log::LogLevel::Error, "python.console", what);
+}
+
 // perception_py 的 IWindowFactory 适配器（006 US4）：
 // create_window 模块函数 → 本适配器 → createWindowCallback（MainWindow 注册，
 // 调 createSubwindow 真实创建子窗口）。宿主未连接（回调为空）返回空串 → None。
@@ -156,6 +167,11 @@ void PythonConsole::initPython() {
     try {
         py::initialize_interpreter();
     } catch (const std::exception& e) {
+        const char* what = e.what();
+        if (what && *what) {
+            perception::core::log::Logger::instance().log(
+                perception::core::log::LogLevel::Error, "python.console", what);
+        }
         appendOutput(tr("Failed to initialize the Python interpreter: %1\n")
                          .arg(QString::fromLocal8Bit(e.what())), d_->errorColor);
         showPrompt();
@@ -181,6 +197,11 @@ void PythonConsole::initPython() {
             py::capsule(static_cast<console::IOutputSink*>(this), "IOutputSink"),
             py::capsule(static_cast<console::ILogBridge*>(this), "ILogBridge"));
     } catch (const py::error_already_set& e) {
+        // 桥安装失败（用户反馈 2026-08-30：启动时控制台首行仅见 "initialization failed"）。
+        // 此阶段 _format_traceback 尚未就绪，printError 走退化分支会丢失 __cause__；
+        // 先把 e.what()（pybind11 完整格式化：类型名+消息+traceback+chained exceptions）
+        // 记入日志兜底（%APPDATA%/Perception/logs/app.log），再回显控件。
+        logPythonInitError(e);
         printError(e);
         return;
     }
@@ -196,6 +217,7 @@ void PythonConsole::initPython() {
                         "IWindowFactory"));
         d_->globals["create_window"] = commandModule.attr("create_window");
     } catch (const py::error_already_set& e) {
+        logPythonInitError(e);
         printError(e);
         return;
     }
@@ -558,6 +580,14 @@ void PythonConsole::runCommand(const QString& src) {
                               ? QString(src)
                               : (d_->pending + QLatin1Char('\n') + src);
 
+    // 防御：桥安装失败（initPython 提前 return）时 _check_complete 未就绪，
+    // 直接调用空 object 会抛 pybind11 内部错误——提示并回到新提示符而非崩溃。
+    if (!d_->checkComplete) {
+        appendOutput(tr("console bridge is not initialized\n"), d_->errorColor);
+        showPrompt();
+        return;
+    }
+
     executing_ = true;
     QString verdict = QStringLiteral("complete");
     {
@@ -639,10 +669,19 @@ void PythonConsole::printError(const py::error_already_set& e) {
         }
     }
     if (text.isEmpty()) {
-        try {
-            text = QString::fromStdString(
-                py::cast<std::string>(py::str(value ? value : type)));
-        } catch (const py::error_already_set&) {
+        // 退化分支（引导脚本未就绪，如 initPython 早期 import 失败）：优先用
+        // e.what() 完整格式化（类型名+消息+traceback+__cause__），避免只显示
+        // "initialization failed" 而掩盖真实根因（用户反馈 2026-08-30）；
+        // 仅当 what() 为空（二次异常）再降级为 str(value)。
+        const char* what = e.what();
+        if (what && *what) {
+            text = QString::fromUtf8(what);
+        } else {
+            try {
+                text = QString::fromStdString(
+                    py::cast<std::string>(py::str(value ? value : type)));
+            } catch (const py::error_already_set&) {
+            }
         }
     }
     // 执行前已换行，错误文本直接输出（末尾换行留空到新提示符）

@@ -2,7 +2,7 @@
    Perception 主题模板 theme_template.qss
    规范：docs/design/ui-guidelines.md §3 / §4
    token 占位符（唯一来源 theme/theme_catalog.h，运行时渲染替换）：
-     @windowBg@ @panelBg@ @controlBg@ @viewBg@
+     @windowBg@ @panelBg@ @controlBg@ @viewBg@ @dialogBg@（008：弹窗层，运行时派生）
      @text@ @textWeak@ @textDisabled@ @border@ @borderWeak@
      @accent@ @accentHover@ @accentPressed@ @selectionBg@
      @hoverBg@ @surfaceElev@ @itemHover@ @buttonHover@ @handleHover@
@@ -13,9 +13,22 @@
    ========================================================================== */
 
 /* ===== 窗口 ===== */
-QMainWindow, QDialog, QMessageBox {
+/* 008-unify-dialog-styling：弹窗背景层拆分——QDialog/QMessageBox 使用弹窗层语义色
+   @dialogBg@（由 deriveDialogBg 派生），并给 QDialog 1px 主题边框以强化悬浮层次
+   （FR-006）；布局设置弹窗等对象名选择器（更高优先级）仍可覆盖为 panelBg。 */
+QMainWindow {
     background-color: @windowBg@;   /* BG_WINDOW */
     color: @text@;                  /* FG_TEXT */
+}
+QDialog {
+    background-color: @dialogBg@;   /* BG_DIALOG（008：弹窗层） */
+    color: @text@;                  /* FG_TEXT */
+    border: 1px solid @border@;     /* FR-006 悬浮层次 */
+}
+QMessageBox {
+    background-color: @dialogBg@;   /* BG_DIALOG（008：兼容残留调用） */
+    color: @text@;                  /* FG_TEXT */
+    border: 1px solid @border@;     /* 与 QDialog 一致（008 修订） */
 }
 
 /* ===== 通用控件文字 ===== */
@@ -42,6 +55,13 @@ QMenuBar::item:pressed  { background: @selectionBg@; }   /* SELECTION_BG */
 QWidget#titleBarRow {
     background-color: @panelBg@;   /* 与菜单栏同底色 */
     border-bottom: 1px solid @border@;  /* 整行底部分隔线 */
+}
+/* 弹窗标题栏：铺满全宽的标题栏背景会盖住 QDialog 自身 border 的顶边/两侧，
+   由标题栏补齐四周 1px 边框，与 QDialog 边框衔接成完整窗口外缘（008 修订）；
+   选择器限定 QDialog，主窗口标题栏（QMainWindow 下）不受影响 */
+QDialog QWidget#titleBarRow {
+    border: 1px solid @border@;
+    border-bottom: 1px solid @border@;
 }
 QWidget#titleBarRow QMenuBar {
     background: transparent;   /* 底色交给 titleBarRow */
@@ -185,6 +205,14 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QTextEdit, QPlainTextEdit {
     selection-background-color: @accent@;
     selection-color: @textOnAccent@;
 }
+/* 禁用输入控件：文字弱化 + 弱边框 + 抬升面底——QSS 显式 color 会覆盖 Qt 默认禁用变色，
+   必须显式声明 :disabled 否则禁用态与启用态难以区分（SC-006 可用性矩阵可辨识性） */
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled,
+QTextEdit:disabled, QPlainTextEdit:disabled {
+    color: @textDisabled@;
+    background-color: @surfaceElev@;
+    border-color: @borderWeak@;
+}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
 QTextEdit:focus, QPlainTextEdit:focus {
     border-color: @accent@;       /* ACCENT 焦点环（几何一致性） */
@@ -235,9 +263,13 @@ QDockWidget[dockFloating="true"] QTextEdit {
 }
 QWidget#dockTitleBar {
     background-color: @dockTitleBg@;
+    border: 1px solid @border@;
     border-bottom: 1px solid @borderWeak@;
     min-height: 26px;
 }
+/* 停靠/浮动标题栏统一完整外框：QDockWidget 自身 border 在 QMainWindow 内不绘制，
+   dock 外缘由标题栏顶/左/右边框与内容 widget 自身边框衔接成完整窗口轮廓；
+   底部 @borderWeak@ 为标题栏与内容区的分隔线（008 修订：docked 态补齐三边外框） */
 QLabel#dockTitleLabel {
     color: @text@;
     font-weight: 600;
@@ -427,6 +459,9 @@ QToolButton#subwindowCloseBtn:hover {
 QDialog#layoutSettingsDialog QLabel {
     color: @text@;
 }
+QDialog#layoutSettingsDialog QLabel:disabled {
+    color: @textDisabled@;
+}
 QDialog#layoutSettingsDialog QSpinBox {
     background-color: @controlBg@;
     color: @text@;
@@ -435,30 +470,63 @@ QDialog#layoutSettingsDialog QSpinBox {
     padding: 2px 4px;
     min-width: 90px;
 }
-QDialog#layoutSettingsDialog QComboBox {
+QDialog#layoutSettingsDialog QSpinBox:disabled {
+    color: @textDisabled@;
+    background-color: @surfaceElev@;
+    border-color: @borderWeak@;
+}
+/* 排列模式分段按钮组（008 WS2：QComboBox → 可勾选分段按钮，点击即应用） */
+QDialog#layoutSettingsDialog QPushButton#layoutModeButton {
     background-color: @controlBg@;
     color: @text@;
     border: 1px solid @border@;
     border-radius: 4px;
-    padding: 3px 8px;
-    min-width: 120px;
+    padding: 4px 12px;
+}
+QDialog#layoutSettingsDialog QPushButton#layoutModeButton:hover {
+    border-color: @accent@;
+}
+QDialog#layoutSettingsDialog QPushButton#layoutModeButton:checked {
+    background-color: @accent@;
+    color: @textOnAccent@;
+    border-color: @accent@;
+}
+/* 实时排列预览（008 WS2：自绘缩略示意，背景由 paintEvent 按 @viewBg@ 绘制，此处兜底） */
+QDialog#layoutSettingsDialog #layoutPreviewWidget {
+    background-color: @viewBg@;
+    border: 1px solid @border@;
 }
 QDialog#layoutSettingsDialog QCheckBox {
     color: @text@;
 }
 QDialog#layoutSettingsDialog QRadioButton {
     color: @text@;
+    spacing: 6px;
+}
+QDialog#layoutSettingsDialog QRadioButton:disabled {
+    color: @textDisabled@;
 }
 QDialog#layoutSettingsDialog QRadioButton::indicator {
     width: 14px;
     height: 14px;
-    border: 1px solid @border@;
+    border: 2px solid @border@;
     border-radius: 7px;
     background: @controlBg@;
 }
+QDialog#layoutSettingsDialog QRadioButton::indicator:hover {
+    border-color: @accent@;
+}
 QDialog#layoutSettingsDialog QRadioButton::indicator:checked {
-    border: 4px solid @accent@;
-    background: @windowBg@;
+    border: 2px solid @accent@;
+    background: @accent@;
+}
+QDialog#layoutSettingsDialog QRadioButton::indicator:disabled {
+    border-color: @borderWeak@;
+    background: @surfaceElev@;
+}
+QDialog#layoutSettingsDialog QRadioButton::indicator:checked:disabled {
+    border-color: @borderWeak@;
+    background: @borderWeak@;
 }
 
 /* ===== Python 控制台（底部 Dock，内嵌 REPL）===== */
