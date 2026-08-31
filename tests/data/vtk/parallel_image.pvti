@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<VTKFile type="PImageData" version="0.1" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <PImageData WholeExtent="0 114 0 100 0 74" GhostLevel="0" Origin="0 0 0" Spacing="1 1 1">
+    <PPointData Scalars="SLCImage">
+      <PDataArray type="UInt8" Name="SLCImage"/>
+    </PPointData>
+    <Piece Extent="0 114 0 100 0 74" Source="parallel_image_0.vti"/>
+  </PImageData>
+</VTKFile>

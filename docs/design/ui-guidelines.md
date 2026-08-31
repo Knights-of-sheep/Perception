@@ -197,6 +197,26 @@ Tab、对话框、禁用态…），每次主题改动后视觉巡检 + 截图�
 4. **间隙宽度**：`QSpinBox`（0–50 px，默认 6，绑 `LayoutConfig::spacing`）。
 5. **恢复默认**：`QPushButton` 一键恢复 网格 + 行优先 + 无约束 + 不保持相同宽高 + 间隙 6。
 
+### 4.8 面板设置弹窗控件规范（010-panel-layout-settings）
+
+统一面板设置弹窗（`PanelSettingsDialog`，无边框 + 共享标题栏，见 §3.1 弹窗背景层次）的控件约定：
+
+1. **布局模式 = 分段按钮组**：`QButtonGroup`（exclusive）+ 4 个 checkable `QPushButton`
+   （objectName `panelModeButton`，2×2 网格：Dual / Dual + Console / Reversed / Reversed + Console），
+   点击即切换并即时应用；QSS 统一 `#panelModeButton:checked`（@accent@ 背景 + @textOnAccent@ 文字），
+   全状态覆盖 normal / hover / checked / checked:hover / disabled。
+2. **面板显隐 = 三枚 `QCheckBox`**（objectName `panelDataVisibleCheck` / `panelPropertyVisibleCheck` /
+   `panelConsoleVisibleCheck`），任一勾选态变化立即应用（expand：隐藏面板空间由其余可见面板与
+   中央区吸收，无空白死区；单一判定源 `PanelLayoutConfig`）。
+3. **实时示意图**：`PanelPreviewWidget` 自绘（objectName `panelPreviewWidget`），几何完全复用
+   `PanelLayoutConfig::targetArea / isPanelVisible`（与真实排布必然一致）；背景 @viewBg@、
+   cell 填充 @panelBg@、边框 1px @border@、文字 @textWeak@。
+4. **模式 × 显隐语义**：模式定义 Data/Property 左右分配与底部 PyShell 默认显隐（FR-002/003）；
+   显隐独立于模式，与模式组合任意合法（FR-008）。恢复默认 = Dual + Console + 三面板全显。
+5. **OK / Cancel 语义**：OK 持久化 `panelSettings/*` 四 key（QSettings，FR-007）并关闭；
+   Cancel / 标题栏关闭恢复打开前快照并重放（主窗口回滚，US3 场景 3）。所有变更实时预览
+   （`configChanged` → `MainWindow::applyPanelLayout`），无"预览/应用"分离按钮。
+
 ---
 
 ## 5. 布局与功能范式（M3a 目标态）

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<VTKFile type="PPolyData" version="0.1" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <PPolyData GhostLevel="0">
+    <PPointData Normals="Normals">
+      <PDataArray type="Float32" Name="Normals" NumberOfComponents="3"/>
+    </PPointData>
+    <PPoints>
+      <PDataArray type="Float32" Name="Points" NumberOfComponents="3"/>
+    </PPoints>
+    <Piece Source="parallel_polydata_0.vtp"/>
+  </PPolyData>
+</VTKFile>

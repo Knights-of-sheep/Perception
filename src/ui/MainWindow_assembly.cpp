@@ -103,6 +103,13 @@ void MainWindow::createActions() {
     setActionIcon(layoutSettingsAction_, "view-multi-view");
     connect(layoutSettingsAction_, &QAction::triggered, this, &MainWindow::openLayoutSettings);
 
+    // 010-panel-layout-settings：面板布局设置入口（FR-001；View 菜单）
+    panelSettingsAction_ = new QAction(tr("Panel Settings..."), this);
+    panelSettingsAction_->setStatusTip(
+        tr("Arrange Data / Properties / Python Console panels: layout mode and visibility"));
+    setActionIcon(panelSettingsAction_, "view-panel-toggle");
+    connect(panelSettingsAction_, &QAction::triggered, this, &MainWindow::openPanelSettings);
+
     // 004：全屏 = 中间区域（子窗口容器）扩展至整个主界面（隐藏 Dock；FR-017）。
     // View 菜单入口；checkable 表示当前处于全屏（侧边栏无此按钮，见 createToolbars）。
     toggleFullscreenAction_ = new QAction(tr("Fullscreen"), this);
@@ -184,6 +191,7 @@ void MainWindow::createMenus() {
     viewMenu->addSeparator();
     viewMenu->addAction(newSubwindowAction_);      // 004：新建子窗口（FR-001/002）
     viewMenu->addAction(layoutSettingsAction_);    // 004：布局设置（US5 统一入口）
+    viewMenu->addAction(panelSettingsAction_);     // 010：面板布局设置（FR-001）
     viewMenu->addAction(toggleFullscreenAction_);  // 004：全屏（中央区域扩展占满主界面，FR-017）
     viewMenu->addAction(showHiddenSubwindowsAction_);  // 004：恢复隐藏子窗口
     viewMenu->addSeparator();

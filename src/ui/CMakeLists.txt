@@ -17,6 +17,9 @@ add_library(perception_ui STATIC
   subwindow/layout_settings_dialog.cpp
   subwindow/subwindow_container.cpp
   subwindow/subwindow_view.cpp
+  panellayout/panel_layout_config.cpp
+  panellayout/panel_preview_widget.cpp
+  panellayout/panel_settings_dialog.cpp
   theme/icon_factory.cpp
   theme/file_dialog_qss.cpp
   theme/theme_dialog_layer.cpp

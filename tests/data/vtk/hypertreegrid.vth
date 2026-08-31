@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<VTKFile type="HyperTreeGrid" version="2.0" byte_order="LittleEndian" header_type="UInt32" compressor="vtkZLibDataCompressor">
+  <HyperTreeGrid BranchFactor="0" TransposedRootIndexing="0" Dimensions="0 0 0">
+    <Grid>
+      <DataArray type="Float64" Name="XCoordinates" NumberOfTuples="1" format="appended" RangeMin="0"                    RangeMax="0"                    offset="0"                   />
+      <DataArray type="Float64" Name="YCoordinates" NumberOfTuples="1" format="appended" RangeMin="0"                    RangeMax="0"                    offset="40"                  />
+      <DataArray type="Float64" Name="ZCoordinates" NumberOfTuples="1" format="appended" RangeMin="0"                    RangeMax="0"                    offset="80"                  />
+    </Grid>
+    <Trees>
+        <DataArray type="Bit" Name="Descriptors" format="appended" RangeMin="1e+299"               RangeMax="-1e+299"              offset="120"                 />
+        <DataArray type="Int64" Name="NumberOfVerticesPerDepth" format="appended" RangeMin="1e+299"               RangeMax="-1e+299"              offset="136"                 />
+        <DataArray type="Int64" Name="TreeIds" format="appended" RangeMin="1e+299"               RangeMax="-1e+299"              offset="152"                 />
+        <DataArray type="UInt32" Name="DepthPerTree" format="appended" RangeMin="1e+299"               RangeMax="-1e+299"              offset="168"                 />
+    </Trees>
+    <CellData>
+    </CellData>
+  </HyperTreeGrid>
+  <AppendedData encoding="base64">
+   _AQAAAACAAAAIAAAACwAAAA==eJxjYIAAAAAIAAE=AQAAAACAAAAIAAAACwAAAA==eJxjYIAAAAAIAAE=AQAAAACAAAAIAAAACwAAAA==eJxjYIAAAAAIAAE=AAAAAACAAAAAAAAAAAAAAACAAAAAAAAAAAAAAACAAAAAAAAAAAAAAACAAAAAAAAA
+  </AppendedData>
+</VTKFile>

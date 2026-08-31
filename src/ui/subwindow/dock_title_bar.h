@@ -28,6 +28,9 @@ class MainWindow;
 class DockTitleBar : public QWidget {
 public:
     explicit DockTitleBar(QDockWidget* parent);
+    // 010-panel-layout-settings：PyShell 嵌入式模式的"全宽覆盖"态——
+    // active=true 时 maxBtn 显示"恢复嵌入式"图标，点击回嵌入式窄条宿主（setConsoleFullWidth(false)）。
+    void setFullWidthConsole(bool active);
 
 protected:
     // 停靠态：press→超过阈值→Dragging，通知主窗口显示放置高亮；release 执行放置。
@@ -57,6 +60,8 @@ private:
     DragState dragState_ = DragState::None;
     QPoint    pressGlobal_;
     QPoint    winPos_;  // 浮动态拖动前的窗口位置
+
+    bool fullWidthConsoleOverride_ = false;  // 010：PyShell 全宽覆盖态（maxBtn 行为切换）
 };
 
 // Dock focus rect 抑制（QProxyStyle）：Qt Fusion 风格在 QDockWidget 获得键盘焦点时

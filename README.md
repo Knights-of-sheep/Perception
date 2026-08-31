@@ -17,6 +17,7 @@
 - **内嵌 Python REPL**：CPython 3.13 + pybind11；表达式自动求值、多行续行、语法/运行时 traceback、多行粘贴即执行、导出 / 清空
 - **统一日志**：彩色终端输出 + Qt 消息重定向（`qDebug/qWarning` 汇入同一流）
 - **图标体系**：59 枚功能图标采用 Google Material Icons Outlined（Apache-2.0，本地化 SVG 源）+ 多尺寸 PNG/ICO，按功能区映射到菜单 / 工具栏 / 文件类型
+- **面板布局设置**：View → Panel Settings 弹窗——四种预设模式（Data/Property 左右互换 × 底部 PyShell 显隐）+ 三面板独立显隐（隐藏自动 expand）+ 实时示意图预览 + Cancel 回滚；持久化到 QSettings
 <!-- sync_file_types:start -->
 - **打开文件过滤**：VTK（`*.vtk *.vti *.vtp *.vtu *.vts *.vtr *.vtm *.vtmb *.vth *.vto *.pvti *.pvtp *.pvtu *.pvts *.pvtr *.pvtm *.pvd`） / SVisual（`*.plt *.tdr`） / HDF5（`*.h5 *.hdf5`） / 曲线（`*.csv *.dat *.plt`）
 <!-- sync_file_types:end -->
@@ -182,7 +183,7 @@ UI / 主题改动后合并前必须重生成截图，并与 `docs/design/mockups
 | M5 | `src/python` pybind 命令层（load_plt / transform / query / export） | Done（骨架 + 命令注册） |
 | M6 | 打包 + 文档完善 | Todo |
 
-> 已落地功能对应 specs：001-unified-logging / 002-icon-design / 003-install-icon-bars / 004-dock-layout-manager / 005-multi-screen-maximize / 006-constitution-refactor。
+> 已落地功能对应 specs：001-unified-logging / 002-icon-design / 003-install-icon-bars / 004-dock-layout-manager / 005-multi-screen-maximize / 006-constitution-refactor / 010-panel-layout-settings。
 
 ## 文档导航
 

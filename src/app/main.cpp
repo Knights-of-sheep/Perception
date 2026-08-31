@@ -15,6 +15,7 @@
 #include "ui/MainWindow.h"
 #include "ui/console/PythonConsole.h"
 #include "ui/log/qt_message_bridge.h"
+#include "ui/panellayout/panel_layout_config.h"
 #include <QDebug>
 #include <QStyle>
 #include "ui/subwindow/subwindow_container.h"
@@ -123,8 +124,14 @@ int main(int argc, char* argv[])
     //   --snapshot-focus <obj>      抓图前给指定 dock 设焦点，验证 focus rect 是否被抑制
     //   --snapshot-real-drag <dock> 用 QTest::mousePress/MouseMove/MouseRelease 模拟真实拖拽
     //                                （验证 DockTitleBar::eventFilter 拦截链是否生效）
+    //   --snapshot-panel-mode <id>  抓图前应用指定面板布局模式（DualOnly / DualWithConsole /
+    //                                DualReversedOnly / DualReversedWithConsole，验证 PyShell 尺寸形态）
+    //   --snapshot-console-full-width 抓图前临时把嵌入式 PyShell 展开为全尺寸 dock（验证
+    //                                setConsoleFullWidth 与 DockTitleBar 恢复态）
     QString snapshotPath, snapshotFloatPath, snapshotRestorePath, snapshotThemeId,
-            snapshotDragZone, snapshotFocusDock, snapshotRealDragDock, consoleScript;
+            snapshotDragZone, snapshotFocusDock, snapshotRealDragDock, consoleScript,
+            snapshotPanelMode;
+    bool snapshotConsoleFullWidth = false;
     int snapshotSubwindows = 0;
     for (int i = 1; i < argc; ++i) {
         QString arg = QString::fromLocal8Bit(argv[i]);
@@ -144,6 +151,10 @@ int main(int argc, char* argv[])
             snapshotFocusDock = QString::fromLocal8Bit(argv[++i]);
         } else if (arg == QLatin1String("--snapshot-real-drag") && i + 1 < argc) {
             snapshotRealDragDock = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QLatin1String("--snapshot-panel-mode") && i + 1 < argc) {
+            snapshotPanelMode = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QLatin1String("--snapshot-console-full-width")) {
+            snapshotConsoleFullWidth = true;
         } else if (arg == QLatin1String("--console-script") && i + 1 < argc) {
             consoleScript = QString::fromLocal8Bit(argv[++i]);
         }
@@ -151,13 +162,16 @@ int main(int argc, char* argv[])
     const bool wantSnapshot = !snapshotPath.isEmpty() || !snapshotFloatPath.isEmpty()
                            || !snapshotRestorePath.isEmpty() || !snapshotDragZone.isEmpty()
                            || !snapshotFocusDock.isEmpty()
-                           || !snapshotRealDragDock.isEmpty();
+                           || !snapshotRealDragDock.isEmpty()
+                           || !snapshotPanelMode.isEmpty()
+                           || snapshotConsoleFullWidth;
     if (wantSnapshot) {
         QTimer::singleShot(800, &window, [&window, snapshotPath, snapshotFloatPath,
                                           snapshotRestorePath, snapshotThemeId,
                                           snapshotDragZone, snapshotFocusDock,
                                           snapshotRealDragDock, snapshotSubwindows,
-                                          consoleScript, &app] {
+                                          consoleScript, snapshotPanelMode,
+                                          snapshotConsoleFullWidth, &app] {
             QString savedThemeId;
             if (!snapshotThemeId.isEmpty()) {
                 savedThemeId = perception::ui::ThemeManager::currentThemeId();
@@ -171,6 +185,19 @@ int main(int argc, char* argv[])
             }
             window.resetLayout();                        // 强制默认布局（不受 QSettings 记忆影响）
             QApplication::processEvents();
+            // 010-panel-layout-settings：快照前应用指定面板模式（验证 PyShell 尺寸形态/嵌入式标题栏等）
+            if (!snapshotPanelMode.isEmpty()) {
+                perception::ui::PanelLayoutConfig cfg;
+                cfg.mode = perception::ui::modeFromKey(
+                    snapshotPanelMode, perception::ui::PanelLayoutMode::DualWithConsole);
+                window.applyPanelLayout(cfg);
+                QApplication::processEvents();
+            }
+            // 010-panel-layout-settings：验证嵌入式 PyShell 的全宽覆盖态（maxBtn → 全尺寸 dock）
+            if (snapshotConsoleFullWidth) {
+                window.setConsoleFullWidth(true);
+                QApplication::processEvents();
+            }
             // 创建渲染子窗口（验证 subwindowView 边框/选中高亮，--subwindows N）
             if (snapshotSubwindows > 0) {
                 for (int k = 1; k <= snapshotSubwindows; ++k) {
