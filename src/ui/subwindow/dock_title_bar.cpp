@@ -55,6 +55,11 @@ DockTitleBar::DockTitleBar(QDockWidget* parent)
         if (dock_->isFloating()) dock_->showMinimized();
     });
     connect(maxBtn_, &QToolButton::clicked, this, [this] {
+        // 010：PyShell 全宽覆盖态（*Only 模式临时全尺寸 dock）→ 点击收回嵌入式宿主
+        if (fullWidthConsoleOverride_) {
+            if (auto* mw = mainWindow()) mw->setConsoleFullWidth(false);
+            return;
+        }
         if (dock_->isMaximized()) {
             dock_->showNormal();              // 还原（浮动正常大小）
         } else {
@@ -197,10 +202,22 @@ void DockTitleBar::refreshIcons() {
 }
 
 void DockTitleBar::refreshMaxBtn() {
+    // 010：PyShell 全宽覆盖态 → 图标固定为"恢复嵌入式"（仅 *Only 模式临时全尺寸时）
+    if (fullWidthConsoleOverride_) {
+        maxBtn_->setIcon(makeWinBtnIcon(WinBtnKind::Restore, dock_->palette()));
+        maxBtn_->setToolTip(tr("Restore embedded"));
+        return;
+    }
     const bool max = dock_->isFloating() && dock_->isMaximized();
     maxBtn_->setIcon(makeWinBtnIcon(max ? WinBtnKind::Restore : WinBtnKind::Maximize,
                                     dock_->palette()));
     maxBtn_->setToolTip(max ? tr("Restore") : tr("Maximize"));
+}
+
+void DockTitleBar::setFullWidthConsole(bool active) {
+    if (fullWidthConsoleOverride_ == active) return;
+    fullWidthConsoleOverride_ = active;
+    refreshMaxBtn();
 }
 
 void DockTitleBar::onTopLevelChanged(bool topLevel) {
@@ -236,7 +253,14 @@ void DockTitleBar::onTopLevelChanged(bool topLevel) {
 }
 
 MainWindow* DockTitleBar::mainWindow() const {
-    return qobject_cast<MainWindow*>(dock_->window());
+    // 停靠态 dock_->window() 即主窗口；浮动态 window() 是 dock 自身（顶层浮动窗口），
+    // 但 QDockWidget 浮动时 parentWidget 不变（仍为主窗口），沿父链找回。
+    // 否则浮动后"恢复嵌入式"（maxBtn）回调 mainWindow() 返回 null，分离的 PyShell 无法复原。
+    if (auto* mw = qobject_cast<MainWindow*>(dock_->window())) return mw;
+    for (QWidget* p = dock_->parentWidget(); p; p = p->parentWidget()) {
+        if (auto* mw = qobject_cast<MainWindow*>(p)) return mw;
+    }
+    return nullptr;
 }
 
 void NoFocusRectDockStyle::drawPrimitive(PrimitiveElement pe, const QStyleOption* opt,

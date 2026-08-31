@@ -65,6 +65,12 @@ add_executable(layout_manager_test layout_manager_test.cpp)
 target_link_libraries(layout_manager_test PRIVATE perception_ui)
 add_test(NAME layout_manager_test COMMAND layout_manager_test)
 
+# 010-panel-layout-settings：面板布局配置纯逻辑单测（FR-003/005/008/002/007；
+# 仅依赖 QtCore 类型，无 GUI 平台依赖，红-绿 TDD；contracts/panel-layout-config-api.md §2）。
+add_executable(panel_layout_config_test panel_layout_config_test.cpp)
+target_link_libraries(panel_layout_config_test PRIVATE perception_ui)
+add_test(NAME panel_layout_config_test COMMAND panel_layout_config_test)
+
 # 004-dock-layout-manager：子窗口视图交互单测（FR-022 关闭按钮、按钮等高等宽、
 # 点击任意区域选中机制）。需要 GUI 平台（QApplication + QtTest），桌面会话下运行。
 find_package(Qt5 QUIET COMPONENTS Test)
@@ -79,6 +85,56 @@ if(Qt5Test_FOUND)
   # 提供的普通实现（该 shim 已编译进 perception_ui）。
   if(DEFINED _perception_py_debug_lib)
     target_link_options(subwindow_view_test PRIVATE
+      "/NODEFAULTLIB:${_perception_py_debug_lib}"
+      "/alternatename:__imp__Py_NegativeRefcount=_Py_NegativeRefcount"
+      "/alternatename:__imp__Py_INCREF_IncRefTotal=_Py_INCREF_IncRefTotal"
+      "/alternatename:__imp__Py_DECREF_DecRefTotal=_Py_DECREF_DecRefTotal"
+    )
+  endif()
+
+  # 010-panel-layout-settings：面板布局设置对话框交互单测（US1~US3；
+  # FR-002/004/006/007；QApplication + QtTest；QSettings 隔离到临时目录，不污染用户配置）。
+  add_executable(panel_settings_dialog_test panel_settings_dialog_test.cpp)
+  target_link_libraries(panel_settings_dialog_test PRIVATE perception_ui perception_core Qt5::Test)
+  add_test(NAME panel_settings_dialog_test COMMAND panel_settings_dialog_test)
+  if(DEFINED _perception_py_debug_lib)
+    target_link_options(panel_settings_dialog_test PRIVATE
+      "/NODEFAULTLIB:${_perception_py_debug_lib}"
+      "/alternatename:__imp__Py_NegativeRefcount=_Py_NegativeRefcount"
+      "/alternatename:__imp__Py_INCREF_IncRefTotal=_Py_INCREF_IncRefTotal"
+      "/alternatename:__imp__Py_DECREF_DecRefTotal=_Py_DECREF_DecRefTotal"
+    )
+  endif()
+
+  # 010-panel-layout-settings：临时诊断——保存四种模式下的弹窗截图（验证预览图与用户
+  # 示意图一致；非 CTest 用例，手动运行生成 PNG）。
+  add_executable(panel_mode_preview_diag panel_mode_preview_diag.cpp)
+  target_link_libraries(panel_mode_preview_diag PRIVATE perception_ui perception_core)
+  if(DEFINED _perception_py_debug_lib)
+    target_link_options(panel_mode_preview_diag PRIVATE "/NODEFAULTLIB:${_perception_py_debug_lib}")
+  endif()
+
+  # 010-panel-layout-settings：嵌入式 PyShell 分隔条拖拽方向交互单测（*Only 非全宽；
+  # 回归：startHeight + delta 曾导致向上拖变小/向下拖变大，方向反了）。
+  add_executable(embedded_console_sash_test embedded_console_sash_test.cpp)
+  target_link_libraries(embedded_console_sash_test PRIVATE perception_ui perception_core Qt5::Test)
+  add_test(NAME embedded_console_sash_test COMMAND embedded_console_sash_test)
+  if(DEFINED _perception_py_debug_lib)
+    target_link_options(embedded_console_sash_test PRIVATE
+      "/NODEFAULTLIB:${_perception_py_debug_lib}"
+      "/alternatename:__imp__Py_NegativeRefcount=_Py_NegativeRefcount"
+      "/alternatename:__imp__Py_INCREF_IncRefTotal=_Py_INCREF_IncRefTotal"
+      "/alternatename:__imp__Py_DECREF_DecRefTotal=_Py_DECREF_DecRefTotal"
+    )
+  endif()
+
+  # 010-panel-layout-settings：PyShell 分离后恢复对应当前模式交互单测（回归：
+  # *Only 模式下 Re-dock 曾停在"底部全宽 dock"的初始布局形态，需自动收回嵌入式窄条）。
+  add_executable(python_dock_restore_test python_dock_restore_test.cpp)
+  target_link_libraries(python_dock_restore_test PRIVATE perception_ui perception_core Qt5::Test)
+  add_test(NAME python_dock_restore_test COMMAND python_dock_restore_test)
+  if(DEFINED _perception_py_debug_lib)
+    target_link_options(python_dock_restore_test PRIVATE
       "/NODEFAULTLIB:${_perception_py_debug_lib}"
       "/alternatename:__imp__Py_NegativeRefcount=_Py_NegativeRefcount"
       "/alternatename:__imp__Py_INCREF_IncRefTotal=_Py_INCREF_IncRefTotal"

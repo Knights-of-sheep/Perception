@@ -25,13 +25,17 @@ class QTreeWidget;
 #include <QRect>
 #include <QVector>
 
+#include "ui/panellayout/panel_layout_config.h"  // 010-panel-layout-settings：布局配置单一事实源
+
 namespace perception {
 namespace ui {
 
 class PythonConsole;  // 前向声明须与定义同名空间（类在 perception::ui 内）
 class SubwindowContainer;  // 004-dock-layout-manager：中央区域子窗口容器
 class SubwindowView;
+class DockTitleBar;        // dock 标题栏（setConsoleFullWidth 驱动其"恢复嵌入式"态）
 class LayoutSettingsDialog;
+class PanelSettingsDialog;  // 010-panel-layout-settings：面板布局设置对话框
 class WindowMaximizeController;  // 005-multi-screen-maximize：多屏最大化/还原
 class DockDragOverlay;           // Dock 拖拽 / 分隔条拖拽高亮
 class LogSettingsController;     // 日志级别矩阵 / 路径 / 清除历史
@@ -55,9 +59,17 @@ public slots:
     // 返回生成的窗口 id（"Plot_" + 全局递增序号）
     QString createSubwindow(const QString& title);
     void openLayoutSettings();     // 打开布局设置界面（US5 统一入口）
+    void openPanelSettings();      // 010-panel-layout-settings：打开面板布局设置（FR-001）
     void showHiddenSubwindows();   // 恢复全部"隐藏"的子窗口（View 菜单）
     // 004-dock-layout-manager：暴露子窗口容器（快照模式用——触发首个 subwindow 选中以展示高亮）
     perception::ui::SubwindowContainer* centralContainer() const { return subwindowContainer_; }
+    // 010-panel-layout-settings：按配置重排三面板（模式→区域 FR-003 + 显隐 expand FR-005）。
+    // 用于对话框实时预览（US3）/ OK 持久化生效（US1）/ 启动恢复（SC-005）/ 快照模式。
+    void applyPanelLayout(const PanelLayoutConfig& cfg);
+    // 010-panel-layout-settings：PyShell 全宽覆盖（*Only 嵌入式模式的"最大化/恢复"）。
+    // fullWidth=true → 嵌入式窄条临时展开为全尺寸底部 dock；false → 收回嵌入式。
+    // 由嵌入式标题栏最大化按钮与 dock 标题栏"恢复"按钮驱动。
+    void setConsoleFullWidth(bool fullWidth);
 
 public:
     // Dock 拖拽高亮（VSCode 风格分割线指示）：由 DockTitleBar 拖拽回调驱动，转发给控制器
@@ -115,6 +127,13 @@ private:
     void setContainerFullscreen(bool on);
     bool isContainerFullscreen() const { return containerFullscreen_; }
 
+    // 010-panel-layout-settings：PyShell 宿主切换。
+    // embedded=true  → 非全尺寸（*Only）：PyShell 嵌入中央区下方窄条（两侧面板保持全高）
+    // embedded=false → 全尺寸（*WithConsole）：PyShell 挂回底部 dock（全宽）
+    void setConsoleEmbedded(bool embedded);
+    // 010-panel-layout-settings：当前生效的面板配置（最近一次应用/持久化回读）
+    PanelLayoutConfig currentPanelLayoutConfig() const { return lastPanelLayoutConfig_; }
+
     // 动作
     QAction* openAction_ = nullptr;
     QAction* exportAction_ = nullptr;
@@ -125,6 +144,7 @@ private:
     // 004-dock-layout-manager：视图菜单
     QAction* newSubwindowAction_ = nullptr;      // 新建子窗口（FR-001/002）
     QAction* layoutSettingsAction_ = nullptr;    // 布局设置入口（US5）
+    QAction* panelSettingsAction_ = nullptr;     // 010：面板布局设置入口（View 菜单，FR-001）
     QAction* toggleFullscreenAction_ = nullptr;  // 全屏：中间区域扩展至整个主界面（侧边栏按钮）
     QAction* showHiddenSubwindowsAction_ = nullptr;  // 恢复"隐藏"的子窗口
     QAction* aboutAction_ = nullptr;
@@ -153,7 +173,19 @@ private:
     // Dock / 中央
     QDockWidget* fileDock_ = nullptr;
     QDockWidget* propertyDock_ = nullptr;
-    QDockWidget* pythonDock_ = nullptr;    // 底部：Python 控制台
+    QDockWidget* pythonDock_ = nullptr;    // 底部：Python 控制台（全尺寸宿主，*WithConsole）
+    // 010-panel-layout-settings：PyShell 双宿主（非全尺寸 *Only 嵌入中央下方窄条）。
+    // pythonConsoleContainer_ 是 PyShell 内容（可在 dock 与嵌入式槽位间 reparent），
+    // pythonConsoleWrapper_ 为 dock 模式下的 wrapWithSizeGrip 包装（单例复用）。
+    QWidget* pythonConsoleContainer_ = nullptr;
+    QWidget* pythonConsoleWrapper_ = nullptr;
+    QWidget* consoleEmbeddedHost_ = nullptr;  // 中央区底部嵌入式 PyShell 槽位
+    DockTitleBar* pythonDockTitleBar_ = nullptr;  // pythonDock 标题栏（全宽覆盖态驱动）
+    QToolButton* embedMaxBtn_ = nullptr;   // 嵌入式标题栏：最大化/恢复（嵌入式 ↔ 全尺寸 dock）
+    QToolButton* embedFloatBtn_ = nullptr; // 嵌入式标题栏：分离浮动
+    QToolButton* embedCloseBtn_ = nullptr; // 嵌入式标题栏：关闭（隐藏）
+    bool consoleEmbeddedActive_ = false;      // PyShell 内容当前是否在嵌入式槽位（toggle 用）
+    bool consoleFullWidthOverride_ = false;   // *Only 模式下 PyShell 临时全宽覆盖态
     // Dock 拖拽高亮 / 分隔条拖拽高亮控制器（006 提取）
     DockDragOverlay* dockDragOverlay_ = nullptr;
     PythonConsole* pythonConsole_ = nullptr;
@@ -165,6 +197,9 @@ private:
     // 004-dock-layout-manager：子窗口容器与全屏状态
     SubwindowContainer* subwindowContainer_ = nullptr;
     LayoutSettingsDialog* layoutSettingsDialog_ = nullptr;  // 单例对话框（无模式）
+    // 010-panel-layout-settings：面板布局设置对话框（单例无模式；US1~US3）
+    PanelSettingsDialog* panelSettingsDialog_ = nullptr;
+    PanelLayoutConfig lastPanelLayoutConfig_;  // 最近一次应用的面板配置（启动回读/对话框初始值）
     bool containerFullscreen_ = false;  // 全屏中（三个 Dock 隐藏，容器扩展占满主界面）
     QVector<bool> docksVisibleBeforeFullscreen_;  // 全屏前各 Dock 显隐，退出时恢复
     int subwindowSeq_ = 0;  // 子窗口标题序号（plot_1、plot_2、…，全局递增不回退）

@@ -267,6 +267,31 @@ QWidget#dockTitleBar {
     border-bottom: 1px solid @borderWeak@;
     min-height: 26px;
 }
+/* 010：嵌入式 PyShell 顶部可拖拽边界（*Only 非全尺寸模式，与 Plot 的分界）。
+   6 个点 handle、1px 分隔线、hover/拖拽 WindowText 高亮均由 EmbeddedConsoleSash
+   代码绘制；这里只把 sash 背景设为透明，让标题栏背景自然透出。 */
+QWidget#consoleSash {
+    background-color: transparent;
+}
+/* 010：嵌入式 PyShell 槽位整体——左右下三边 1px 边框（与 dockWrapContainer 一致），
+   顶部边框由标题栏内的 consoleSash 绘制；形成完整外框。
+   注意：不要用 "border: 1px solid @border@; border-top: none;" 简写+覆盖组合——
+   Qt QSS 解析该组合时会把整条 border 丢弃（QTBUG 历史行为），左右下三边也会消失；
+   必须逐边显式声明。 */
+QWidget#consoleEmbeddedHost {
+    background-color: @panelBg@;
+    border-left: 1px solid @border@;
+    border-right: 1px solid @border@;
+    border-bottom: 1px solid @border@;
+}
+/* 010：嵌入式槽位内的标题栏——顶部边框由 consoleSash 承担，左右边框由 host 承担，
+   避免双线；底部保留 1px 分隔（与内容区分界）。同样逐边声明（见上注释）。 */
+QWidget#consoleEmbeddedHost QWidget#dockTitleBar {
+    border-top: 0px solid transparent;
+    border-left: 0px solid transparent;
+    border-right: 0px solid transparent;
+    border-bottom: 1px solid @borderWeak@;
+}
 /* 停靠/浮动标题栏统一完整外框：QDockWidget 自身 border 在 QMainWindow 内不绘制，
    dock 外缘由标题栏顶/左/右边框与内容 widget 自身边框衔接成完整窗口轮廓；
    底部 @borderWeak@ 为标题栏与内容区的分隔线（008 修订：docked 态补齐三边外框） */
@@ -527,6 +552,76 @@ QDialog#layoutSettingsDialog QRadioButton::indicator:disabled {
 QDialog#layoutSettingsDialog QRadioButton::indicator:checked:disabled {
     border-color: @borderWeak@;
     background: @borderWeak@;
+}
+
+/* ===== 面板设置对话框（010-panel-layout-settings：US1~US3）===== */
+/* 四模式分段按钮组：选中 = accent 底，遵循 §4.1 覆盖矩阵（normal/hover/checked/disabled） */
+QDialog#panelSettingsDialog QLabel {
+    color: @text@;
+}
+QDialog#panelSettingsDialog QPushButton#panelModeButton {
+    background-color: @controlBg@;
+    color: @text@;
+    border: 1px solid @border@;
+    border-radius: 4px;
+    padding: 5px 10px;
+}
+QDialog#panelSettingsDialog QPushButton#panelModeButton:hover {
+    background-color: @buttonHover@;
+    border-color: @accent@;
+}
+QDialog#panelSettingsDialog QPushButton#panelModeButton:checked {
+    background-color: @accent@;
+    color: @textOnAccent@;
+    border-color: @accent@;
+}
+QDialog#panelSettingsDialog QPushButton#panelModeButton:checked:hover {
+    background-color: @accentHover@;
+}
+QDialog#panelSettingsDialog QPushButton#panelModeButton:disabled {
+    color: @textDisabled@;
+    background-color: @surfaceElev@;
+    border-color: @borderWeak@;
+}
+/* 三面板显隐开关（QCheckBox indicator 深色主题可辨识） */
+QDialog#panelSettingsDialog QCheckBox {
+    color: @text@;
+    spacing: 6px;
+}
+QDialog#panelSettingsDialog QCheckBox::indicator {
+    width: 14px;
+    height: 14px;
+    border: 2px solid @border@;
+    border-radius: 4px;
+    background: @controlBg@;
+}
+QDialog#panelSettingsDialog QCheckBox::indicator:hover {
+    border-color: @accent@;
+}
+QDialog#panelSettingsDialog QCheckBox::indicator:checked {
+    border: 2px solid @accent@;
+    background: @accent@;
+}
+QDialog#panelSettingsDialog QCheckBox::indicator:disabled {
+    border-color: @borderWeak@;
+    background: @surfaceElev@;
+}
+/* 实时示意图（自绘，背景由 paintEvent 按 @viewBg@ 绘制，此处兜底） */
+QDialog#panelSettingsDialog #panelPreviewWidget {
+    background-color: @viewBg@;
+    border: 1px solid @border@;
+}
+/* 底部按钮条：OK 为主操作（accent 底），Defaults / Cancel 走全局按钮样式 */
+QDialog#panelSettingsDialog QPushButton#panelOkButton {
+    background-color: @accent@;
+    color: @textOnAccent@;
+    border-color: @accent@;
+}
+QDialog#panelSettingsDialog QPushButton#panelOkButton:hover {
+    background-color: @accentHover@;
+}
+QDialog#panelSettingsDialog QPushButton#panelOkButton:pressed {
+    background-color: @accentPressed@;
 }
 
 /* ===== Python 控制台（底部 Dock，内嵌 REPL）===== */
