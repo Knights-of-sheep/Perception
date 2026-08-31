@@ -39,6 +39,17 @@ std::shared_ptr<IReader> ReaderRegistry::findByPath(const std::string& path) con
     return nullptr;
 }
 
+std::vector<std::string> ReaderRegistry::registeredExtensions() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::vector<std::string> result;
+    for (const auto& reader : readers_) {
+        const auto exts = reader->extensions();
+        result.insert(result.end(), exts.begin(), exts.end());
+    }
+    return result;
+}
+
 std::shared_ptr<ICurveReader> ReaderRegistry::findCurveReader(
     const std::string& path) const
 {

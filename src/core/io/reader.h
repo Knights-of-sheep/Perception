@@ -53,6 +53,9 @@ public:
     std::shared_ptr<ICurveReader> findCurveReader(const std::string& path) const;
     std::shared_ptr<IStructureReader> findStructureReader(const std::string& path) const;
 
+    // 已注册读取器的全部扩展名（小写、含点；供权威目录一致性校验，FR-011）。
+    std::vector<std::string> registeredExtensions() const;
+
 private:
     ReaderRegistry() = default;
     mutable std::mutex mutex_;

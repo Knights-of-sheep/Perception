@@ -29,6 +29,7 @@ private:
 class CommandServiceImpl : public ICommandService {
 public:
     std::string createWindow(const std::string& title) override;
+    py::object supportedFormats() override;
     py::object load(const std::string& path) override;
     py::object transform(py::object ds, const std::string& name,
                          py::kwargs kwargs) override;

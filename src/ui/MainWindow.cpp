@@ -3,6 +3,9 @@
 // 规范：docs/design/ui-guidelines.md §5 布局范式 / §6 交互规范。
 #include "ui/MainWindow.h"
 #include "ui/frameless_dialog.h"
+
+#include "core/io/file_type_catalog.h"
+
 #include "ui/log/log_settings_controller.h"
 #include "ui/maximize/window_maximize_controller.h"
 #include "ui/subwindow/dock_drag_overlay.h"
@@ -569,14 +572,36 @@ void MainWindow::updateEmptyHints() {
 
 // ---- 打开文件 ----
 void MainWindow::openFile() {
+    // 009-supported-file-types：过滤串由文件类型权威目录派生（FR-006/FR-009-变更）；
+    // 覆盖目录全量条目（含「规划中」.tdr/.dat/VTK 系列/.h5，供对话框发现与核对），
+    // 规划中格式选中后由加载路径按「不支持」提示。单一事实来源：格式变更只改
+    // src/core/io/file_type_catalog.h，此处禁手抄。
+    const QString filter = [this]() {
+        QStringList parts;
+        for (const auto& g : perception::core::io::FileTypeCatalog::filterGroups()) {
+            QStringList patterns;
+            for (const auto& p : g.patterns) {
+                patterns << QString::fromUtf8(p.c_str());
+            }
+            QString label;
+            if (g.familyKey == "VTK") {
+                label = tr("VTK Files");
+            } else if (g.familyKey == "SVisual") {
+                label = tr("SVisual Files");
+            } else if (g.familyKey == "HDF5") {
+                label = tr("HDF5 Files");
+            } else if (g.familyKey == "Curve Data") {
+                label = tr("Curve Data");
+            } else {
+                label = QString::fromUtf8(g.familyKey.c_str());
+            }
+            parts << tr("%1 (%2)").arg(label, patterns.join(QLatin1Char(' ')));
+        }
+        parts << tr("All Files (*)");
+        return parts.join(QLatin1String(";;"));
+    }();
     const QString file = runThemedFileDialog(this, tr("Open Data File"),
-        QDir::currentPath(),
-        tr("VTK Files (*.vtk *.vti *.vtp *.vtu *.vts *.vtr);;"
-           "SVisual Files (*.plt *.tdr);;"
-           "HDF5 Files (*.h5 *.hdf5);;"
-           "Curve Data (*.csv *.dat);;"
-           "All Files (*)"),
-        FileDialogMode::Open);
+        QDir::currentPath(), filter, FileDialogMode::Open);
     if (file.isEmpty()) return;
 
     addFileToTree(file);

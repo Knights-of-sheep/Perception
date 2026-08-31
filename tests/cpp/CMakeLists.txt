@@ -42,6 +42,12 @@ add_executable(logger_test logger_test.cpp)
 target_link_libraries(logger_test PRIVATE perception_core)
 add_test(NAME logger_test COMMAND logger_test)
 
+# 009-supported-file-types：文件类型权威目录单测（FR-002/003/006/008~012；
+# 仅依赖 perception_core，无 GUI 依赖，红-绿 TDD）。
+add_executable(file_type_catalog_test file_type_catalog_test.cpp)
+target_link_libraries(file_type_catalog_test PRIVATE perception_core)
+add_test(NAME file_type_catalog_test COMMAND file_type_catalog_test)
+
 # ===== GUI 相关测试（PERCEPTION_BUILD_GUI=ON 时启用）=====
 # 004/005 引入的 UI 测试均链接 perception_ui（含 QSS 资源与 ui/* 头）。
 # build.ps1 不带 -Gui 时 PERCEPTION_BUILD_GUI=OFF，perception_ui 目标不存在，
