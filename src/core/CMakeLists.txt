@@ -10,6 +10,7 @@ add_library(perception_core STATIC
   io/reader.cpp
   io/plt_reader.cpp
   io/csv_reader.cpp
+  io/file_type_catalog.cpp
   process/transform.cpp
   event/event_bus.cpp
   log/log_level.cpp

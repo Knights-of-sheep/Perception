@@ -17,7 +17,9 @@
 - **内嵌 Python REPL**：CPython 3.13 + pybind11；表达式自动求值、多行续行、语法/运行时 traceback、多行粘贴即执行、导出 / 清空
 - **统一日志**：彩色终端输出 + Qt 消息重定向（`qDebug/qWarning` 汇入同一流）
 - **图标体系**：59 枚功能图标采用 Google Material Icons Outlined（Apache-2.0，本地化 SVG 源）+ 多尺寸 PNG/ICO，按功能区映射到菜单 / 工具栏 / 文件类型
-- **打开文件过滤**：VTK（`*.vtk *.vti *.vtp *.vtu *.vts *.vtr`）/ SVisual（`*.plt *.tdr`）/ HDF5（`*.h5 *.hdf5`）/ 曲线（`*.csv *.dat`）
+<!-- sync_file_types:start -->
+- **打开文件过滤**：VTK（`*.vtk *.vti *.vtp *.vtu *.vts *.vtr *.vtm *.vtmb *.vth *.vto *.pvti *.pvtp *.pvtu *.pvts *.pvtr *.pvtm *.pvd`） / SVisual（`*.plt *.tdr`） / HDF5（`*.h5 *.hdf5`） / 曲线（`*.csv *.dat *.plt`）
+<!-- sync_file_types:end -->
 
 ## 工程架构
 

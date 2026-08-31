@@ -101,6 +101,9 @@ PYBIND11_MODULE(perception_py, m) {
         .def("create_window",
              &perception::python::CommandServiceImpl::createWindow,
              py::arg("title") = std::string())
+        // 009-supported-file-types：只读查询（契约 python-supported-formats.md）
+        .def("supported_formats",
+             &perception::python::CommandServiceImpl::supportedFormats)
         .def("load", &perception::python::CommandServiceImpl::load, py::arg("path"))
         .def("transform", &perception::python::CommandServiceImpl::transform,
              py::arg("ds"), py::arg("name"))

@@ -19,7 +19,8 @@
 src/
 ├─ core/                数据核心（无 UI/渲染依赖，可独立单测）
 │  ├─ model/            格式无关数据模型：曲线（IDataSet/Curve）+ 结构（IStructure/FieldData）
-│  ├─ io/               格式读取器 + 注册表：.plt/.csv/.dat 曲线；.tdr 结构
+│  ├─ io/               格式读取器 + 注册表 + 文件类型权威目录（file_type_catalog.h，
+│  │                     宪法「文件格式范围」唯一事实来源：打开过滤/文档/查询均由此派生）
 │  ├─ process/          数据处理：变换管道（resample / unit_scale / 投影）
 │  └─ event/            事件总线（发布-订阅）：数据变更 → 渲染 / UI 更新
 ├─ render/              渲染层：VTK Charts 2D 曲线 + 色板（订阅事件，不轮询）
@@ -32,7 +33,7 @@ src/
 │  │                     console/python_bridge（PythonConsole 的 CPython 胶水层）+
 │  │                     theme/theme_catalog_{types,dark,light,hc}（主题色板分层）
 ├─ app/                 入口：main.cpp（内嵌 Python 解释器，接线命令驱动）
-└─ python/              pybind 命令驱动层：load_plt / transform / query / export
+└─ python/              pybind 命令驱动层：load_plt / transform / query / export / supported_formats
 tests/
 ├─ cpp/                 C++ 单元测试（CTest，core 层，无头可跑）
 └─ python/              pytest（命令层，M5 起依赖 perception_py）
@@ -77,7 +78,31 @@ tests/
 ## 5. 关键设计约束
 
 - **前后端分离**：ui 只持有展示抽象（`ICurveChart`），不直接操作 VTK / core 数据内部
-- **格式可扩展**：新曲线格式 = 新增 `ICurveReader` 并注册；新结构格式 = 新增 `IStructureReader`；核心与消费者零改动
+- **格式可扩展**：新曲线格式 = 新增 `ICurveReader` 并注册；新结构格式 = 新增 `IStructureReader`；核心与消费者零改动。格式范围以 `core/io/file_type_catalog.h` 为唯一事实来源（单一来源原则）：打开过滤、文档清单、`supported_formats` 查询全部由目录派生，一致性由 ctest `file_type_catalog_test`（supported⇄注册表对称差）与 `scripts/sync_file_types.py --check` 门禁
+- **文件格式范围**：见下表（由 `scripts/sync_file_types.py` 按目录生成，禁止手抄）
 - **命令驱动**：所有增删改查数据必须经 `perception_py`；纯 UI 变化（布局/主题/面板）例外
 - **安全**：io 层统一路径校验 + 大小上限（`ReadOptions::maxBytes`）；错误以异常抛出，不崩 UI/Python
 - **测试**：core 逻辑在 `tests/cpp`（CTest）；命令链路在 `tests/python`（pytest），两条线在合并前都必须绿
+
+### 文件格式范围（唯一事实来源）
+
+<!-- sync_file_types:start -->
+| 格式名称 | 扩展名 | 数据种类 | 状态 |
+|---|---|---|---|
+| VTK Legacy | `.vtk` | 结构 | 规划中 |
+| VTK Image Data | `.vti` | 结构 | 规划中 |
+| VTK Polygonal Data | `.vtp` | 结构 | 规划中 |
+| VTK Unstructured Grid | `.vtu` | 结构 | 规划中 |
+| VTK Structured Grid | `.vts` | 结构 | 规划中 |
+| VTK Rectilinear Grid | `.vtr` | 结构 | 规划中 |
+| VTK MultiBlock | `.vtm` `.vtmb` | 结构 | 规划中 |
+| VTK HyperTreeGrid | `.vth` | 结构 | 规划中 |
+| VTK Overlapping AMR | `.vto` | 结构 | 规划中 |
+| VTK Parallel XML | `.pvti` `.pvtp` `.pvtu` `.pvts` `.pvtr` `.pvtm` | 结构 | 规划中 |
+| ParaView Collection | `.pvd` | 结构 | 规划中 |
+| SVisual 曲线数据 | `.plt` | 曲线 | 已支持 |
+| SVisual 结构数据 | `.tdr` | 结构 | 规划中 |
+| HDF5 数据 | `.h5` `.hdf5` | 双用途 | 规划中 |
+| CSV 曲线数据 | `.csv` | 曲线 | 已支持 |
+| 通用曲线数据 | `.dat` | 双用途 | 规划中 |
+<!-- sync_file_types:end -->

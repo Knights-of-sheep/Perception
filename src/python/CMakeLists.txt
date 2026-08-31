@@ -68,9 +68,14 @@ perception_configure_pyd(perception_console)
 # 回调经虚接口（IOutputSink/ILogBridge）转发，pyd 不直接依赖 core/UI
 
 # ---- perception_py：命令层模块（ICommandService 骨架 + create_window 真实命令）----
+# 009-supported-file-types：命令层经 FileTypeCatalog 提供只读查询（supported_formats），
+# 因此首次直接链接 perception_core（core 无 UI/VTK 依赖，静态并入 pyd 无 Qt 运行时
+# 负担；宪法「命令驱动层 = 数据 CRUD 唯一入口」，M5 数据命令同样需要 core）。
+# 注意：仅 perception_py 依赖 core；perception_console 仍保持零依赖（回调虚接口转发）。
 add_library(perception_py MODULE
   command/command_module.cpp
   command/command_service.cpp
   command/registry.cpp
 )
 perception_configure_pyd(perception_py)
+target_link_libraries(perception_py PRIVATE perception_core)
