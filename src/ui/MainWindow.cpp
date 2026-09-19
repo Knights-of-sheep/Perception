@@ -357,6 +357,9 @@ void MainWindow::resetLayout() {
     consoleFullWidthOverride_ = false;
     if (pythonDockTitleBar_) pythonDockTitleBar_->setFullWidthConsole(false);
     setConsoleEmbedded(false);
+    // 010-panel-layout-settings：*Only 模式 reset 回默认 DualWithConsole 时，
+    // 必须同步隐藏中央区嵌入式槽位，否则空 host 外框会与底部全宽 dock 同时出现。
+    if (consoleEmbeddedHost_) consoleEmbeddedHost_->setVisible(false);
     removeDockWidget(fileDock_);
     removeDockWidget(propertyDock_);
     removeDockWidget(pythonDock_);
