@@ -32,5 +32,5 @@
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
-- Spec is documentation-only; no code/test changes required. FR-006 (doc-script sync) should be added to PR review checklist as a gate (tracked under constitution 质量门禁 spirit).
+- Scope expanded via clarification (2026-09-19): now includes (a) useless-script audit+deletion flow (FR-008) and (b) new test helper scripts under `tests/` plus a "测试" doc section (FR-009/FR-010). FR-006 (doc-script sync) should be added to PR review checklist as a gate (constitution 质量门禁 spirit).
 - Placement note: doc lives in `scripts/` per explicit user request; optional cross-link from root `README.md` recommended for consistency with constitution 工作流规则.
