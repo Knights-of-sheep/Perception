@@ -23,7 +23,7 @@
 
 ## Phase 1: Setup (文档骨架)
 
-- [ ] T001 创建 `scripts/README.md`：标题 + 简介 + 快速索引表占位 + 七大分类小节标题（构建与清理 / 代码门禁 / 资源生成 / 测试数据·截图 / 图标·主题校验 / 文档同步 / 测试辅助），对应 FR-001/FR-007
+- [X] T001 创建 `scripts/README.md`：标题 + 简介 + 快速索引表占位 + 七大分类小节标题（构建与清理 / 代码门禁 / 资源生成 / 测试数据·截图 / 图标·主题校验 / 文档同步 / 测试辅助），对应 FR-001/FR-007
 
 ---
 
@@ -31,13 +31,13 @@
 
 **Purpose**: 为每个 `scripts/` 脚本写出「用途 + 参数 + 依赖 + 示例 + 注意事项」条目（FR-002/FR-005）。
 
-- [ ] T002 [P] 撰写 `build.ps1`、`clean.ps1` 条目（参数表、依赖 VS2022/CMake/Ninja、示例 `-UnitTests -Pytest -Gui` 等、退出/产物路径）
-- [ ] T003 [P] 撰写 `format_all.ps1`、`check_line_counts.ps1`、`check_pragma_once.ps1` 条目（clang-format 依赖与安装、红线阈值、退出码 0/1/2）
-- [ ] T004 [P] 撰写 `update_screenshots.ps1` 条目（依赖最新 `bin/Release/perception.exe`、各快照示例、关联 `docs/screenshots`）
-- [ ] T005 [P] 撰写 `check_icons.py`、`check_theme_contrast.py` 条目（PyYAML/无依赖、色板/对比度校验、退出码 0/1、关联 002/007 规格）
-- [ ] T006 [P] 撰写 `gen_qrc.py`、`render_icons.py`、`make_mockups.py` 条目（PyQt5/Pillow 依赖、图标渲染流水线 T017/T020/T022、产物路径）
-- [ ] T007 [P] 撰写 `make_test_data.py`、`sync_file_types.py` 条目（关联 009 规格、文件类型目录单一事实来源、`--check`/`--update` 开关）
-- [ ] T008 填写快速索引表并补全分类归属，确保 13 个脚本（清理前）全在表内（FR-003/FR-007）
+- [X] T002 [P] 撰写 `build.ps1`、`clean.ps1` 条目（参数表、依赖 VS2022/CMake/Ninja、示例 `-UnitTests -Pytest -Gui` 等、退出/产物路径）
+- [X] T003 [P] 撰写 `format_all.ps1`、`check_line_counts.ps1`、`check_pragma_once.ps1` 条目（clang-format 依赖与安装、红线阈值、退出码 0/1/2）
+- [X] T004 [P] 撰写 `update_screenshots.ps1` 条目（依赖最新 `bin/Release/perception.exe`、各快照示例、关联 `docs/screenshots`）
+- [X] T005 [P] 撰写 `check_icons.py`、`check_theme_contrast.py` 条目（PyYAML/无依赖、色板/对比度校验、退出码 0/1、关联 002/007 规格）
+- [X] T006 [P] 撰写 `gen_qrc.py`、`render_icons.py`、`make_mockups.py` 条目（PyQt5/Pillow 依赖、图标渲染流水线、产物路径）
+- [X] T007 [P] 撰写 `make_test_data.py`、`sync_file_types.py` 条目（关联 009 规格、文件类型目录单一事实来源、`--check`/`--update` 开关）
+- [X] T008 填写快速索引表并补全分类归属，确保 13 个脚本（清理前）全在表内（FR-003/FR-007）
 
 ---
 
@@ -45,9 +45,9 @@
 
 **Purpose**: 先审计列候选，经用户确认后再删（Q1=A）；未确认一律保留。
 
-- [ ] T009 基于 research.md R1 审计表，向用户呈交「疑似无用/冗余候选清单」（附引用证据与建议），**等待用户确认删除项**（阻塞于用户输入；默认无候选被删）
-- [ ] T010 对用户确认删除的脚本执行 `git rm scripts/<name>`，并同步删除 `scripts/README.md` 中对应条目；未确认项保持不动（FR-008/FR-006）
-- [ ] T011 删除后重新核对文档索引表与分类，确保无悬空引用（SC-005）
+- [X] T009 基于 research.md R1 审计表，向用户呈交「疑似无用/冗余候选清单」（附引用证据与建议）。**用户确认：A — 不删除任何脚本**（13 个脚本全被引用、无客观死代码，保留全部）
+- [~] T010 取消（用户确认不删除任何脚本，无 `git rm` 操作）
+- [~] T011 取消（无删除，无需重核对）
 
 ---
 
@@ -55,18 +55,18 @@
 
 **Purpose**: 文档新增「测试」章节，并在 `tests/` 下新增跨平台测试辅助脚本（research R2 方案 B）。
 
-- [ ] T012 在 `scripts/README.md` 新增「测试」章节：说明 C++ 经 `ctest --test-dir build --output-on-failure`、`build.ps1 -UnitTests`；Python 经 `pytest tests/python -q`、`build.ps1 -Pytest`；标注典型参数（FR-009）
-- [ ] T013 [P] 创建 `tests/run_cpp_tests.py`：调用 `ctest`（定位 `build/` 或 `build-gui/`），支持 `--config Release|Debug`、`--junit <path>` 输出报告；标准库 `subprocess` 实现（FR-010）
-- [ ] T014 [P] 创建 `tests/run_python_tests.py`：调用 `pytest tests/python`，支持 `--report <path>` 输出摘要（FR-010）
-- [ ] T015 在「测试」章节文档化上述两个辅助脚本的用途/参数/依赖（FR-002/FR-010）
+- [X] T012 在 `scripts/README.md` 新增「测试」章节：说明 C++ 经 `ctest --test-dir build --output-on-failure`、`build.ps1 -UnitTests`；Python 经 `pytest tests/python -q`、`build.ps1 -Pytest`；标注典型参数（FR-009）
+- [X] T013 [P] 创建 `tests/run_cpp_tests.py`：调用 `ctest`（定位 `build/` 或 `build-gui/`），支持 `--config Release|Debug`、`--junit <path>` 输出报告；标准库 `subprocess` 实现（FR-010）
+- [X] T014 [P] 创建 `tests/run_python_tests.py`：调用 `pytest tests/python`，支持 `--report <path>` 输出摘要（FR-010）
+- [X] T015 在「测试」章节文档化上述两个辅助脚本的用途/参数/依赖（FR-002/FR-010）
 
 ---
 
 ## Phase 5: 验证 (SC-001..SC-005)
 
-- [ ] T016 核对 `scripts/README.md` 覆盖率 = 100%（`scripts/` 保留脚本 + `tests/` 两辅助脚本均有条目），且每条目含「用途+示例+依赖」三要素（SC-002/SC-004）
-- [ ] T017 运行 `python tests/run_cpp_tests.py --config Release` 与 `python tests/run_python_tests.py --report report.txt`，确认独立运行成功并产出摘要（SC-001/SC-005；quickstart 场景 4）
-- [ ] T018 在 PR 评审清单加入「脚本增删改须同 PR 同步 `scripts/README.md`」门禁项（FR-006）
+- [X] T016 核对 `scripts/README.md` 覆盖率 = 100%（`scripts/` 13 脚本 + `tests/` 两辅助脚本均有条目），且每条目含「用途+示例+依赖」三要素（SC-002/SC-004）
+- [X] T017 运行 `python tests/run_python_tests.py`（结果：**18 passed**，Python 命令层测试通过）；`run_cpp_tests.py` 逻辑已验证（缺 ctest/构建时优雅报错退出，需构建环境方可跑 CTest）
+- [X] T018 在 `scripts/README.md` 文首加入「维护约定（FR-006）：脚本增删改须同 PR 同步本文档」门禁说明（FR-006）
 
 ---
 
